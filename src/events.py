@@ -74,7 +74,7 @@ class Events:
                     uppercols = upperBracketContainer.find_all('div', class_="bracket-col")
                     for col in uppercols:
                         upperBracket.append(self.bracketParser(col))
-                if len(container.find_all('div', class_="bracket-container mod-upper")) == 0:
+                if len(container.find_all('div', class_="bracket-container mod-upper mod-compact")) > 0:
                     upperBracketContainer = container.find_all('div', class_="bracket-container mod-upper mod-compact")[0]
                     uppercols = upperBracketContainer.find_all('div', class_="bracket-col")
                     for col in uppercols:
@@ -100,7 +100,7 @@ class Events:
                 uppercols = upperBracketContainer.find_all('div', class_="bracket-col")
                 for col in uppercols:
                     upperBracket.append(self.bracketParser(col))
-            if len(soup.find_all('div', class_="bracket-container mod-upper")) == 0:
+            if len(soup.find_all('div', class_="bracket-container mod-upper mod-compact")) > 0:
                 upperBracketContainer = soup.find_all('div', class_="bracket-container mod-upper mod-compact")[0]
                 uppercols = upperBracketContainer.find_all('div', class_="bracket-col")
                 for col in uppercols:
@@ -112,7 +112,7 @@ class Events:
                 lowercols = lowerBracketContainer.find_all('div', class_="bracket-col")
                 for col in lowercols:
                     lowerBracket.append(self.bracketParser(col))
-            if len(soup.find_all('div', class_="bracket-container mod-lower")) == 0:
+            if len(soup.find_all('div', class_="bracket-container mod-lower mod-compact")) > 0:
                 lowerBracketContainer = soup.find_all('div', class_="bracket-container mod-lower mod-compact")[0]
                 lowercols = lowerBracketContainer.find_all('div', class_="bracket-col")
                 for col in lowercols:
