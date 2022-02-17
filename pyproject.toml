@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "vlrgg-scraper"
+version = "0.1.0"
+description = "A scraper for vlr.gg"
+authors = ["Akhil Narang <me@akhilnarang.dev>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.73.0"
+httpx = "^0.22.0"
+beautifulsoup4 = "^4.10.0"
+uvicorn = {extras = ["standard"], version = "^0.17.5"}
+gunicorn = "^20.1.0"
+
+[tool.poetry.dev-dependencies]
+black = "^22.1.0"
+isort = "^5.10.1"
+mypy = "^0.931"
+flake8 = "^4.0.1"
+autoflake = "^1.4"
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+line_length = 120
+
+[tool.black]
+line-length = 120
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
