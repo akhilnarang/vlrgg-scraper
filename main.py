@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.gzip import GZipMiddleware
+
 from src.news import News
 from src.matches import Matches
 from src.team import Team
@@ -12,6 +14,8 @@ app = FastAPI(
     description="Almost died while scraping this, but did it.",
     version="0.5",
 )
+
+app.add_middleware(GZipMiddleware)
 
 @app.get("/", tags=["health"])
 async def health_check():
