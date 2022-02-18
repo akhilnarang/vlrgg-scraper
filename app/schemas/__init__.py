@@ -1,1 +1,1 @@
-from .events import Event
+from .events import Event, EventWithDetails

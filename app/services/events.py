@@ -5,7 +5,7 @@ import httpx
 from bs4 import BeautifulSoup, element
 
 from app import schemas
-from app.constants import EVENTS_URL
+from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL, PREFIX
 
 
 async def get_events() -> list[schemas.Event]:
@@ -62,202 +62,244 @@ async def parse_event(event: element.Tag) -> schemas.Event:
     return schemas.Event(id=event_id, title=title, status=status, prize=prize, dates=dates, location=location, img=img)
 
 
-def event(id):
-    event = {}
-    event['id'] = id
-    URL = "https://www.vlr.gg/event/" + id
-    page = requests.get(URL)
-    soup = BeautifulSoup(page.content, 'html.parser')
+async def get_event_by_id(id: str) -> schemas.EventWithDetails:
+    """
+    Function to fetch an event from VLR, and return the parsed response
+    :param id: The event ID
+    :return: The parsed event
+    """
+    events, matches = await asyncio.gather(parse_events_data(id), parse_match_data(id))
+    events["matches"] = matches
+    return schemas.EventWithDetails(**events)
 
-    header = soup.find_all('div', class_="event-header")[0]
-    event['title'] = header.find_all('h1', class_="wf-title")[0].get_text().strip()
-    event['subtitle'] = header.find_all('h2', class_="event-desc-subtitle")[0].get_text().strip()
-    event['dates'] = header.find_all('div',class_='event-desc-item-value')[0].get_text().strip()
-    event['prize'] = header.find_all('div',class_='event-desc-item-value')[1].get_text().strip().replace('\t', '').replace('\n', ' ')
-    event['location'] = header.find_all('div',class_='event-desc-item-value')[2].find_all('i', class_="flag")[0].get('class')[1].replace('mod-', '')
-    img = header.find_all('div',class_='event-header-thumb')[0].find('img')['src']
-    if img == '/img/vlr/tmp/vlr.png':
-        img = "https://vlr.gg" + img
+
+async def parse_events_data(id: str) -> dict:
+    """
+    Function to fetch and parse the data for a given event
+    :param id: The ID of the event
+    :ret: Dict of the parsed data
+    """
+    async with httpx.AsyncClient() as client:
+        response = await client.get(EVENT_URL_WITH_ID.format(id))
+    event: dict[str, str | list] = {"id": id}
+    soup = BeautifulSoup(response.content, "html.parser")
+
+    header = soup.find_all("div", class_="event-header")[0]
+    event["title"] = header.find_all("h1", class_="wf-title")[0].get_text().strip()
+    event["subtitle"] = header.find_all("h2", class_="event-desc-subtitle")[0].get_text().strip()
+    event_desc_item_value = header.find_all("div", class_="event-desc-item-value")
+    event["dates"] = event_desc_item_value[0].get_text().strip()
+    event["prize"] = event_desc_item_value[1].get_text().strip().replace("\t", "").replace("\n", " ")
+    event["location"] = event_desc_item_value[2].find_all("i", class_="flag")[0].get("class")[1].replace("mod-", "")
+
+    if (img := header.find_all("div", class_="event-header-thumb")[0].find("img")["src"]) == "/img/vlr/tmp/vlr.png":
+        event["img"] = "https://www.vlr.gg" + img
     else:
-        img = "https:" + img
-    event['img'] = img
+        event["img"] = "https:" + img
 
-    if len(soup.find_all('table', class_="wf-table")) > 0:
-        prizesTable = soup.find_all('table', class_="wf-table")[-1]
-        event['prizes'] = prizesParser(prizesTable)
+    if prizes_data := soup.find_all("table", class_="wf-table"):
+        event["prizes"] = await prizes_parser(prizes_data[-1])
 
-
-    if len(soup.find_all('div',class_="event-brackets-container")) > 1:
-        bracketContainers = soup.find_all('div',class_="event-brackets-container")
+    if bracket_containers := soup.find_all("div", class_="event-brackets-container"):
         brackets = []
-        for container in bracketContainers:
-            upperBracket = []
-            if len(container.find_all('div', class_="bracket-container mod-upper")) > 0:
-                upperBracketContainer = container.find_all('div', class_="bracket-container mod-upper")[0]
-                uppercols = upperBracketContainer.find_all('div', class_="bracket-col")
-                for col in uppercols:
-                    upperBracket.append(bracketParser(col))
-            if len(container.find_all('div', class_="bracket-container mod-upper")) == 0:
-                upperBracketContainer = container.find_all('div', class_="bracket-container mod-upper mod-compact")[0]
-                uppercols = upperBracketContainer.find_all('div', class_="bracket-col")
-                for col in uppercols:
-                    upperBracket.append(bracketParser(col))
+        for container in bracket_containers:
+            if upper_bracket_container := container.find_all("div", class_="bracket-container mod-upper"):
+                upper_bracket = await asyncio.gather(
+                    *[
+                        bracket_parser(column)
+                        for column in upper_bracket_container[0].find_all("div", class_="bracket-col")
+                    ]
+                )
 
-            lowerBracket = []
-            if len(container.find_all('div', class_="bracket-container mod-lower")) > 0:
-                lowerBracketContainer = container.find_all('div', class_="bracket-container mod-lower")[0]
-                lowercols = lowerBracketContainer.find_all('div', class_="bracket-col")
-                for col in lowercols:
-                    lowerBracket.append(bracketParser(col))
-            if len(container.find_all('div', class_="bracket-container mod-lower")) == 0:
-                lowerBracketContainer = container.find_all('div', class_="bracket-container mod-lower mod-compact")[0]
-                lowercols = lowerBracketContainer.find_all('div', class_="bracket-col")
-                for col in lowercols:
-                    lowerBracket.append(bracketParser(col))
-            brackets.append({ 'upper' : upperBracket, 'lower': lowerBracket })
-        event['bracket'] = brackets
+            elif upper_bracket_container := container.find_all("div", class_="bracket-container mod-upper mod-compact"):
+                upper_bracket = await asyncio.gather(
+                    *[
+                        bracket_parser(column)
+                        for column in upper_bracket_container[0].find_all("div", class_="bracket-col")
+                    ]
+                )
+
+            else:
+                upper_bracket = []
+
+            if lower_bracket_container := container.find_all("div", class_="bracket-container mod-lower"):
+                lower_bracket = await asyncio.gather(
+                    *[
+                        bracket_parser(column)
+                        for column in lower_bracket_container[0].find_all("div", class_="bracket-col")
+                    ]
+                )
+            elif lower_bracket_container := container.find_all("div", class_="bracket-container mod-lower mod-compact"):
+                lower_bracket = await asyncio.gather(
+                    *[
+                        bracket_parser(column)
+                        for column in lower_bracket_container[0].find_all("div", class_="bracket-col")
+                    ]
+                )
+            else:
+                lower_bracket = []
+
+            brackets.append({"upper": upper_bracket, "lower": lower_bracket})
+        event["brackets"] = brackets
+
     else:
-        upperBracket = []
-        if len(soup.find_all('div', class_="bracket-container mod-upper")) > 0:
-            upperBracketContainer = soup.find_all('div', class_="bracket-container mod-upper")[0]
-            uppercols = upperBracketContainer.find_all('div', class_="bracket-col")
-            for col in uppercols:
-                upperBracket.append(bracketParser(col))
-        if len(soup.find_all('div', class_="bracket-container mod-upper")) == 0:
-            upperBracketContainer = soup.find_all('div', class_="bracket-container mod-upper mod-compact")[0]
-            uppercols = upperBracketContainer.find_all('div', class_="bracket-col")
-            for col in uppercols:
-                upperBracket.append(bracketParser(col))
+        if upper_bracket_container := soup.find_all("div", class_="bracket-container mod-upper"):
+            upper_bracket = await asyncio.gather(
+                *[bracket_parser(column) for column in upper_bracket_container[0].find_all("div", class_="bracket-col")]
+            )
+        elif upper_bracket_container := soup.find_all("div", class_="bracket-container mod-upper mod-compact"):
+            upper_bracket = await asyncio.gather(
+                *[bracket_parser(column) for column in upper_bracket_container[0].find_all("div", class_="bracket-col")]
+            )
 
-        lowerBracket = []
-        if len(soup.find_all('div', class_="bracket-container mod-lower")) > 0:
-            lowerBracketContainer = soup.find_all('div', class_="bracket-container mod-lower")[0]
-            lowercols = lowerBracketContainer.find_all('div', class_="bracket-col")
-            for col in lowercols:
-                lowerBracket.append(bracketParser(col))
-        if len(soup.find_all('div', class_="bracket-container mod-lower")) == 0:
-            lowerBracketContainer = soup.find_all('div', class_="bracket-container mod-lower mod-compact")[0]
-            lowercols = lowerBracketContainer.find_all('div', class_="bracket-col")
-            for col in lowercols:
-                lowerBracket.append(bracketParser(col))
-        event['bracket'] = [{ 'upper' : upperBracket, 'lower': lowerBracket }]
+        else:
+            upper_bracket = []
+
+        if lower_bracket_container := soup.find_all("div", class_="bracket-container mod-lower"):
+            lower_bracket = await asyncio.gather(
+                *[bracket_parser(column) for column in lower_bracket_container[0].find_all("div", class_="bracket-col")]
+            )
+        elif lower_bracket_container := soup.find_all("div", class_="bracket-container mod-lower mod-compact"):
+            lower_bracket = await asyncio.gather(
+                *[bracket_parser(column) for column in lower_bracket_container[0].find_all("div", class_="bracket-col")]
+            )
+        else:
+            lower_bracket = []
+
+        event["brackets"] = [{"upper": upper_bracket, "lower": lower_bracket}]
 
     participants = []
-    if len(soup.find_all('div', class_="event-teams-container")) > 0:
-        teamsContainer = soup.find_all('div', class_="event-teams-container")[0]
-        teamItems = teamsContainer.find_all('div', class_="wf-card event-team")
-        for team in teamItems:
+    if teams_container := soup.find_all("div", class_="event-teams-container"):
+        for team in teams_container[0].find_all("div", class_="wf-card event-team"):
             participant = {}
             roster = []
-            participant['team'] = team.find_all('a', class_="event-team-name")[0].get_text().strip()
-            participant['id'] = team.find_all('a', class_="event-team-name")[0]['href'].split('/')[2]
-            img = team.find_all('img', class_="event-team-players-mask-team")[0]['src']
-            if img == '/img/vlr/tmp/vlr.png':
-                img = "https://vlr.gg" + img
+            event_team_name = team.find_all("a", class_="event-team-name")[0]
+            participant["name"] = event_team_name.get_text().strip()
+            participant["id"] = event_team_name["href"].split("/")[2]
+
+            if (img := team.find_all("img", class_="event-team-players-mask-team")[0]["src"]) == "/img/vlr/tmp/vlr.png":
+                participant["img"] = f"{PREFIX}/{img}"
             else:
-                img = "https:" + img
-            participant['img'] = img
-            if len(team.find_all('div', class_="wf-module-item")) > 0:
-                participant['seed'] = team.find_all('div', class_="wf-module-item")[0].get_text().strip()
+                participant["img"] = "https:" + img
+
+            if seed_data := team.find_all("div", class_="wf-module-item"):
+                participant["seed"] = seed_data[0].get_text().strip()
             else:
-                participant['seed'] = ""
-            players = team.find_all('a', class_="event-team-players-item")
-            for player in players:
-                playerID = player['href'].split('/')[2]
-                playerName = player.get_text().strip()
-                country = player.find_all('i', class_="flag")[0].get('class')[1].replace('mod-', '')
-                roster.append({'playerID': playerID, 'playerName': playerName, 'country': country})
-            participant['roster'] = roster
+                participant["seed"] = ""
+
+            for player in team.find_all("a", class_="event-team-players-item"):
+                id = player["href"].split("/")[2]
+                name = player.get_text().strip()
+                country = player.find_all("i", class_="flag")[0].get("class")[1].replace("mod-", "")
+                roster.append({"id": id, "name": name, "country": country})
+            participant["roster"] = roster
             participants.append(participant)
-        event['participants'] = participants
-
-
-
-    URL = "https://www.vlr.gg/event/matches/" + id + "/?series_id=all"
-    page = requests.get(URL)
-    soup = BeautifulSoup(page.content, 'html.parser')
-    matches = []
-    dates = soup.find_all('div', class_="wf-label mod-large")
-    for (day, date) in enumerate(dates):
-        matchesOnDay = soup.find_all('div', class_="wf-card")[day + 1]
-        matches.append({'date' : date.get_text().strip(), 'matches' : matchParser(matchesOnDay)})
-
-    event['matches'] = matches
+        event["teams"] = participants
 
     return event
 
 
-def bracketParser( bracketCol):
-    matches = []
-    title = bracketCol.find_all('div',class_="bracket-col-label")[0].get_text().strip()
-    matchesHTML = bracketCol.find_all('a',class_="bracket-item")
-    for matchHTML in matchesHTML:
-        match = {}
-        if matchHTML.get('href') != None:
-            match['id'] = matchHTML.get('href').split('/')[1]
-        if matchHTML.find('div',class_="bracket-item-status") != None:
-            match['time'] = matchHTML.find('div',class_="bracket-item-status").get_text().strip()
-        teams = []
-        for i in range(0,2):
-            team = {}
-            team['name'] = matchHTML.find_all('div',class_="bracket-item-team-name")[i].get_text().strip()
-            img = matchHTML.find_all('div',class_="bracket-item-team-name")[i].find('img')['src']
-            if img == '/img/vlr/tmp/vlr.png':
-                img = "https://vlr.gg" + img
-            else:
-                img = "https:" + img
-            team['img'] = img
-            team['score'] = matchHTML.find_all('div',class_="bracket-item-team-score")[i].get_text().strip()
-            teams.append(team)
-        match['teams'] = teams
-        matches.append(match)
-    return { 'title': title, 'matches': matches }
+async def parse_match_data(id: str) -> list:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(EVENT_URL_WITH_ID_MATCHES.format(id))
 
-def prizesParser( prizesTable):
+    soup = BeautifulSoup(response.content, "html.parser")
+    return [
+        {
+            "date": date.get_text().strip(),
+            "matches": await match_parser(soup.find_all("div", class_="wf-card")[day + 1]),
+        }
+        for (day, date) in enumerate(soup.find_all("div", class_="wf-label mod-large"))
+    ]
+
+
+async def bracket_parser(bracket: element.Tag) -> dict[str, str | list[dict[str, str | list[str]]]]:
+    matches = []
+    title = bracket.find_all("div", class_="bracket-col-label")[0].get_text().strip()
+    for match_data in bracket.find_all("a", class_="bracket-item"):
+        match = {}
+        if href := match_data.get("href"):
+            match["id"] = href.split("/")[1]
+
+        if time := match_data.find("div", class_="bracket-item-status"):
+            match["time"] = time.get_text().strip()
+
+        teams = []
+        for i in range(0, 2):
+            data = match_data.find_all("div", class_="bracket-item-team-name")[i]
+
+            team = {
+                "name": data.get_text().strip(),
+                "score": match_data.find_all("div", class_="bracket-item-team-score")[i].get_text().strip(),
+            }
+
+            if (img := data.find("img")["src"]) == "/img/vlr/tmp/vlr.png":
+                team["img"] = f"{PREFIX}/{img}"
+            else:
+                team["img"] = "https:" + img
+
+            teams.append(team)
+        match["teams"] = teams
+        matches.append(match)
+    return {"title": title, "matches": matches}
+
+
+async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[str, str]]]:
     prizes = []
-    rows  = prizesTable.find('tbody').find_all('tr')[:3]
-    for row in rows:
+
+    for row in prizes_table.find("tbody").find_all("tr")[:3]:
         prize = {}
-        prize['position'] = row.find_all('td')[0].get_text().strip()
-        prize['prize'] = row.find_all('td')[1].get_text().strip().replace('\t','')
-        teamRow = row.find_all('td')[2]
-        if len(teamRow.find_all('a')) > 0:
+        row_data = row.find_all("td")
+        prize["position"] = row_data[0].get_text().strip()
+        prize["prize"] = row_data[1].get_text().strip().replace("\t", "")
+        team_row = row_data[2]
+        if len(team_row.find_all("a")) > 0:
             team = {}
-            team['name'] = teamRow.find_all('div',class_="standing-item-team-name")[0].get_text().strip().split('\n')[0].strip()
-            team['id'] = teamRow.find_all('a')[0]['href'].split('/')[2]
-            img = teamRow.find('img')['src']
-            if img == '/img/vlr/tmp/vlr.png':
+            team["name"] = (
+                team_row.find_all("div", class_="standing-item-team-name")[0].get_text().strip().split("\n")[0].strip()
+            )
+            team["id"] = team_row.find_all("a")[0]["href"].split("/")[2]
+            img = team_row.find("img")["src"]
+            if img == "/img/vlr/tmp/vlr.png":
                 img = "https://vlr.gg" + img
             else:
                 img = "https:" + img
-            team['img'] =  img
-            team['country'] = teamRow.find_all('div',class_="ge-text-light")[0].get_text().strip()
-            prize['team'] = team
+            team["img"] = img
+            team["country"] = team_row.find_all("div", class_="ge-text-light")[0].get_text().strip()
+            prize["team"] = team
         else:
-            prize['team'] = "TBD"
+            prize["team"] = "TBD"
         prizes.append(prize)
     return prizes
 
-def matchParser( matchesOnDay):
-    matchesList = matchesOnDay.find_all('a', class_="match-item")
+
+async def match_parser(day_matches: element.Tag) -> list[dict[str, str | list[str]]]:
     matches = []
-    for matchHTML in matchesList:
-        match = {}
-        match['id'] = matchHTML['href'].split('/')[1]
-        match['time'] = matchHTML.find_all('div',class_="match-item-time")[0].get_text().strip()
-        teamsHTML = matchHTML.find_all('div',class_="match-item-vs-team")
-        teams = []
-        for teamHTML in teamsHTML:
-            team = {}
-            team['name'] = teamHTML.find_all('div', class_="match-item-vs-team-name")[0].get_text().strip()
-            team['region'] = teamHTML.find_all('span',class_="flag")[0].get('class')[1].replace('mod-', '')
-            team['score'] = teamHTML.find_all('div',class_="match-item-vs-team-score")[0].get_text().strip()
-            teams.append(team)
-        match['teams'] = teams
-        match['status'] = matchHTML.find_all('div', class_="ml-status")[0].get_text().strip()
-        if (match['status'] != "LIVE") and (match['status'] != "TBD"):
-            match['eta'] = matchHTML.find_all('div', class_="ml-eta")[0].get_text().strip()
-        match['round'] = matchHTML.find_all('div', class_="match-item-event text-of")[0].get_text().strip().split('\n')[0].strip()
-        match['stage'] = matchHTML.find_all('div', class_="match-item-event text-of")[0].get_text().strip().split('\n')[1].strip()
+    for match_data in day_matches.find_all("a", class_="match-item"):
+        match = {
+            "id": match_data["href"].split("/")[1],
+            "time": match_data.find_all("div", class_="match-item-time")[0].get_text().strip(),
+            "status": match_data.find_all("div", class_="ml-status")[0].get_text().strip(),
+        }
+        team_data = []
+        for team in match_data.find_all("div", class_="match-item-vs-team"):
+            data = {
+                "name": team.find_all("div", class_="match-item-vs-team-name")[0].get_text().strip(),
+                "region": team.find_all("span", class_="flag")[0].get("class")[1].replace("mod-", ""),
+            }
+            score_data = team.find_all("div", class_="match-item-vs-team-score")[0].get_text().strip()
+            if score_data.isdigit():
+                data["score"] = int(score_data)
+            team_data.append(data)
+        match["teams"] = team_data
+
+        if match["status"] not in ("LIVE", "TBD"):
+            match["eta"] = match_data.find_all("div", class_="ml-eta")[0].get_text().strip()
+        match["round"] = (
+            match_data.find_all("div", class_="match-item-event text-of")[0].get_text().strip().split("\n")[0].strip()
+        )
+        match["stage"] = (
+            match_data.find_all("div", class_="match-item-event text-of")[0].get_text().strip().split("\n")[1].strip()
+        )
         matches.append(match)
     return matches
