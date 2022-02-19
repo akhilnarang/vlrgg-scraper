@@ -168,30 +168,8 @@ async def parse_events_data(id: str) -> dict:
 
         event["brackets"] = [{"upper": upper_bracket, "lower": lower_bracket}]
 
-    participants = []
-    if teams_container := soup.find_all("div", class_="event-teams-container"):
-        for team in teams_container[0].find_all("div", class_="wf-card event-team"):
-            participant = {}
-            event_team_name = team.find_all("a", class_="event-team-name")[0]
-            participant["name"] = event_team_name.get_text().strip()
-            participant["id"] = event_team_name["href"].split("/")[2]
-
-            if (img := team.find_all("img", class_="event-team-players-mask-team")[0]["src"]) == "/img/vlr/tmp/vlr.png":
-                participant["img"] = f"{PREFIX}/{img}"
-            else:
-                participant["img"] = "https:" + img
-
-            if seed_data := team.find_all("div", class_="wf-module-item"):
-                participant["seed"] = seed_data[0].get_text().strip()
-
-            # for player in team.find_all("a", class_="event-team-players-item"):
-            #     id = player["href"].split("/")[2]
-            #     name = player.get_text().strip()
-            #     country = player.find_all("i", class_="flag")[0].get("class")[1].replace("mod-", "")
-            #     roster.append({"id": id, "name": name, "country": country})
-            # participant["roster"] = roster
-            participants.append(participant)
-        event["teams"] = participants
+        if teams_container := soup.find_all("div", class_="event-teams-container"):
+            event["teams"] = await parse_team_data(teams_container[0])
 
     return event
 
@@ -298,3 +276,32 @@ async def match_parser(day_matches: element.Tag) -> list[dict[str, str | list[st
         )
         matches.append(match)
     return matches
+
+
+async def parse_team_data(team_data: element.Tag) -> list[dict[str, str]]:
+    """
+    Function to parse team data
+    :param team_data: The HTML
+    :return: The parsed result as a list
+    """
+    participants = []
+    for team in team_data.find_all("div", class_="wf-card event-team"):
+        event_team_name = team.find_all("a", class_="event-team-name")[0]
+        participant = {"name": event_team_name.get_text().strip(), "id": event_team_name["href"].split("/")[2]}
+
+        if (img := team.find_all("img", class_="event-team-players-mask-team")[0]["src"]) == "/img/vlr/tmp/vlr.png":
+            participant["img"] = f"{PREFIX}/{img}"
+        else:
+            participant["img"] = "https:" + img
+
+        if seed_data := team.find_all("div", class_="wf-module-item"):
+            participant["seed"] = seed_data[0].get_text().strip()
+
+        # for player in team.find_all("a", class_="event-team-players-item"):
+        #     id = player["href"].split("/")[2]
+        #     name = player.get_text().strip()
+        #     country = player.find_all("i", class_="flag")[0].get("class")[1].replace("mod-", "")
+        #     roster.append({"id": id, "name": name, "country": country})
+        # participant["roster"] = roster
+        participants.append(participant)
+    return participants
