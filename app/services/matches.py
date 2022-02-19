@@ -274,6 +274,8 @@ async def parse_match(match: element.Tag, match_type: str) -> schemas.Match:
         status=status,
         time=time,
         id=match.get("href").split("/")[0],
+        event=match.find_all("div", class_="h-match-preview-event")[0].get_text().strip(),
+        series=match.find_all("div", class_="h-match-preview-series")[0].get_text().strip(),
     )
 
 

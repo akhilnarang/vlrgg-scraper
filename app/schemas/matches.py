@@ -65,3 +65,5 @@ class Match(BaseModel):
     status: str
     time: str | None
     id: str
+    event: str
+    series: str
