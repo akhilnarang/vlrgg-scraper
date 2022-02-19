@@ -3,6 +3,8 @@ import itertools
 
 import httpx
 from bs4 import BeautifulSoup, element
+from fastapi import HTTPException
+from starlette import status
 
 from app import schemas, utils
 from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL
@@ -80,7 +82,9 @@ async def parse_events_data(id: str) -> dict:
     event: dict[str, str | list] = {"id": id}
     soup = BeautifulSoup(response.content, "html.parser")
 
-    header = soup.find_all("div", class_="event-header")[0]
+    if (event_header := soup.find_all("div", class_="event-header")) is None:
+        raise HTTPException(detail="Event header was missing, please retry", status_code=status.HTTP_400_BAD_REQUEST)
+    header = event_header[0]
     event["title"] = header.find_all("h1", class_="wf-title")[0].get_text().strip()
     event["subtitle"] = header.find_all("h2", class_="event-desc-subtitle")[0].get_text().strip()
     event_desc_item_value = header.find_all("div", class_="event-desc-item-value")
