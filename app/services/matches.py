@@ -192,3 +192,69 @@ async def get_previous_encounters_data(data: ResultSet) -> list[str]:
         if data
         else []
     )
+
+
+def upcoming_matches():
+    """
+    Upcoming matches from VLR homepage
+    """
+
+    URL = "https://www.vlr.gg/"
+    page = requests.get(URL)
+
+    soup = BeautifulSoup(page.content, "html.parser")
+
+    matches = soup.find_all("div", class_="js-home-matches-upcoming")[0]
+    cards = matches.find_all("div", class_="wf-card")[0]
+    matchesDict = []
+
+    matchLink = cards.find_all("a", class_="mod-match")
+    for matchItem in matchLink:
+        match = {}
+        team1 = matchItem.find_all("div", class_="h-match-team-name")[0].get_text().strip()
+        team2 = matchItem.find_all("div", class_="h-match-team-name")[1].get_text().strip()
+        score1 = matchItem.find_all("div", class_="h-match-team-score")[0].get_text().strip()
+        score2 = matchItem.find_all("div", class_="h-match-team-score")[1].get_text().strip()
+        status = matchItem.find_all("div", class_="h-match-eta")[0].get_text().strip()
+        link = matchItem.get("href")
+        id = link.split("/")[0]
+        match["team1"] = {"name": team1, "score": score1}
+        match["team2"] = {"name": team2, "score": score2}
+        match["status"] = status
+        match["link"] = link
+        match["id"] = id
+        matchesDict.append(match)
+    return matchesDict[:5]
+
+
+def recent_matches():
+    """
+    Recent matches from VLR homepage
+    """
+
+    URL = "https://www.vlr.gg/"
+    page = requests.get(URL)
+
+    soup = BeautifulSoup(page.content, "html.parser")
+
+    matches = soup.find_all("div", class_="js-home-matches-completed")[0]
+    cards = matches.find_all("div", class_="wf-card")[0]
+    matchesDict = []
+
+    matchLink = cards.find_all("a", class_="mod-match")
+    for matchItem in matchLink:
+        match = {}
+        team1 = matchItem.find_all("div", class_="h-match-team-name")[0].get_text().strip()
+        team2 = matchItem.find_all("div", class_="h-match-team-name")[1].get_text().strip()
+        score1 = matchItem.find_all("div", class_="h-match-team-score")[0].get_text().strip()
+        score2 = matchItem.find_all("div", class_="h-match-team-score")[1].get_text().strip()
+        status = matchItem.find_all("div", class_="h-match-eta")[0].get_text().strip()
+        link = matchItem.get("href")
+        id = link.split("/")[0]
+        match["team1"] = {"name": team1, "score": score1}
+        match["team2"] = {"name": team2, "score": score2}
+        match["status"] = status
+        match["link"] = link
+        match["id"] = id
+        matchesDict.append(match)
+    return matchesDict[:5]
