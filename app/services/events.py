@@ -189,6 +189,11 @@ async def parse_match_data(id: str) -> list:
 
 
 async def bracket_parser(bracket: element.Tag) -> dict[str, str | list[dict[str, str | list[str]]]]:
+    """
+    Parse bracket data
+    :param bracket: The HTML
+    :return: The parsed data as a dict
+    """
     matches = []
     title = bracket.find_all("div", class_="bracket-col-label")[0].get_text().strip()
     for match_data in bracket.find_all("a", class_="bracket-item"):
@@ -220,6 +225,11 @@ async def bracket_parser(bracket: element.Tag) -> dict[str, str | list[dict[str,
 
 
 async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[str, str]]]:
+    """
+    Parse prize data
+    :param prizes_table: The HTML
+    :return: The parsed data as a list
+    """
     prizes = []
 
     for row in prizes_table.find("tbody").find_all("tr")[:3]:
@@ -247,6 +257,11 @@ async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[
 
 
 async def match_parser(day_matches: element.Tag) -> list[dict[str, str | list[str]]]:
+    """
+    Parse match data
+    :param day_matches: The HTML
+    :return: The parsed data as a list
+    """
     matches = []
     for match_data in day_matches.find_all("a", class_="match-item"):
         match = {
