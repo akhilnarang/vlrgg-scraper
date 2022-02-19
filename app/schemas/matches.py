@@ -52,3 +52,16 @@ class MatchWithDetails(BaseModel):
     event: Event
     data: list[MatchData]
     previous_encounters: list[str]
+
+
+class MatchTeam(BaseModel):
+    name: str
+    score: int | None
+
+
+class Match(BaseModel):
+    team1: MatchTeam
+    team2: MatchTeam
+    status: str
+    time: str | None
+    id: str

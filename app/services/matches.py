@@ -194,67 +194,75 @@ async def get_previous_encounters_data(data: ResultSet) -> list[str]:
     )
 
 
-def upcoming_matches():
+async def match_list() -> list[schemas.Match]:
     """
-    Upcoming matches from VLR homepage
+    Function to parse a list of matches from the VLR.gg homepage
+    :return: The parsed matches
     """
+    async with httpx.AsyncClient() as client:
+        response = await client.get(PREFIX)
 
-    URL = "https://www.vlr.gg/"
-    page = requests.get(URL)
+    soup = BeautifulSoup(response.content, "html.parser")
 
-    soup = BeautifulSoup(page.content, "html.parser")
-
-    matches = soup.find_all("div", class_="js-home-matches-upcoming")[0]
-    cards = matches.find_all("div", class_="wf-card")[0]
-    matchesDict = []
-
-    matchLink = cards.find_all("a", class_="mod-match")
-    for matchItem in matchLink:
-        match = {}
-        team1 = matchItem.find_all("div", class_="h-match-team-name")[0].get_text().strip()
-        team2 = matchItem.find_all("div", class_="h-match-team-name")[1].get_text().strip()
-        score1 = matchItem.find_all("div", class_="h-match-team-score")[0].get_text().strip()
-        score2 = matchItem.find_all("div", class_="h-match-team-score")[1].get_text().strip()
-        status = matchItem.find_all("div", class_="h-match-eta")[0].get_text().strip()
-        link = matchItem.get("href")
-        id = link.split("/")[0]
-        match["team1"] = {"name": team1, "score": score1}
-        match["team2"] = {"name": team2, "score": score2}
-        match["status"] = status
-        match["link"] = link
-        match["id"] = id
-        matchesDict.append(match)
-    return matchesDict[:5]
+    return list(
+        itertools.chain(
+            *(
+                await asyncio.gather(
+                    parse_matches(soup.find_all("div", class_="js-home-matches-upcoming")[0], "upcoming"),
+                    parse_matches(soup.find_all("div", class_="js-home-matches-completed")[0], "completed"),
+                )
+            )
+        )
+    )
 
 
-def recent_matches():
+async def parse_matches(data: element.Tag, match_type: str) -> list[schemas.Match]:
     """
-    Recent matches from VLR homepage
+    Function to parse a list of matches
+    :param data: The matches
+    :param match_type: The type of matches (upcoming or completed)
+    :return: The parsed matches
     """
+    return list(
+        await asyncio.gather(
+            *[
+                parse_match(match, match_type)
+                for match in data.find_all("div", class_="wf-card")[0].find_all("a", class_="mod-match")
+            ]
+        )
+    )
 
-    URL = "https://www.vlr.gg/"
-    page = requests.get(URL)
 
-    soup = BeautifulSoup(page.content, "html.parser")
+async def parse_match(match: element.Tag, match_type: str) -> schemas.Match:
+    """
+    Function to parse a given match
+    :param match: The match to parse
+    :param match_type: The type of match (upcoming or completed)
+    :return: The parsed match
+    """
+    team_names = match.find_all("div", class_="h-match-team-name")
+    team_scores = match.find_all("div", class_="h-match-team-score")
+    if (status := match.find_all("div", class_="h-match-eta")[0].get_text().strip()) == "LIVE":
+        time = None
+    else:
+        time = status
+        status = match_type
 
-    matches = soup.find_all("div", class_="js-home-matches-completed")[0]
-    cards = matches.find_all("div", class_="wf-card")[0]
-    matchesDict = []
+    return schemas.Match(
+        team1=schemas.MatchTeam(name=team_names[0].get_text().strip(), score=await parse_score(team_scores[0])),
+        team2=schemas.MatchTeam(name=team_names[1].get_text().strip(), score=await parse_score(team_scores[1])),
+        status=status,
+        time=time,
+        id=match.get("href").split("/")[0],
+    )
 
-    matchLink = cards.find_all("a", class_="mod-match")
-    for matchItem in matchLink:
-        match = {}
-        team1 = matchItem.find_all("div", class_="h-match-team-name")[0].get_text().strip()
-        team2 = matchItem.find_all("div", class_="h-match-team-name")[1].get_text().strip()
-        score1 = matchItem.find_all("div", class_="h-match-team-score")[0].get_text().strip()
-        score2 = matchItem.find_all("div", class_="h-match-team-score")[1].get_text().strip()
-        status = matchItem.find_all("div", class_="h-match-eta")[0].get_text().strip()
-        link = matchItem.get("href")
-        id = link.split("/")[0]
-        match["team1"] = {"name": team1, "score": score1}
-        match["team2"] = {"name": team2, "score": score2}
-        match["status"] = status
-        match["link"] = link
-        match["id"] = id
-        matchesDict.append(match)
-    return matchesDict[:5]
+
+async def parse_score(data: element.Tag) -> str | None:
+    """
+    Function that takes in a tag to parse the score
+    :param data: The tag
+    :return: The score if it exists, else None
+    """
+    if (score := data.get_text().strip()).isdigit():
+        return score
+    return None
