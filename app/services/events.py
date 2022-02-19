@@ -239,18 +239,23 @@ async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[
         prize["prize"] = row_data[1].get_text().strip().replace("\t", "")
         team_row = row_data[2]
         if len(team_row.find_all("a")) > 0:
-            team = {}
-            team["name"] = (
-                team_row.find_all("div", class_="standing-item-team-name")[0].get_text().strip().split("\n")[0].strip()
-            )
-            team["id"] = team_row.find_all("a")[0]["href"].split("/")[2]
+            team = {
+                "name": (
+                    team_row.find_all("div", class_="standing-item-team-name")[0]
+                    .get_text()
+                    .strip()
+                    .split("\n")[0]
+                    .strip()
+                ),
+                "id": team_row.find_all("a")[0]["href"].split("/")[2],
+                "country": team_row.find_all("div", class_="ge-text-light")[0].get_text().strip(),
+            }
             img = team_row.find("img")["src"]
             if img == "/img/vlr/tmp/vlr.png":
                 img = "https://vlr.gg" + img
             else:
                 img = "https:" + img
             team["img"] = img
-            team["country"] = team_row.find_all("div", class_="ge-text-light")[0].get_text().strip()
             prize["team"] = team
         prizes.append(prize)
     return prizes
