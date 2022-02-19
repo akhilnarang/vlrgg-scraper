@@ -31,6 +31,11 @@ async def match_by_id(id: str) -> schemas.MatchWithDetails:
 
 
 async def get_team_data(data: ResultSet) -> list[dict]:
+    """
+    Function to parse team data
+    :param data: The data
+    :return: The parsed team data
+    """
     match_header = data[0]
     names = match_header.find_all("div", class_="wf-title-med")
     images = match_header.find_all("a", class_="match-header-link")
@@ -52,11 +57,21 @@ async def get_team_data(data: ResultSet) -> list[dict]:
 
 
 async def get_ban_data(data: ResultSet) -> list:
+    """
+    Function to parse the notes from a match page on VLR
+    :param data: The notes
+    :return: The ban data from the notes
+    """
     # The "note" seemed to have map ban information. Will change response key back to note if it has more stuff ever.
     return [ban_data.strip() for ban_data in data[0].get_text().split(";")] if data else []
 
 
 async def get_event_data(soup: BeautifulSoup) -> dict:
+    """
+    Function to extract event data from a match page on VLR
+    :param soup: The page
+    :return: The parsed event data
+    """
     event_link = soup.find_all("a", class_="match-header-event")[0]
     return {
         "id": event_link["href"].split("/")[2],
@@ -78,6 +93,11 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
 
 
 async def get_map_data(data: ResultSet) -> list:
+    """
+    Function to extract information about a map from a match page on VLR
+    :param data: The data about the maps
+    :return: The parsed data
+    """
     stats = data[0]
 
     maps = {
@@ -152,7 +172,7 @@ async def get_map_data(data: ResultSet) -> list:
     return map_ret
 
 
-async def parse_scoreboard(data: ResultSet) -> list:
+async def parse_scoreboard(data: element.Tag) -> list:
     ret = []
     for team in data.find_all("tr"):
         data = team.find_all("td", class_="mod-player")[0]
