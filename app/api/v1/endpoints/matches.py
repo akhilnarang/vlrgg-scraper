@@ -8,6 +8,6 @@ from app.services import matches
 router = APIRouter()
 
 
-@router.get("/{id}", response_model=schemas.Match)
+@router.get("/{id}", response_model=schemas.MatchWithDetails)
 async def get_match_by_id(id: str) -> Any:
     return await matches.match_by_id(id)

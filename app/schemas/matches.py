@@ -46,7 +46,7 @@ class MatchData(BaseModel):
     members: list[TeamMember]
 
 
-class Match(BaseModel):
+class MatchWithDetails(BaseModel):
     teams: list[Team]
     bans: list[str]
     event: Event

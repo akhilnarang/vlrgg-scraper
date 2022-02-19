@@ -2,14 +2,14 @@ import asyncio
 import itertools
 
 import httpx
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet
 
 from app import schemas, utils
-from app.constants import MATCH_URL_WITH_ID
+from app.constants import MATCH_URL_WITH_ID, PREFIX
 
 
-async def match_by_id(id: str) -> schemas.Match:
+async def match_by_id(id: str) -> schemas.MatchWithDetails:
     """
     Function to fetch a match from VLR, and return the parsed response
     :param id: The match ID
@@ -27,7 +27,7 @@ async def match_by_id(id: str) -> schemas.Match:
         get_map_data(soup.find_all("div", class_="vm-stats")),
         get_previous_encounters_data(soup.find_all("div", class_="match-h2h-matches")),
     )
-    return schemas.Match(teams=teams, bans=bans, event=event, data=map_ret, previous_encounters=h2h_matches)
+    return schemas.MatchWithDetails(teams=teams, bans=bans, event=event, data=map_ret, previous_encounters=h2h_matches)
 
 
 async def get_team_data(data: ResultSet) -> list[dict]:
