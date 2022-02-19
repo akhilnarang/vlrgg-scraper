@@ -3,6 +3,11 @@ on:
   push:
     branches:
       - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_AUTH_TOKEN }}
 jobs:
