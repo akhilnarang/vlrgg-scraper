@@ -172,7 +172,6 @@ async def parse_events_data(id: str) -> dict:
     if teams_container := soup.find_all("div", class_="event-teams-container"):
         for team in teams_container[0].find_all("div", class_="wf-card event-team"):
             participant = {}
-            roster = []
             event_team_name = team.find_all("a", class_="event-team-name")[0]
             participant["name"] = event_team_name.get_text().strip()
             participant["id"] = event_team_name["href"].split("/")[2]
@@ -187,12 +186,12 @@ async def parse_events_data(id: str) -> dict:
             else:
                 participant["seed"] = ""
 
-            for player in team.find_all("a", class_="event-team-players-item"):
-                id = player["href"].split("/")[2]
-                name = player.get_text().strip()
-                country = player.find_all("i", class_="flag")[0].get("class")[1].replace("mod-", "")
-                roster.append({"id": id, "name": name, "country": country})
-            participant["roster"] = roster
+            # for player in team.find_all("a", class_="event-team-players-item"):
+            #     id = player["href"].split("/")[2]
+            #     name = player.get_text().strip()
+            #     country = player.find_all("i", class_="flag")[0].get("class")[1].replace("mod-", "")
+            #     roster.append({"id": id, "name": name, "country": country})
+            # participant["roster"] = roster
             participants.append(participant)
         event["teams"] = participants
 

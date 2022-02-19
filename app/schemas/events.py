@@ -40,7 +40,7 @@ class Team(BaseModel):
     id: str
     img: HttpUrl
     seed: str
-    roster: list[Player]
+    # roster: list[Player]
 
 
 class MatchTeam(BaseModel):
