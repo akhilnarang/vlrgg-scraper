@@ -183,8 +183,6 @@ async def parse_events_data(id: str) -> dict:
 
             if seed_data := team.find_all("div", class_="wf-module-item"):
                 participant["seed"] = seed_data[0].get_text().strip()
-            else:
-                participant["seed"] = ""
 
             # for player in team.find_all("a", class_="event-team-players-item"):
             #     id = player["href"].split("/")[2]
