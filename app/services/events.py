@@ -267,8 +267,6 @@ async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[
             team["img"] = img
             team["country"] = team_row.find_all("div", class_="ge-text-light")[0].get_text().strip()
             prize["team"] = team
-        else:
-            prize["team"] = "TBD"
         prizes.append(prize)
     return prizes
 

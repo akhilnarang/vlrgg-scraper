@@ -11,10 +11,17 @@ class Event(BaseModel):
     img: HttpUrl
 
 
+class PrizeTeam(BaseModel):
+    id: str
+    name: str
+    img: HttpUrl
+    country: str
+
+
 class Prize(BaseModel):
     position: str
     prize: str
-    team: str
+    team: PrizeTeam | None
 
 
 class Bracket(BaseModel):
