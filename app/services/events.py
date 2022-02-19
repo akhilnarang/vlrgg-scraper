@@ -4,8 +4,8 @@ import itertools
 import httpx
 from bs4 import BeautifulSoup, element
 
-from app import schemas
-from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL, PREFIX
+from app import schemas, utils
+from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL
 
 
 async def get_events() -> list[schemas.Event]:
@@ -54,11 +54,7 @@ async def parse_event(event: element.Tag) -> schemas.Event:
         .get("class")[1]
         .replace("mod-", "")
     )
-    img = event.find_all("div", class_="event-item-thumb")[0].find("img")["src"]
-    if img == "/img/vlr/tmp/vlr.png":
-        img = "https://www.vlr.gg" + img
-    else:
-        img = "https:" + img
+    img = utils.get_image_url(event.find_all("div", class_="event-item-thumb")[0].find("img")["src"])
     return schemas.Event(id=event_id, title=title, status=status, prize=prize, dates=dates, location=location, img=img)
 
 
@@ -91,11 +87,7 @@ async def parse_events_data(id: str) -> dict:
     event["dates"] = event_desc_item_value[0].get_text().strip()
     event["prize"] = event_desc_item_value[1].get_text().strip().replace("\t", "").replace("\n", " ")
     event["location"] = event_desc_item_value[2].find_all("i", class_="flag")[0].get("class")[1].replace("mod-", "")
-
-    if (img := header.find_all("div", class_="event-header-thumb")[0].find("img")["src"]) == "/img/vlr/tmp/vlr.png":
-        event["img"] = "https://www.vlr.gg" + img
-    else:
-        event["img"] = "https:" + img
+    event["img"] = utils.get_image_url(header.find_all("div", class_="event-header-thumb")[0].find("img")["src"])
 
     if prizes_data := soup.find_all("table", class_="wf-table"):
         event["prizes"] = await prizes_parser(prizes_data[-1])
@@ -170,7 +162,6 @@ async def parse_events_data(id: str) -> dict:
 
         if teams_container := soup.find_all("div", class_="event-teams-container"):
             event["teams"] = await parse_team_data(teams_container[0])
-
     return event
 
 
@@ -207,18 +198,13 @@ async def bracket_parser(bracket: element.Tag) -> dict[str, str | list[dict[str,
         teams = []
         for i in range(0, 2):
             data = match_data.find_all("div", class_="bracket-item-team-name")[i]
-
-            team = {
-                "name": data.get_text().strip(),
-                "score": match_data.find_all("div", class_="bracket-item-team-score")[i].get_text().strip(),
-            }
-
-            if (img := data.find("img")["src"]) == "/img/vlr/tmp/vlr.png":
-                team["img"] = f"{PREFIX}/{img}"
-            else:
-                team["img"] = "https:" + img
-
-            teams.append(team)
+            teams.append(
+                {
+                    "name": data.get_text().strip(),
+                    "score": match_data.find_all("div", class_="bracket-item-team-score")[i].get_text().strip(),
+                    "img": utils.get_image_url(data.find("img")["src"]),
+                }
+            )
         match["teams"] = teams
         matches.append(match)
     return {"title": title, "matches": matches}
@@ -238,8 +224,8 @@ async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[
         prize["position"] = row_data[0].get_text().strip()
         prize["prize"] = row_data[1].get_text().strip().replace("\t", "")
         team_row = row_data[2]
-        if len(team_row.find_all("a")) > 0:
-            team = {
+        if team_row_anchor := team_row.find_all("a"):
+            prize["team"] = {
                 "name": (
                     team_row.find_all("div", class_="standing-item-team-name")[0]
                     .get_text()
@@ -247,16 +233,10 @@ async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[
                     .split("\n")[0]
                     .strip()
                 ),
-                "id": team_row.find_all("a")[0]["href"].split("/")[2],
+                "id": team_row_anchor[0]["href"].split("/")[2],
                 "country": team_row.find_all("div", class_="ge-text-light")[0].get_text().strip(),
+                "img": utils.get_image_url(team_row.find("img")["src"]),
             }
-            img = team_row.find("img")["src"]
-            if img == "/img/vlr/tmp/vlr.png":
-                img = "https://vlr.gg" + img
-            else:
-                img = "https:" + img
-            team["img"] = img
-            prize["team"] = team
         prizes.append(prize)
     return prizes
 
@@ -288,12 +268,12 @@ async def match_parser(day_matches: element.Tag) -> list[dict[str, str | list[st
 
         if match["status"] not in ("LIVE", "TBD"):
             match["eta"] = match_data.find_all("div", class_="ml-eta")[0].get_text().strip()
-        match["round"] = (
-            match_data.find_all("div", class_="match-item-event text-of")[0].get_text().strip().split("\n")[0].strip()
+
+        match_item_event = (
+            match_data.find_all("div", class_="match-item-event text-of")[0].get_text().strip().split("\n")
         )
-        match["stage"] = (
-            match_data.find_all("div", class_="match-item-event text-of")[0].get_text().strip().split("\n")[1].strip()
-        )
+        match["round"] = match_item_event[0].strip()
+        match["stage"] = match_item_event[1].strip()
         matches.append(match)
     return matches
 
@@ -307,12 +287,11 @@ async def parse_team_data(team_data: element.Tag) -> list[dict[str, str]]:
     participants = []
     for team in team_data.find_all("div", class_="wf-card event-team"):
         event_team_name = team.find_all("a", class_="event-team-name")[0]
-        participant = {"name": event_team_name.get_text().strip(), "id": event_team_name["href"].split("/")[2]}
-
-        if (img := team.find_all("img", class_="event-team-players-mask-team")[0]["src"]) == "/img/vlr/tmp/vlr.png":
-            participant["img"] = f"{PREFIX}/{img}"
-        else:
-            participant["img"] = "https:" + img
+        participant = {
+            "name": event_team_name.get_text().strip(),
+            "id": event_team_name["href"].split("/")[2],
+            "img": utils.get_image_url(team.find_all("img", class_="event-team-players-mask-team")[0]["src"]),
+        }
 
         if seed_data := team.find_all("div", class_="wf-module-item"):
             participant["seed"] = seed_data[0].get_text().strip()
