@@ -109,12 +109,17 @@ async def parse_match_data(id: str) -> list:
         response = await client.get(EVENT_URL_WITH_ID_MATCHES.format(id))
 
     soup = BeautifulSoup(response.content, "html.parser")
+    coroutines = []
+    dates = []
+    for (day, date) in enumerate(soup.find_all("div", class_="wf-label mod-large")):
+        dates.append(date.get_text().strip())
+        coroutines.append(match_parser(soup.find_all("div", class_="wf-card")[day + 1]))
     return [
         {
-            "date": date.get_text().strip(),
-            "matches": await match_parser(soup.find_all("div", class_="wf-card")[day + 1]),
+            "date": date,
+            "matches": match,
         }
-        for (day, date) in enumerate(soup.find_all("div", class_="wf-label mod-large"))
+        for (date, match) in zip(dates, await asyncio.gather(*coroutines))
     ]
 
 
