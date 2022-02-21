@@ -4,7 +4,7 @@ import httpx
 from bs4 import BeautifulSoup, element
 
 from app import schemas
-from app.constants import PREFIX
+from app.constants import NEWS_URL, PREFIX
 
 
 async def news_list() -> list[schemas.NewsItem]:
@@ -13,18 +13,20 @@ async def news_list() -> list[schemas.NewsItem]:
     :return: The parsed matches
     """
     async with httpx.AsyncClient() as client:
-        response = await client.get(PREFIX)
+        response = await client.get(NEWS_URL)
 
     soup = BeautifulSoup(response.content, "html.parser")
 
-    return list(
-        await asyncio.gather(
-            *[parse_news(news) for news in soup.find_all("a", class_="wf-module-item news-item mod-first")]
-        )
-    )
+    return list(await asyncio.gather(*[parse_news(news) for news in soup.find_all("a", class_="wf-module-item")]))
 
 
 async def parse_news(data: element.Tag) -> schemas.NewsItem:
+    title, description, metadata = [item.get_text().strip() for item in data.find_all("div")[0].find_all("div")]
+    metadata = metadata.split("•")
     return schemas.NewsItem(
-        id=data["href"].split("/")[1], title=data.find_all("div", class_="news-item-title")[0].get_text().strip()
+        url=f"{PREFIX}/{data['href']}",
+        title=title,
+        description=description,
+        author=metadata[-1].replace("by", "").strip(),
+        date=metadata[1].strip(),
     )
