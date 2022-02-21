@@ -52,16 +52,12 @@ class MatchTeam(BaseModel):
 class Match(BaseModel):
     id: str
     time: str
-    teams: list[MatchTeam]
-    status: str
+    date: str
     eta: str | None
+    status: str
+    teams: list[MatchTeam]
     round: str
     stage: str
-
-
-class MatchDay(BaseModel):
-    date: str
-    matches: list[Match]
 
 
 class EventWithDetails(BaseModel):
@@ -75,4 +71,4 @@ class EventWithDetails(BaseModel):
     prizes: list[Prize] = []
     brackets: list[Bracket]
     teams: list[Team]
-    matches: list[MatchDay]
+    matches: list[Match]

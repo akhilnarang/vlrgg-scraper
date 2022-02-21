@@ -113,18 +113,21 @@ async def parse_match_data(id: str) -> list:
         response = await client.get(EVENT_URL_WITH_ID_MATCHES.format(id))
 
     soup = BeautifulSoup(response.content, "html.parser")
-    coroutines = []
-    dates = []
-    for (day, date) in enumerate(soup.find_all("div", class_="wf-label mod-large")):
-        dates.append(date.get_text().strip())
-        coroutines.append(match_parser(soup.find_all("div", class_="wf-card")[day + 1]))
-    return [
-        {
-            "date": date,
-            "matches": match,
-        }
-        for (date, match) in zip(dates, await asyncio.gather(*coroutines))
-    ]
+    return list(
+        itertools.chain(
+            *(
+                await asyncio.gather(
+                    *[
+                        match_parser(
+                            soup.find_all("div", class_="wf-card")[day + 1],
+                            date.get_text().strip().replace("\n", "").replace("\t", ""),
+                        )
+                        for (day, date) in enumerate(soup.find_all("div", class_="wf-label mod-large"))
+                    ]
+                )
+            )
+        )
+    )
 
 
 async def get_bracket_data(data: BeautifulSoup | element.ResultSet) -> dict:
@@ -222,7 +225,7 @@ async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[
     return prizes
 
 
-async def match_parser(day_matches: element.Tag) -> list[dict[str, str | list[str]]]:
+async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, str | list[str]]]:
     """
     Parse match data
     :param day_matches: The HTML
@@ -234,6 +237,7 @@ async def match_parser(day_matches: element.Tag) -> list[dict[str, str | list[st
             "id": match_data["href"].split("/")[1],
             "time": match_data.find_all("div", class_="match-item-time")[0].get_text().strip(),
             "status": match_data.find_all("div", class_="ml-status")[0].get_text().strip(),
+            "date": date,
         }
         team_data = []
         for team in match_data.find_all("div", class_="match-item-vs-team"):
