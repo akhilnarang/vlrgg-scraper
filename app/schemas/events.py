@@ -1,5 +1,7 @@
 from pydantic import BaseModel, HttpUrl
 
+from app.constants import MatchStatus
+
 
 class Event(BaseModel):
     id: int
@@ -54,7 +56,7 @@ class Match(BaseModel):
     time: str
     date: str
     eta: str | None
-    status: str
+    status: MatchStatus
     teams: list[MatchTeam]
     round: str
     stage: str

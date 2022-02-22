@@ -236,7 +236,7 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
         match = {
             "id": match_data["href"].split("/")[1],
             "time": match_data.find_all("div", class_="match-item-time")[0].get_text().strip(),
-            "status": match_data.find_all("div", class_="ml-status")[0].get_text().strip(),
+            "status": match_data.find_all("div", class_="ml-status")[0].get_text().strip().lower(),
             "date": date,
         }
         team_data = []
