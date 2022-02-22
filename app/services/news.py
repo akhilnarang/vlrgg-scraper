@@ -24,7 +24,7 @@ async def parse_news(data: element.Tag) -> schemas.NewsItem:
     title, description, metadata = [item.get_text().strip() for item in data.find_all("div")[0].find_all("div")]
     metadata = metadata.split("•")
     return schemas.NewsItem(
-        url=f"{PREFIX}/{data['href']}",
+        url=f"{PREFIX}{data['href']}",
         title=title,
         description=description,
         author=metadata[-1].replace("by", "").strip(),
