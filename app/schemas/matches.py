@@ -50,12 +50,17 @@ class MatchData(BaseModel):
     members: list[TeamMember]
 
 
+class PreviousEncounters(BaseModel):
+    teams: list[Team]
+    match_id: str
+
+
 class MatchWithDetails(BaseModel):
     teams: list[TeamWithImage]
     bans: list[str]
     event: Event
     data: list[MatchData]
-    previous_encounters: list[str]
+    previous_encounters: list[PreviousEncounters]
 
 
 class MatchTeam(BaseModel):

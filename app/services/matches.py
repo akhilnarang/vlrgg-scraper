@@ -25,7 +25,7 @@ async def match_by_id(id: str) -> schemas.MatchWithDetails:
         get_ban_data(soup.find_all("div", class_="match-header-note")),
         get_event_data(soup),
         get_map_data(soup.find_all("div", class_="vm-stats")),
-        get_previous_encounters_data(soup.find_all("div", class_="match-h2h-matches")),
+        get_previous_encounters_data(soup.find_all("div", class_="wf-card match-h2h")),
     )
     return schemas.MatchWithDetails(teams=teams, bans=bans, event=event, data=map_ret, previous_encounters=h2h_matches)
 
@@ -209,16 +209,27 @@ async def parse_scoreboard(data: element.Tag) -> list:
     return ret
 
 
-async def get_previous_encounters_data(data: ResultSet) -> list[str]:
+async def get_previous_encounters_data(data: ResultSet) -> list[dict]:
     """
     :param data: Previous encounters data
     :return: List of match IDs
     """
-    return (
-        [match_link["href"].split("/")[1] for match_link in data[0].find_all("a", class_="wf-module-item mod-h2h")]
-        if data
-        else []
-    )
+    response = []
+    if data:
+        teams = []
+        # TODO: Cleanup this code
+        for team in data[0].find_all("a", class_="match-h2h-header-team"):
+            teams.append(team.find("div").get_text().strip())
+        for match_link in data[0].find_all("a", class_="wf-module-item mod-h2h"):
+            match_obj = {
+                "match_id": match_link["href"].split("/")[1],
+                "teams": [
+                    {"name": teams[0], "score": match_link.find_all("span", class_="rf")[0].get_text().strip()},
+                    {"name": teams[1], "score": match_link.find_all("span", class_="ra")[0].get_text().strip()},
+                ],
+            }
+            response.append(match_obj)
+    return response
 
 
 async def match_list() -> list[schemas.Match]:
