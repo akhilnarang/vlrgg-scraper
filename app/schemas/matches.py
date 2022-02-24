@@ -3,8 +3,11 @@ from pydantic import BaseModel, HttpUrl
 
 class Team(BaseModel):
     name: str
-    img: HttpUrl | None
     score: int | None
+
+
+class TeamWithImage(Team):
+    img: HttpUrl
 
 
 class Event(BaseModel):
@@ -47,7 +50,7 @@ class MatchData(BaseModel):
 
 
 class MatchWithDetails(BaseModel):
-    teams: list[Team]
+    teams: list[TeamWithImage]
     bans: list[str]
     event: Event
     data: list[MatchData]
