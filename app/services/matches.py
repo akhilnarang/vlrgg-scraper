@@ -72,8 +72,10 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
     :param soup: The page
     :return: The parsed event data
     """
-    event_link = soup.find_all("a", class_="match-header-event")[0]
-    return {
+    event_data = soup.find("div", class_="match-header-super")
+    event_link = event_data.find("a", class_="match-header-event")
+
+    ret = {
         "id": event_link["href"].split("/")[2],
         "img": utils.get_image_url(event_link.find("img")["src"]),
         "series": event_link.find_all("div")[0].find_all("div")[0].get_text().strip(),
@@ -90,6 +92,9 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
         .replace("    ", ", ")
         .split("   ")[0],
     }
+    if (patch_data := event_data.find_all("div")[-1].get_text().strip()) and "patch" in patch_data.lower():
+        ret["patch"] = patch_data
+    return ret
 
 
 async def get_map_data(data: ResultSet) -> list:

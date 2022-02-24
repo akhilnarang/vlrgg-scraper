@@ -16,6 +16,7 @@ class Event(BaseModel):
     series: str
     stage: str
     date: str
+    patch: str | None
 
 
 class Agent(BaseModel):
