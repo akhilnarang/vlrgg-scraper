@@ -184,7 +184,7 @@ async def parse_scoreboard(data: element.Tag) -> list:
                 "name": data.find_all("div", class_="text-of")[0].get_text().strip(),
                 "team": data.find_all("div", class_="ge-text-light")[0].get_text().strip(),
                 "agents": [
-                    {"title": agent["title"], "img": f"https://www.vlr.gg/{agent['src']}"}
+                    {"title": agent["title"], "img": utils.get_image_url(agent["src"])}
                     for agent in team.find_all("td", class_="mod-agents")[0].find_all("img")
                 ],
                 "acs": stats[0].find_all("span", class_="stats-sq")[0].get_text().strip() or 0,

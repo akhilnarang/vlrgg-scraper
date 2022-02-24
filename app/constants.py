@@ -2,7 +2,7 @@ from enum import Enum
 
 PREFIX = "https://www.vlr.gg"
 
-VLR_IMAGE = "/img/vlr/tmp/vlr.png"
+VLR_IMAGE = "/img/vlr"
 
 EVENTS_URL = f"{PREFIX}/events/"
 

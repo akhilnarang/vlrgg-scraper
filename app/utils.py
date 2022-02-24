@@ -7,7 +7,7 @@ def get_image_url(img: str) -> str:
     :param img: The src string of the image
     :return: The full URL
     """
-    if img == VLR_IMAGE:
+    if img.startswith(VLR_IMAGE):
         return f"{PREFIX}{img}"
     else:
         return f"https:{img}"
