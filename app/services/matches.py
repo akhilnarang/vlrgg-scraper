@@ -216,7 +216,9 @@ async def get_previous_encounters_data(data: Tag) -> list[dict]:
     """
     response = []
     if data:
-        team_a, team_b = [team.find("div").get_text().strip() for team in data.find_all("a", class_="match-h2h-header-team")]
+        team_a, team_b = [
+            team.find("div").get_text().strip() for team in data.find_all("a", class_="match-h2h-header-team")
+        ]
         for match_link in data.find_all("a", class_="wf-module-item mod-h2h"):
             match_obj = {
                 "match_id": match_link["href"].split("/")[1],
