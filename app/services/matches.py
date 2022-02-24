@@ -106,13 +106,15 @@ async def get_map_data(data: ResultSet) -> list:
         )
         for map_data in stats.find_all("div", class_="vm-stats-gamesnav-item")
     }
-
-    map_stats = stats.find_all("div", class_="vm-stats-game")
+    if maps == {}:
+        maps = {stats["data-game-id"]: stats.find_all("div", class_="map")[0].find("span").get_text().strip()}
+        map_stats = [stats.find_all("div", class_="vm-stats-game")[0]]
+    else:
+        map_stats = stats.find_all("div", class_="vm-stats-game")
     map_ret = []
     for map_data in map_stats:
         rounds = []
         teams = []
-
         if (match_map_id := map_data["data-game-id"]) != "all":
             teams = [
                 {
