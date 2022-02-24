@@ -57,10 +57,21 @@ class PreviousEncounters(BaseModel):
     match_id: str
 
 
+class Video(BaseModel):
+    name: str
+    url: HttpUrl
+
+
+class MatchVideos(BaseModel):
+    streams: list[Video]
+    vods: list[Video]
+
+
 class MatchWithDetails(BaseModel):
     teams: list[TeamWithImage]
     bans: list[str]
     event: Event
+    videos: MatchVideos
     data: list[MatchData]
     previous_encounters: list[PreviousEncounters]
 

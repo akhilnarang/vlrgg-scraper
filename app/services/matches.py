@@ -21,14 +21,17 @@ async def match_by_id(id: str) -> schemas.MatchWithDetails:
 
     soup = BeautifulSoup(response.content, "html.parser")
 
-    teams, bans, event, map_ret, h2h_matches = await asyncio.gather(
+    teams, bans, event, video_data, map_ret, h2h_matches = await asyncio.gather(
         get_team_data(soup.find_all("div", class_="match-header-vs")),
         get_ban_data(soup.find_all("div", class_="match-header-note")),
         get_event_data(soup),
+        get_video_data(soup.find("div", class_="match-streams-bets-container")),
         get_map_data(soup.find_all("div", class_="vm-stats")),
         get_previous_encounters_data(soup.find("div", class_="wf-card match-h2h")),
     )
-    return schemas.MatchWithDetails(teams=teams, bans=bans, event=event, data=map_ret, previous_encounters=h2h_matches)
+    return schemas.MatchWithDetails(
+        teams=teams, bans=bans, event=event, videos=video_data, data=map_ret, previous_encounters=h2h_matches
+    )
 
 
 async def get_team_data(data: ResultSet) -> list[dict]:
@@ -96,6 +99,27 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
     if (patch_data := event_data.find_all("div")[-1].get_text().strip()) and "patch" in patch_data.lower():
         ret["patch"] = patch_data
     return ret
+
+
+async def get_video_data(data: ResultSet) -> dict[str, list]:
+    """
+    Function to extract information about stream/VOD links from a match page on VLR
+    :param data: The data about the videos
+    :return: The parsed URLs
+    """
+    response: dict[str, list] = {"streams": [], "vods": []}
+    for stream in data.find("div", class_="match-streams").find_all("div", class_="wf-card"):
+        response["streams"].append(
+            {
+                "name": stream.find("span").get_text().strip(),
+                "url": stream.find("a", class_="match-streams-btn-external").get("href"),
+            }
+        )
+
+    for vod in data.find("div", class_="match-vods").find_all("a", class_="wf-card"):
+        response["vods"].append({"name": vod.get_text().strip(), "url": vod.get("href")})
+
+    return response
 
 
 async def get_map_data(data: ResultSet) -> list:
