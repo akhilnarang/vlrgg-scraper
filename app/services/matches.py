@@ -1,12 +1,13 @@
 import asyncio
 import itertools
+from datetime import datetime
 
 import httpx
 from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet, Tag
 
 from app import schemas, utils
-from app.constants import MATCH_URL_WITH_ID, PREFIX
+from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
 
 
 async def match_by_id(id: str) -> schemas.MatchWithDetails:
@@ -237,62 +238,69 @@ async def match_list() -> list[schemas.Match]:
     :return: The parsed matches
     """
     async with httpx.AsyncClient() as client:
-        response = await client.get(PREFIX)
+        upcoming_matches_response = await client.get(UPCOMING_MATCHES_URL)
+        previous_matches_response = await client.get(PAST_MATCHES_URL)
 
-    soup = BeautifulSoup(response.content, "html.parser")
+    upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "html.parser")
+    previous_matches = BeautifulSoup(previous_matches_response.content, "html.parser")
 
     return list(
         itertools.chain(
             *(
                 await asyncio.gather(
-                    parse_matches(soup.find_all("div", class_="js-home-matches-upcoming")[0], "upcoming"),
-                    parse_matches(soup.find_all("div", class_="js-home-matches-completed")[0], "completed"),
+                    parse_matches(
+                        upcoming_matches.find_all("div", class_="wf-label"),
+                        upcoming_matches.find_all("div", class_="wf-card"),
+                        "upcoming",
+                    ),
+                    parse_matches(
+                        previous_matches.find_all("div", class_="wf-label"),
+                        previous_matches.find_all("div", class_="wf-card"),
+                        "completed",
+                    ),
                 )
             )
         )
     )
 
 
-async def parse_matches(data: element.Tag, match_type: str) -> list[schemas.Match]:
+async def parse_matches(dates: ResultSet, match_data: ResultSet, match_type: str) -> list[schemas.Match]:
     """
     Function to parse a list of matches
     :param data: The matches
     :param match_type: The type of matches (upcoming or completed)
     :return: The parsed matches
     """
-    return list(
-        await asyncio.gather(
-            *[
-                parse_match(match, match_type)
-                for match in data.find_all("div", class_="wf-card")[0].find_all("a", class_="mod-match")
-            ]
-        )
-    )
+    match_list = []
+    for date, matches in zip(dates, match_data[1:]):
+        for match in matches.find_all("a", class_="wf-module-item"):
+            match_list.append((date, match))
+    return list(await asyncio.gather(*[parse_match(date, match_info, match_type) for date, match_info in match_list]))
 
 
-async def parse_match(match: element.Tag, match_type: str) -> schemas.Match:
+async def parse_match(date: element.Tag, match_info: element.Tag, match_type: str) -> schemas.Match:
     """
     Function to parse a given match
     :param match: The match to parse
     :param match_type: The type of match (upcoming or completed)
     :return: The parsed match
     """
-    team_names = match.find_all("div", class_="h-match-team-name")
-    team_scores = match.find_all("div", class_="h-match-team-score")
-    if (status := match.find_all("div", class_="h-match-eta")[0].get_text().strip()) == "LIVE":
-        time = None
-    else:
-        time = status
-        status = match_type
-
+    team_names = match_info.find_all("div", class_="text-of")
+    team_scores = match_info.find_all("div", class_="match-item-vs-team-score")
+    status = match_info.find("div", class_="ml-status").get_text().strip()
     return schemas.Match(
         team1=schemas.MatchTeam(name=team_names[0].get_text().strip(), score=await parse_score(team_scores[0])),
         team2=schemas.MatchTeam(name=team_names[1].get_text().strip(), score=await parse_score(team_scores[1])),
         status=status,
-        time=time,
-        id=match.get("href").split("/")[0],
-        event=match.find_all("div", class_="h-match-preview-event")[0].get_text().strip(),
-        series=match.find_all("div", class_="h-match-preview-series")[0].get_text().strip(),
+        time=datetime.strptime(
+            date.get_text().split("\n")[1].strip().replace("\t", "").replace("\n", "")
+            + " "
+            + match_info.find("div", class_="match-item-time").get_text().strip(),
+            "%a, %B %d, %Y %I:%M %p",
+        ),
+        id=match_info.get("href").split("/")[1],
+        event=match_info.find("div", class_="match-item-event").get_text().split("\n")[-1].strip(),
+        series=match_info.find("div", class_="match-item-event-series").get_text().strip(),
     )
 
 

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, HttpUrl
 
 
@@ -69,10 +71,10 @@ class MatchTeam(BaseModel):
 
 
 class Match(BaseModel):
+    id: str
     team1: MatchTeam
     team2: MatchTeam
     status: str
-    time: str | None
-    id: str
+    time: datetime
     event: str
     series: str
