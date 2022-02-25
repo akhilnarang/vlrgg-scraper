@@ -109,12 +109,13 @@ async def get_video_data(data: ResultSet) -> dict[str, list]:
     """
     response: dict[str, list] = {"streams": [], "vods": []}
     for stream in data.find("div", class_="match-streams").find_all("div", class_="wf-card"):
-        response["streams"].append(
-            {
-                "name": stream.find("span").get_text().strip(),
-                "url": stream.find("a", class_="match-streams-btn-external").get("href"),
-            }
-        )
+        if (name := stream.find("span")) and (url := stream.find("a", class_="match-streams-btn-external")):
+            response["streams"].append(
+                {
+                    "name": name.get_text().strip(),
+                    "url": url.get("href"),
+                }
+            )
 
     for vod in data.find("div", class_="match-vods").find_all("a", class_="wf-card"):
         response["vods"].append({"name": vod.get_text().strip(), "url": vod.get("href")})
