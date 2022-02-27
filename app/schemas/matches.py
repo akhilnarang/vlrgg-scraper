@@ -50,7 +50,6 @@ class MatchData(BaseModel):
     map: str
     teams: list[Team]
     members: list[TeamMember]
-    rounds: list[Round]
 
 
 class PreviousEncounters(BaseModel):
