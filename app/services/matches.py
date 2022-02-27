@@ -310,16 +310,19 @@ async def parse_match(date: element.Tag, match_info: element.Tag, match_type: st
     team_names = match_info.find_all("div", class_="text-of")
     team_scores = match_info.find_all("div", class_="match-item-vs-team-score")
     status = match_info.find("div", class_="ml-status").get_text().strip()
+    date = date.get_text().split("\n")[1].strip().replace("\t", "").replace("\n", "")
+    time = match_info.find("div", class_="match-item-time").get_text().strip()
+    if time == "TBD":
+        date_format = "%a, %B %d, %Y"
+        date_string = date
+    else:
+        date_format = "%a, %B %d, %Y %I:%M %p"
+        date_string = date + " " + time
     return schemas.Match(
         team1=schemas.MatchTeam(name=team_names[0].get_text().strip(), score=await parse_score(team_scores[0])),
         team2=schemas.MatchTeam(name=team_names[1].get_text().strip(), score=await parse_score(team_scores[1])),
         status=status,
-        time=datetime.strptime(
-            date.get_text().split("\n")[1].strip().replace("\t", "").replace("\n", "")
-            + " "
-            + match_info.find("div", class_="match-item-time").get_text().strip(),
-            "%a, %B %d, %Y %I:%M %p",
-        ),
+        time=datetime.strptime(date_string, date_format),
         id=match_info.get("href").split("/")[1],
         event=match_info.find("div", class_="match-item-event").get_text().split("\n")[-1].strip(),
         series=match_info.find("div", class_="match-item-event-series").get_text().strip(),
