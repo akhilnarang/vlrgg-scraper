@@ -155,6 +155,11 @@ async def get_map_data(data: ResultSet) -> list:
             }
             for i in range(2)
         ]
+        team_short_name = [
+            elem.get_text().strip().replace("\n", "").replace("\t", "")
+            for elem in map_data.find("div", class_="vlr-rounds").find_all("div", class_="team")
+        ]
+        team_name_mapping = {short: long["name"] for short, long in zip(team_short_name, teams)}
         # for round_data in map_data.find_all("div", class_="vlr-rounds-row-col")[1:]:
         #     if round_current_score := round_data.find_all("div", class_="rnd-currscore"):
         #         round_score = round_current_score[0].get_text().strip()
@@ -196,7 +201,14 @@ async def get_map_data(data: ResultSet) -> list:
                 "teams": teams,
                 "members": list(
                     itertools.chain(
-                        *(await asyncio.gather(*[parse_scoreboard(element) for element in map_data.find_all("tbody")]))
+                        *(
+                            await asyncio.gather(
+                                *[
+                                    parse_scoreboard(element, team_name_mapping)
+                                    for element in map_data.find_all("tbody")
+                                ]
+                            )
+                        )
                     )
                 ),
             }
@@ -204,7 +216,7 @@ async def get_map_data(data: ResultSet) -> list:
     return map_ret
 
 
-async def parse_scoreboard(data: element.Tag) -> list:
+async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str]) -> list:
     ret = []
     for team in data.find_all("tr"):
         data = team.find_all("td", class_="mod-player")[0]
@@ -212,7 +224,7 @@ async def parse_scoreboard(data: element.Tag) -> list:
         ret.append(
             {
                 "name": data.find_all("div", class_="text-of")[0].get_text().strip(),
-                "team": data.find_all("div", class_="ge-text-light")[0].get_text().strip(),
+                "team": team_name_mapping[data.find_all("div", class_="ge-text-light")[0].get_text().strip()],
                 "agents": [
                     {"title": agent["title"], "img": utils.get_image_url(agent["src"])}
                     for agent in team.find_all("td", class_="mod-agents")[0].find_all("img")
