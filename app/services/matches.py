@@ -144,49 +144,49 @@ async def get_map_data(data: ResultSet) -> list:
         map_stats = stats.find_all("div", class_="vm-stats-game")
     map_ret = []
     for map_data in map_stats:
-        teams = []
-        if (match_map_id := map_data["data-game-id"]) != "all":
-            teams = [
-                {
-                    "name": map_data.find_all("div", class_="team-name")[i].get_text().strip(),
-                    "score": map_data.find_all("div", class_="score")[i].get_text().strip(),
-                }
-                for i in range(2)
-            ]
-            # for round_data in map_data.find_all("div", class_="vlr-rounds-row-col")[1:]:
-            #     if round_current_score := round_data.find_all("div", class_="rnd-currscore"):
-            #         round_score = round_current_score[0].get_text().strip()
-            #         side, round_winner = "", ""
-            #         if round_score != "":
-            #             current = round_score.split("-")
-            #             if prev[0] == current[0]:
-            #                 round_winner = "team2"
-            #             elif prev[1] == current[1]:
-            #                 round_winner = "team1"
-            #             prev = current
-            #         if round_win_data := round_data.find_all("div", class_="mod-win"):
-            #             side = {
-            #                 "mod-t": "attack",
-            #                 "mod-ct": "defense",
-            #             }.get(round_win_data[0].get("class")[2], "Unknown")
-            #
-            #             win_type = {
-            #                 "elim": "Elimination",
-            #                 "time": "Time out",
-            #                 "defuse": "Defused",
-            #                 "boom": "Spike exploded",
-            #             }.get(round_win_data[0].find("img")["src"].split("/")[-1].split(".")[0], "Not played")
-            #         else:
-            #             win_type = "Not Played"
-            #         rounds.append(
-            #             {
-            #                 "round_number": round_data.find_all("div", class_="rnd-num")[0].get_text().strip(),
-            #                 "round_score": round_score,
-            #                 "winner": round_winner,
-            #                 "side": side,
-            #                 "win_type": win_type,
-            #             }
-            #         )
+        if (match_map_id := map_data["data-game-id"]) == "all":
+            continue
+        teams = [
+            {
+                "name": map_data.find_all("div", class_="team-name")[i].get_text().strip(),
+                "score": map_data.find_all("div", class_="score")[i].get_text().strip(),
+            }
+            for i in range(2)
+        ]
+        # for round_data in map_data.find_all("div", class_="vlr-rounds-row-col")[1:]:
+        #     if round_current_score := round_data.find_all("div", class_="rnd-currscore"):
+        #         round_score = round_current_score[0].get_text().strip()
+        #         side, round_winner = "", ""
+        #         if round_score != "":
+        #             current = round_score.split("-")
+        #             if prev[0] == current[0]:
+        #                 round_winner = "team2"
+        #             elif prev[1] == current[1]:
+        #                 round_winner = "team1"
+        #             prev = current
+        #         if round_win_data := round_data.find_all("div", class_="mod-win"):
+        #             side = {
+        #                 "mod-t": "attack",
+        #                 "mod-ct": "defense",
+        #             }.get(round_win_data[0].get("class")[2], "Unknown")
+        #
+        #             win_type = {
+        #                 "elim": "Elimination",
+        #                 "time": "Time out",
+        #                 "defuse": "Defused",
+        #                 "boom": "Spike exploded",
+        #             }.get(round_win_data[0].find("img")["src"].split("/")[-1].split(".")[0], "Not played")
+        #         else:
+        #             win_type = "Not Played"
+        #         rounds.append(
+        #             {
+        #                 "round_number": round_data.find_all("div", class_="rnd-num")[0].get_text().strip(),
+        #                 "round_score": round_score,
+        #                 "winner": round_winner,
+        #                 "side": side,
+        #                 "win_type": win_type,
+        #             }
+        #         )
 
         map_ret.append(
             {
