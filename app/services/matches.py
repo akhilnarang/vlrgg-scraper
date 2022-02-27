@@ -103,7 +103,7 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
     return ret
 
 
-async def get_video_data(data: ResultSet) -> dict[str, list]:
+async def get_video_data(data: element.Tag) -> dict[str, list]:
     """
     Function to extract information about stream/VOD links from a match page on VLR
     :param data: The data about the videos
