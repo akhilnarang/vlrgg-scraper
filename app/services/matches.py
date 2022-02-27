@@ -96,8 +96,10 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
         .replace("    ", ", ")
         .split("   ")[0],
     }
-    if (patch_data := event_data.find_all("div")[-1].get_text().strip()) and "patch" in patch_data.lower():
-        ret["patch"] = patch_data
+    if (patch_data := event_data.find_all("div", class_="wf-tooltip")) and "patch" in (
+        patch_data := patch_data[-1].get_text().strip().lower()
+    ):
+        ret["patch"] = patch_data.split("\n")[0].replace("\t", "")
     return ret
 
 
