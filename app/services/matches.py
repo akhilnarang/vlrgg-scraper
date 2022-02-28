@@ -221,10 +221,11 @@ async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str])
     for team in data.find_all("tr"):
         data = team.find_all("td", class_="mod-player")[0]
         stats = team.find_all("td", class_="mod-stat")
+        team_name_short = data.find_all("div", class_="ge-text-light")[0].get_text().strip()
         ret.append(
             {
                 "name": data.find_all("div", class_="text-of")[0].get_text().strip(),
-                "team": team_name_mapping[data.find_all("div", class_="ge-text-light")[0].get_text().strip()],
+                "team": team_name_mapping.get(team_name_short, team_name_short),
                 "agents": [
                     {"title": agent["title"], "img": utils.get_image_url(agent["src"])}
                     for agent in team.find_all("td", class_="mod-agents")[0].find_all("img")
