@@ -229,6 +229,7 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
     """
     Parse match data
     :param day_matches: The HTML
+    :param date: The match date
     :return: The parsed data as a list
     """
     matches = []
@@ -250,8 +251,7 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
                 data["score"] = int(score_data)
             team_data.append(data)
         match["teams"] = team_data
-
-        if match["status"] not in ("LIVE", "TBD"):
+        if match["status"] not in ("live", "tbd"):
             match["eta"] = match_data.find_all("div", class_="ml-eta")[0].get_text().strip()
 
         match_item_event = (

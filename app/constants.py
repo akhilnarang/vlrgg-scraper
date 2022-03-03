@@ -23,3 +23,5 @@ class MatchStatus(str, Enum):
     COMPLETED = "completed"
     ONGOING = "ongoing"
     UPCOMING = "upcoming"
+    LIVE = "live"
+    TBD = "tbd"
