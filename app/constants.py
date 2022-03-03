@@ -24,6 +24,8 @@ TEAM_UPCOMING_MATCHES_URL = f"{PREFIX}/team/matches/{{}}/?group=upcoming"
 
 TEAM_COMPLETED_MATCHES_URL = f"{PREFIX}/team/matches/{{}}/?group=completed"
 
+PLAYER_URL = f"{PREFIX}/player/{{}}/?timespan=all"
+
 
 class MatchStatus(str, Enum):
     COMPLETED = "completed"
