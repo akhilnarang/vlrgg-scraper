@@ -1,6 +1,7 @@
 import asyncio
 import itertools
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import dateutil.parser
 import httpx
@@ -79,7 +80,19 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
     """
     event_data = soup.find("div", class_="match-header-super")
     event_link = event_data.find("a", class_="match-header-event")
-
+    date_str = (
+        soup.find_all("div", class_="match-header-date")[0]
+        .get_text()
+        .strip()
+        .replace("\t", "")
+        .replace("\n", " ")
+        .replace("    ", ", ")
+        .split("   ")[0]
+    )
+    if "tbd" in date_str.lower():
+        date = None
+    else:
+        date = dateutil.parser.parse(date_str, ignoretz=True).astimezone(ZoneInfo("UTC"))
     ret = {
         "id": event_link["href"].split("/")[2],
         "img": utils.get_image_url(event_link.find("img")["src"]),
@@ -89,15 +102,7 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
         .strip()
         .replace("\t", "")
         .replace("\n", ""),
-        "date": dateutil.parser.parse(
-            soup.find_all("div", class_="match-header-date")[0]
-            .get_text()
-            .strip()
-            .replace("\t", "")
-            .replace("\n", " ")
-            .replace("    ", ", ")
-            .split("   ")[0],
-        ),
+        "date": date,
     }
     if (patch_data := event_data.find_all("div", class_="wf-tooltip")) and "patch" in (
         patch_data := patch_data[-1].get_text().strip().lower()
