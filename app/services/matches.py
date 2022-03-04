@@ -2,6 +2,7 @@ import asyncio
 import itertools
 from datetime import datetime
 
+import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet, Tag
@@ -88,13 +89,15 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
         .strip()
         .replace("\t", "")
         .replace("\n", ""),
-        "date": soup.find_all("div", class_="match-header-date")[0]
-        .get_text()
-        .strip()
-        .replace("\t", "")
-        .replace("\n", " ")
-        .replace("    ", ", ")
-        .split("   ")[0],
+        "date": dateutil.parser.parse(
+            soup.find_all("div", class_="match-header-date")[0]
+            .get_text()
+            .strip()
+            .replace("\t", "")
+            .replace("\n", " ")
+            .replace("    ", ", ")
+            .split("   ")[0],
+        ),
     }
     if (patch_data := event_data.find_all("div", class_="wf-tooltip")) and "patch" in (
         patch_data := patch_data[-1].get_text().strip().lower()

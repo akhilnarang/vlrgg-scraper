@@ -17,7 +17,7 @@ class Event(BaseModel):
     img: HttpUrl
     series: str
     stage: str
-    date: str
+    date: datetime
     patch: str | None
 
 
