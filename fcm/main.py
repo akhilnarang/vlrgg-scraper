@@ -5,6 +5,7 @@ from datetime import datetime
 from fastapi.testclient import TestClient
 from firebase_admin import initialize_app, messaging
 
+from app.core.config import settings
 from app.main import app
 
 
@@ -17,9 +18,12 @@ def send():
 
     client = TestClient(app)
     current_time = datetime.utcnow()
+    headers = {}
+    if settings.SECRET_KEY:
+        headers["Authorization"] = f"Bearer {settings.SECRET_KEY}"
     upcoming_matches = [
         match
-        for match in client.get("/api/v1/matches").json()
+        for match in client.get("/api/v1/matches", headers=headers).json()
         if match["status"].lower() == "upcoming"
         and (datetime.fromisoformat(match["time"]) - current_time).total_seconds() < 900
     ]
