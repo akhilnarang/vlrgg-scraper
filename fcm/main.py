@@ -16,23 +16,24 @@ def send():
         sys.exit(1)
 
     client = TestClient(app)
-    current_time = datetime.now()
+    current_time = datetime.utcnow()
     upcoming_matches = [
         match
         for match in client.get("/api/v1/matches").json()
         if match["status"].lower() == "upcoming"
-        and (datetime.fromisoformat(match["time"]) - current_time).total_seconds() < 3600
+        and (datetime.fromisoformat(match["time"]) - current_time).total_seconds() < 900
     ]
 
     initialize_app()
     messages = []
     for match in upcoming_matches:
         print(f"Sending notification for {match=}")
+        time_to_start = int((datetime.fromisoformat(match["time"]) - current_time).total_seconds() // 60)
         messages.append(
             messaging.Message(
                 data={
                     "title": f"{match['team1']['name']} vs {match['team2']['name']}",
-                    "body": "Match is starting soon",
+                    "body": f"Match is starting in {time_to_start} minutes",
                     "match_id": match["id"],
                 },
                 topic=f"match-{match['id']}",
