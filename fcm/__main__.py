@@ -1,3 +1,5 @@
+import asyncio
+
 from .main import send
 
-send()
+asyncio.run(send())
