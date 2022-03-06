@@ -282,57 +282,73 @@ async def match_list() -> list[schemas.Match]:
     Function to parse a list of matches from the VLR.gg homepage
     :return: The parsed matches
     """
-    async with httpx.AsyncClient() as client:
-        upcoming_matches_response = await client.get(UPCOMING_MATCHES_URL)
-        previous_matches_response = await client.get(PAST_MATCHES_URL)
-
-    upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "html.parser")
-    previous_matches = BeautifulSoup(previous_matches_response.content, "html.parser")
 
     return list(
         itertools.chain(
             *(
                 await asyncio.gather(
-                    parse_matches(
-                        upcoming_matches.find_all("div", class_="wf-label"),
-                        upcoming_matches.find_all("div", class_="wf-card"),
-                        "upcoming",
-                    ),
-                    parse_matches(
-                        previous_matches.find_all("div", class_="wf-label"),
-                        previous_matches.find_all("div", class_="wf-card"),
-                        "completed",
-                    ),
+                    get_upcoming_matches(),
+                    get_completed_matches(),
                 )
             )
         )
     )
 
 
-async def parse_matches(dates: ResultSet, match_data: ResultSet, match_type: str) -> list[schemas.Match]:
+async def get_upcoming_matches() -> list[schemas.Match]:
+    """
+    Function get a list of upcoming matches from VLR
+    :return: The list of matches
+    """
+    async with httpx.AsyncClient() as client:
+        upcoming_matches_response = await client.get(UPCOMING_MATCHES_URL)
+    upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "html.parser")
+    return await parse_matches(
+        upcoming_matches.find_all("div", class_="wf-label"),
+        upcoming_matches.find_all("div", class_="wf-card"),
+    )
+
+
+async def get_completed_matches() -> list[schemas.Match]:
+    """
+    Function get a list of completed matches from VLR
+    :return: The list of matches
+    """
+    async with httpx.AsyncClient() as client:
+        previous_matches_response = await client.get(PAST_MATCHES_URL)
+
+    previous_matches = BeautifulSoup(previous_matches_response.content, "html.parser")
+
+    return await parse_matches(
+        previous_matches.find_all("div", class_="wf-label"),
+        previous_matches.find_all("div", class_="wf-card"),
+    )
+
+
+async def parse_matches(dates: ResultSet, match_data: ResultSet) -> list[schemas.Match]:
     """
     Function to parse a list of matches
-    :param data: The matches
-    :param match_type: The type of matches (upcoming or completed)
+    :param dates: The dates on which the matches were/will be held
+    :param match_data: The matches
     :return: The parsed matches
     """
-    match_list = []
+    ret = []
     for date, matches in zip(dates, match_data[1:]):
         for match in matches.find_all("a", class_="wf-module-item"):
-            match_list.append((date, match))
-    return list(await asyncio.gather(*[parse_match(date, match_info, match_type) for date, match_info in match_list]))
+            ret.append((date, match))
+    return list(await asyncio.gather(*[parse_match(date, match_info) for date, match_info in ret]))
 
 
-async def parse_match(date: element.Tag, match_info: element.Tag, match_type: str) -> schemas.Match:
+async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Match:
     """
     Function to parse a given match
-    :param match: The match to parse
-    :param match_type: The type of match (upcoming or completed)
+    :param date: The match's date
+    :param match_info: The match to parse
     :return: The parsed match
     """
     team_names = match_info.find_all("div", class_="text-of")
     team_scores = match_info.find_all("div", class_="match-item-vs-team-score")
-    status = match_info.find("div", class_="ml-status").get_text().strip()
+    status = match_info.find("div", class_="ml-status").get_text().strip().lower()
     date = date.get_text().split("\n")[1].strip().replace("\t", "").replace("\n", "")
     time = match_info.find("div", class_="match-item-time").get_text().strip()
     if time == "TBD":

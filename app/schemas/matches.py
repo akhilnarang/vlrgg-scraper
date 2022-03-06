@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, HttpUrl
 
+from app.constants import MatchStatus
+
 
 class Team(BaseModel):
     name: str
@@ -85,7 +87,7 @@ class Match(BaseModel):
     id: str
     team1: MatchTeam
     team2: MatchTeam
-    status: str
+    status: MatchStatus
     time: datetime
     event: str
     series: str
