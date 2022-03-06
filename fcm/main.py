@@ -1,6 +1,7 @@
 import os
 import sys
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from firebase_admin import initialize_app, messaging
 
@@ -16,7 +17,7 @@ async def send() -> None:
         )
         sys.exit(1)
 
-    current_time = datetime.utcnow()
+    current_time = datetime.now(tz=ZoneInfo("UTC"))
     upcoming_matches = [
         match
         for match in await matches.get_upcoming_matches()

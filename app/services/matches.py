@@ -1,6 +1,5 @@
 import asyncio
 import itertools
-from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import dateutil.parser
@@ -356,16 +355,15 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
     date = date.get_text().split("\n")[1].strip().replace("\t", "").replace("\n", "")
     time = match_info.find("div", class_="match-item-time").get_text().strip()
     if time == "TBD":
-        date_format = "%a, %B %d, %Y"
         date_string = date
     else:
-        date_format = "%a, %B %d, %Y %I:%M %p"
         date_string = date + " " + time
+
     return schemas.Match(
         team1=schemas.MatchTeam(name=team_names[0].get_text().strip(), score=await parse_score(team_scores[0])),
         team2=schemas.MatchTeam(name=team_names[1].get_text().strip(), score=await parse_score(team_scores[1])),
         status=status,
-        time=datetime.strptime(date_string, date_format).astimezone(ZoneInfo("UTC")).replace(tzinfo=None),
+        time=dateutil.parser.parse(date_string, ignoretz=True).astimezone(ZoneInfo("UTC")),
         id=match_info.get("href").split("/")[1],
         event=match_info.find("div", class_="match-item-event").get_text().split("\n")[-1].strip(),
         series=match_info.find("div", class_="match-item-event-series").get_text().strip(),
