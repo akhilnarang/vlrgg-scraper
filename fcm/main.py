@@ -8,7 +8,7 @@ from app.constants import MatchStatus
 from app.services import matches
 
 
-async def send():
+async def send() -> None:
     if os.getenv("GOOGLE_APPLICATION_CREDENTIALS") is None:
         print(
             "Please set the environment variable `GOOGLE_APPLICATION_CREDENTIALS` to the path of the service account "

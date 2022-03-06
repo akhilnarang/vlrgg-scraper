@@ -1,10 +1,12 @@
-#!/bin/sh -e
-set -x
+#!/usr/bin/env bash
+set -ex
 
 # If argument was given then format only that file, else format entire app
-path=${1:-app}
+if [[ -z "$path" ]]; then
+    path="app fcm"
+fi
 
 # Format
-autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place "${path}" --exclude=__init__.py
-black "${path}"
-isort "${path}"
+autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place ${path} --exclude=__init__.py
+black ${path}
+isort ${path}
