@@ -12,6 +12,7 @@ class Team(BaseModel):
 
 class TeamWithImage(Team):
     img: HttpUrl
+    id: str | None
 
 
 class Event(BaseModel):

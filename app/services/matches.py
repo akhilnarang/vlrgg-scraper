@@ -52,14 +52,18 @@ async def get_team_data(data: ResultSet) -> list[dict]:
     else:
         match_score = [None, None]
 
-    return [
-        {
+    response = []
+    for i, score in enumerate(match_score):
+        data = {
             "name": names[i].get_text().strip().replace("\t", ""),
             "img": utils.get_image_url(images[i].find("img")["src"]),
             "score": score,
         }
-        for i, score in enumerate(match_score)
-    ]
+        if team_url := images[i].get("href"):
+            data["id"] = team_url.split("/")[2]
+
+        response.append(data)
+    return response
 
 
 async def get_ban_data(data: ResultSet) -> list:
