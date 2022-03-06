@@ -54,7 +54,7 @@ async def get_team_data(data: ResultSet) -> list[dict]:
 
     return [
         {
-            "name": names[i].get_text().strip(),
+            "name": names[i].get_text().strip().replace("\t", ""),
             "img": utils.get_image_url(images[i].find("img")["src"]),
             "score": score,
         }
