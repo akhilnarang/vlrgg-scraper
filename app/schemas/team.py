@@ -20,7 +20,7 @@ class MatchBase(BaseModel):
 
 
 class UpcomingMatch(MatchBase):
-    eta: str
+    eta: str | None
 
 
 class CompletedMatch(MatchBase):
