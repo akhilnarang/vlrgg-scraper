@@ -32,9 +32,15 @@ async def get_team_data(id: str) -> dict:
     name = team_info.find("h1").get_text().strip()
     tag = team_info.find("h2").get_text().strip()
     img = utils.get_image_url(team_info.find("img")["src"])
+    website = None
+    twitter = None
 
-    website = soup.find("div", class_="team-header-website").find("a")["href"]
-    twitter = soup.find("div", class_="team-header-twitter").find("a").get_text().strip()
+    if website_div := soup.find("div", class_="team-header-website"):
+        website = website_div.find("a")["href"]
+
+    if twitter_div := soup.find("div", class_="team-header-twitter"):
+        twitter = twitter_div.find("a").get_text().strip()
+
     country = soup.find("div", class_="team-header-country").get_text().strip()
 
     team_data = soup.find("div", class_="team-summary-container-1")
@@ -76,9 +82,11 @@ async def parse_player(player_data: element.Tag) -> dict:
     response = {
         "id": player_data.find("a")["href"].split("/")[2],
         "alias": player_data.find("div", class_="team-roster-item-name-alias").get_text().strip(),
-        "name": player_data.find("div", class_="team-roster-item-name-real").get_text().strip(),
         "img": utils.get_image_url(player_data.find("div", class_="team-roster-item-img").find("img")["src"]),
     }
+    if name_div := player_data.find("div", class_="team-roster-item-name-real"):
+        response["name"] = name_div.get_text().strip()
+
     if role := player_data.find("div", class_="team-roster-item-name-role"):
         response["role"] = role.get_text().strip()
     elif role := player_data.find("i", class_="fa fa-star"):

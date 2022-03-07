@@ -5,7 +5,7 @@ from pydantic import BaseModel, HttpUrl
 
 class Player(BaseModel):
     id: str
-    name: str
+    name: str | None
     alias: str
     role: str | None
     img: HttpUrl
@@ -31,8 +31,8 @@ class Team(BaseModel):
     name: str
     tag: str
     img: HttpUrl
-    website: HttpUrl
-    twitter: str
+    website: HttpUrl | None
+    twitter: str | None
     country: str
     rank: int
     region: str
