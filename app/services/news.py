@@ -1,5 +1,7 @@
 import asyncio
+from zoneinfo import ZoneInfo
 
+import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
 
@@ -28,5 +30,5 @@ async def parse_news(data: element.Tag) -> schemas.NewsItem:
         title=title,
         description=description,
         author=metadata[-1].replace("by", "").strip(),
-        date=metadata[1].strip(),
+        date=dateutil.parser.parse(metadata[1].strip(), ignoretz=True),
     )
