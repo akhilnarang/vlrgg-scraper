@@ -151,11 +151,19 @@ async def get_bracket_data(data: BeautifulSoup | element.ResultSet) -> dict:
 
     if lower_bracket_container := data.find_all("div", class_="bracket-container mod-lower"):
         lower_bracket = await asyncio.gather(
-            *[bracket_parser(column) for column in lower_bracket_container[0].find_all("div", class_="bracket-col")]
+            *[
+                bracket_parser(column)
+                for column in lower_bracket_container[0].find_all("div", class_="bracket-col")
+                if "mod-placeholder" not in column.attrs["class"]
+            ]
         )
     elif lower_bracket_container := data.find_all("div", class_="bracket-container mod-lower mod-compact"):
         lower_bracket = await asyncio.gather(
-            *[bracket_parser(column) for column in lower_bracket_container[0].find_all("div", class_="bracket-col")]
+            *[
+                bracket_parser(column)
+                for column in lower_bracket_container[0].find_all("div", class_="bracket-col")
+                if "mod-placeholder" not in column.attrs["class"]
+            ]
         )
     else:
         lower_bracket = []

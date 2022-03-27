@@ -1,5 +1,4 @@
 import asyncio
-from zoneinfo import ZoneInfo
 
 import dateutil.parser
 import httpx
