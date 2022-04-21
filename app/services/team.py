@@ -30,10 +30,14 @@ async def get_team_data(id: str) -> dict:
 
     team_info = soup.find("div", class_="team-header")
     name = team_info.find("h1").get_text().strip()
-    tag = team_info.find("h2").get_text().strip()
     img = utils.get_image_url(team_info.find("img")["src"])
+
+    tag = ""
     website = None
     twitter = None
+
+    if tag_element := team_info.find("h2"):
+        tag = tag_element.get_text().strip()
 
     if website_div := soup.find("div", class_="team-header-website"):
         website = website_div.find("a")["href"]
