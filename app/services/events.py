@@ -90,7 +90,9 @@ async def parse_events_data(id: str) -> dict:
     event_desc_item_value = header.find_all("div", class_="event-desc-item-value")
     event["dates"] = event_desc_item_value[0].get_text().strip()
     event["prize"] = event_desc_item_value[1].get_text().strip().replace("\t", "").replace("\n", " ")
-    event["location"] = event_desc_item_value[2].find_all("i", class_="flag")[0].get("class")[1].replace("mod-", "")
+    event["location"] = event_desc_item_value[2].get_text().strip() or event_desc_item_value[2].find_all(
+        "i", class_="flag"
+    )[0].get("class")[1].replace("mod-", "")
     event["img"] = utils.get_image_url(header.find_all("div", class_="event-header-thumb")[0].find("img")["src"])
 
     if prizes_data := soup.find_all("table", class_="wf-table"):
