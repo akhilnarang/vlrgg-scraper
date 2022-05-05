@@ -251,8 +251,12 @@ async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str])
                 .replace("\xa0", "")
                 or 0,
                 "assists": stats[3].find("span", class_="side mod-both").get_text().strip() or 0,
+                "kast": stats[5].find("span", class_="side mod-both").get_text().strip()[:-1] or 0,
                 "adr": stats[6].find("span", class_="side mod-both").get_text().strip() or 0,
                 "headshot_percent": stats[7].find("span", class_="side mod-both").get_text().strip()[:-1] or 0,
+                "first_kills": stats[8].find("span", class_="side mod-both").get_text().strip() or 0,
+                "first_deaths": stats[9].find("span", class_="side mod-both").get_text().strip() or 0,
+                "first_kills_diff": stats[10].find("span", class_="mod-both").get_text().strip() or 0,
             }
         )
     return ret

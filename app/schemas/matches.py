@@ -37,8 +37,12 @@ class TeamMember(BaseModel):
     kills: int
     deaths: int
     assists: int
+    kast: int
     adr: int
     headshot_percent: int
+    first_kills: int
+    first_deaths: int
+    first_kills_diff: int
 
 
 class Round(BaseModel):
