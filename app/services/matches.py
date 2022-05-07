@@ -157,7 +157,7 @@ async def get_map_data(data: ResultSet) -> list:
         map_stats = stats.find_all("div", class_="vm-stats-game")
     map_ret = []
     for map_data in map_stats:
-        if (match_map_id := map_data["data-game-id"]) == "all":
+        if (match_map_id := map_data["data-game-id"]) == "all" or maps.get(match_map_id) == "TBD":
             continue
         teams = [
             {
