@@ -1,5 +1,6 @@
 import asyncio
 import itertools
+from typing import Tuple
 from zoneinfo import ZoneInfo
 
 import dateutil.parser
@@ -31,7 +32,13 @@ async def match_by_id(id: str) -> schemas.MatchWithDetails:
         get_previous_encounters_data(soup.find("div", class_="wf-card match-h2h")),
     )
     return schemas.MatchWithDetails(
-        teams=teams, bans=bans, event=event, videos=video_data, data=map_ret, previous_encounters=h2h_matches
+        teams=teams,
+        bans=bans,
+        event=event,
+        videos=video_data,
+        data=map_ret[0],
+        map_count=map_ret[1],
+        previous_encounters=h2h_matches,
     )
 
 
@@ -136,7 +143,7 @@ async def get_video_data(data: element.Tag) -> dict[str, list]:
     return response
 
 
-async def get_map_data(data: ResultSet) -> list:
+async def get_map_data(data: ResultSet) -> Tuple[list, int]:
     """
     Function to extract information about a map from a match page on VLR
     :param data: The data about the maps
@@ -153,8 +160,10 @@ async def get_map_data(data: ResultSet) -> list:
     if maps == {}:
         maps = {stats["data-game-id"]: stats.find_all("div", class_="map")[0].find("span").get_text().strip()}
         map_stats = [stats.find_all("div", class_="vm-stats-game")[0]]
+        map_count = 1
     else:
         map_stats = stats.find_all("div", class_="vm-stats-game")
+        map_count = len(maps) - 1
     map_ret = []
     for map_data in map_stats:
         if (match_map_id := map_data["data-game-id"]) == "all" or maps.get(match_map_id) == "TBD":
@@ -224,7 +233,7 @@ async def get_map_data(data: ResultSet) -> list:
                 ),
             }
         )
-    return map_ret
+    return map_ret, map_count
 
 
 async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str]) -> list:

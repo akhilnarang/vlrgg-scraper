@@ -79,6 +79,7 @@ class MatchWithDetails(BaseModel):
     bans: list[str]
     event: Event
     videos: MatchVideos
+    map_count: int
     data: list[MatchData]
     previous_encounters: list[PreviousEncounters]
 
