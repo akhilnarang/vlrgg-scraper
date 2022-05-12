@@ -163,7 +163,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
         map_count = 1
     else:
         map_stats = stats.find_all("div", class_="vm-stats-game")
-        map_count = len(maps) - 1
+        map_count = len(maps) - 1 - len(stats.find_all("div", class_="mod-disabled"))
     map_ret = []
     for map_data in map_stats:
         if (match_map_id := map_data["data-game-id"]) == "all" or maps.get(match_map_id) == "TBD":
