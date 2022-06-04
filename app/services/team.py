@@ -39,11 +39,12 @@ async def get_team_data(id: str) -> dict:
     if tag_element := team_info.find("h2"):
         tag = tag_element.get_text().strip()
 
-    if website_div := soup.find("div", class_="team-header-website"):
-        website = website_div.find("a")["href"]
-
-    if twitter_div := soup.find("div", class_="team-header-twitter"):
-        twitter = twitter_div.find("a").get_text().strip()
+    for link in soup.find("div", class_="team-header-links").find_all("a"):
+        if link := link.get('href'):
+            if "twitter.com" in link:
+                twitter = link
+            else:
+                website = link
 
     country = soup.find("div", class_="team-header-country").get_text().strip()
 
@@ -106,7 +107,7 @@ async def parse_match(match_data: element.Tag) -> dict:
     """
     event, *stage = [
         f
-        for f in match_data.find("div", class_="rm-item-eventz text-of")
+        for f in match_data.find("div", class_="m-item-event text-of")
         .get_text()
         .strip()
         .replace("\t", "")
@@ -116,7 +117,7 @@ async def parse_match(match_data: element.Tag) -> dict:
     response = {"event": event, "stage": "".join(stage), "id": match_data["href"].split("/")[1]}
     if eta := match_data.find("span", class_="rm-item-score-eta"):
         response["eta"] = eta.get_text().strip()
-        response["opponent"] = eta.find_next("div").find_next("div").find_next("div").get_text().strip()
+        response["opponent"] = eta.find_next("div").find_next("div").find_next("div").get_text().strip().split("\n")[0].replace("\t", "")
     elif score := match_data.find("div", class_="m-item-result"):
         response["score"] = score.get_text().strip().replace("\n", "")
         response["opponent"] = (
@@ -131,7 +132,7 @@ async def parse_match(match_data: element.Tag) -> dict:
         )
 
     response["date"] = datetime.strptime(
-        match_data.find("div", class_="rm-item-datze").get_text().strip().replace("\t", "").replace("\n", " "),
+        match_data.find("div", class_="m-item-date").get_text().strip().replace("\t", "").replace("\n", " "),
         "%Y/%m/%d %I:%M %p",
     )
     return response
