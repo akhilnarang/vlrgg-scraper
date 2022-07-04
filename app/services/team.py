@@ -1,6 +1,7 @@
 import asyncio
-from datetime import datetime
+from zoneinfo import ZoneInfo
 
+import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
 
@@ -129,8 +130,7 @@ async def parse_match(match_data: element.Tag) -> dict:
             .replace("\t", "")
         )
 
-    response["date"] = datetime.strptime(
-        match_data.find("div", class_="m-item-date").get_text().strip().replace("\t", "").replace("\n", " "),
-        "%Y/%m/%d %I:%M %p",
-    )
+    response["date"] = dateutil.parser.parse(
+        match_data.find("div", class_="m-item-date").get_text(), ignoretz=True
+    ).astimezone(ZoneInfo("UTC"))
     return response
