@@ -1,4 +1,5 @@
 import asyncio
+from zoneinfo import ZoneInfo
 
 import dateutil.parser
 import httpx
@@ -29,5 +30,5 @@ async def parse_news(data: element.Tag) -> schemas.NewsItem:
         title=title,
         description=description,
         author=metadata[-1].replace("by", "").strip(),
-        date=dateutil.parser.parse(metadata[1].strip(), ignoretz=True),
+        date=dateutil.parser.parse(metadata[1].strip(), ignoretz=True).astimezone(ZoneInfo("UTC")),
     )
