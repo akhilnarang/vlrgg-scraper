@@ -40,7 +40,7 @@ async def get_team_data(id: str) -> dict:
         tag = tag_element.get_text().strip()
 
     for link in soup.find("div", class_="team-header-links").find_all("a"):
-        if link := link.get('href'):
+        if link := link.get("href"):
             if "twitter.com" in link:
                 twitter = link
             else:
@@ -107,17 +107,15 @@ async def parse_match(match_data: element.Tag) -> dict:
     """
     event, *stage = [
         f
-        for f in match_data.find("div", class_="m-item-event text-of")
-        .get_text()
-        .strip()
-        .replace("\t", "")
-        .split("\n")
+        for f in match_data.find("div", class_="m-item-event text-of").get_text().strip().replace("\t", "").split("\n")
         if f
     ]
     response = {"event": event, "stage": "".join(stage), "id": match_data["href"].split("/")[1]}
     if eta := match_data.find("span", class_="rm-item-score-eta"):
         response["eta"] = eta.get_text().strip()
-        response["opponent"] = eta.find_next("div").find_next("div").find_next("div").get_text().strip().split("\n")[0].replace("\t", "")
+        response["opponent"] = (
+            eta.find_next("div").find_next("div").find_next("div").get_text().strip().split("\n")[0].replace("\t", "")
+        )
     elif score := match_data.find("div", class_="m-item-result"):
         response["score"] = score.get_text().strip().replace("\n", "")
         response["opponent"] = (
