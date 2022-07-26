@@ -72,5 +72,5 @@ class EventWithDetails(BaseModel):
     img: HttpUrl
     prizes: list[Prize] = []
     brackets: list[Bracket]
-    teams: list[Team]
+    teams: list[Team] = []
     matches: list[Match]
