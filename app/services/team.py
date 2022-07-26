@@ -51,7 +51,12 @@ async def get_team_data(id: str) -> dict:
 
     team_data = soup.find("div", class_="team-summary-container-1")
 
-    rank = team_data.find("div", class_="rank-num mod-").get_text().strip()
+    # Rank doesn't show up on VLR sometimes - not sure why. So we default to 0 if we can't find it.
+    if rank_div := team_data.find("div", class_="rank-num mod-"):
+        rank = rank_div.get_text().strip()
+    else:
+        rank = 0
+
     region = team_data.find("div", class_="rating-txt").get_text().strip()
     roster, upcoming_matches, completed_matches = await asyncio.gather(
         *[
