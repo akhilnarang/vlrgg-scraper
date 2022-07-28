@@ -1,5 +1,6 @@
-from fastapi import Depends, FastAPI
 from brotli_asgi import BrotliMiddleware
+from fastapi import Depends, FastAPI
+
 from app.api import deps
 from app.api.v1.api import router
 from app.core.config import settings

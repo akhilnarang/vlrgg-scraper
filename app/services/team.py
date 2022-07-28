@@ -57,7 +57,11 @@ async def get_team_data(id: str) -> dict:
     else:
         rank = 0
 
-    region = team_data.find("div", class_="rating-txt").get_text().strip()
+    if region_div := team_data.find("div", class_="rating-txt"):
+        region = region_div.get_text().strip()
+    else:
+        region = ""
+
     roster, upcoming_matches, completed_matches = await asyncio.gather(
         *[
             asyncio.gather(*[parse_player(player) for player in team_data.find_all("div", class_="team-roster-item")]),
