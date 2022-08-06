@@ -22,6 +22,7 @@ class Event(BaseModel):
     stage: str
     date: datetime | None
     patch: str | None
+    status: str | None
 
 
 class Agent(BaseModel):

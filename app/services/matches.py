@@ -103,6 +103,14 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
         date = None
     else:
         date = dateutil.parser.parse(date_str, ignoretz=True).astimezone(ZoneInfo("UTC"))
+
+    if soup.find("span", class_="match-header-vs-note mod-upcoming"):
+        status = "upcoming"
+    elif status_data := soup.find("div", class_="match-header-vs-note"):
+        status = status_data.get_text().strip().replace("\t", "").replace("\n", "").lower()
+    else:
+        status = None
+
     ret = {
         "id": event_link["href"].split("/")[2],
         "img": utils.get_image_url(event_link.find("img")["src"]),
@@ -113,6 +121,7 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
         .replace("\t", "")
         .replace("\n", ""),
         "date": date,
+        "status": status,
     }
     if (patch_data := event_data.find_all("div", class_="wf-tooltip")) and "patch" in (
         patch_data := patch_data[-1].get_text().strip().lower()
