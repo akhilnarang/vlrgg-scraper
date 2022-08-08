@@ -6,6 +6,7 @@ class TeamRanking(BaseModel):
     id: int
     logo: HttpUrl
     rank: int
+    points: int
 
 
 class Ranking(BaseModel):
