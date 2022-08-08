@@ -26,6 +26,10 @@ TEAM_COMPLETED_MATCHES_URL = f"{PREFIX}/team/matches/{{}}/?group=completed"
 
 PLAYER_URL = f"{PREFIX}/player/{{}}/?timespan=all"
 
+RANKINGS_URL = f"{PREFIX}/rankings"
+
+RANKING_URL_REGION = f"{PREFIX}{{}}"
+
 
 class MatchStatus(str, Enum):
     COMPLETED = "completed"
