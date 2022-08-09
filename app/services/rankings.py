@@ -30,7 +30,7 @@ async def ranking_list(limit: int) -> list[schemas.NewsItem]:
 
 
 async def parse_rankings(path: str, limit: int) -> schemas.Ranking:
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(RANKING_URL_REGION.format(path))
 
     soup = BeautifulSoup(response.content, "html.parser")
