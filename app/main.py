@@ -1,9 +1,24 @@
+import sentry_sdk
 from brotli_asgi import BrotliMiddleware
 from fastapi import Depends, FastAPI
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
 
 from app.api import deps
 from app.api.v1.api import router
 from app.core.config import settings
+
+# Initialize Sentry SDK if a DSN is defined in our environment
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        integrations=[
+            StarletteIntegration(),
+            FastApiIntegration(),
+        ],
+        traces_sample_rate=1.0,
+    )
+
 
 app = FastAPI(title="Scraper", description="Scraper for VLR.gg that exposes a REST API for some data available there")
 app.add_middleware(BrotliMiddleware)
