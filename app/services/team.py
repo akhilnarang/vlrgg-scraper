@@ -4,11 +4,13 @@ from zoneinfo import ZoneInfo
 import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
+from cachetools.func import ttl_cache
 
 from app import utils
 from app.constants import TEAM_COMPLETED_MATCHES_URL, TEAM_UPCOMING_MATCHES_URL, TEAM_URL
 
 
+@ttl_cache(ttl=60)
 async def get_team_data(id: str) -> dict:
     """
     Function get a team's data from VLR and return a parsed version

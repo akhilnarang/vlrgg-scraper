@@ -2,11 +2,13 @@ import asyncio
 
 import httpx
 from bs4 import BeautifulSoup
+from cachetools.func import ttl_cache
 
 from app import schemas, utils
 from app.constants import RANKING_URL_REGION, RANKINGS_URL
 
 
+@ttl_cache(ttl=3600)
 async def ranking_list(limit: int) -> list[schemas.NewsItem]:
     """
     Function to parse a list of rankings from the VLR.gg rankgs page

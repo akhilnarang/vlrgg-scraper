@@ -3,6 +3,7 @@ import itertools
 
 import httpx
 from bs4 import BeautifulSoup, element
+from cachetools.func import ttl_cache
 from fastapi import HTTPException
 from starlette import status
 
@@ -10,6 +11,7 @@ from app import schemas, utils
 from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL
 
 
+@ttl_cache()
 async def get_events() -> list[schemas.Event]:
     """
     Fetch a list of events from VLR, and return the parsed response
@@ -60,6 +62,7 @@ async def parse_event(event: element.Tag) -> schemas.Event:
     return schemas.Event(id=event_id, title=title, status=status, prize=prize, dates=dates, location=location, img=img)
 
 
+@ttl_cache(ttl=60)
 async def get_event_by_id(id: str) -> schemas.EventWithDetails:
     """
     Function to fetch an event from VLR, and return the parsed response

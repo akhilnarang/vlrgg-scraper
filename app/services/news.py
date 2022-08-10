@@ -4,11 +4,13 @@ from zoneinfo import ZoneInfo
 import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
+from cachetools.func import ttl_cache
 
 from app import schemas
 from app.constants import NEWS_URL, PREFIX
 
 
+@ttl_cache(ttl=300)
 async def news_list() -> list[schemas.NewsItem]:
     """
     Function to parse a list of matches from the VLR.gg homepage

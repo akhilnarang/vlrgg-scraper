@@ -7,11 +7,13 @@ import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet, Tag
+from cachetools.func import ttl_cache
 
 from app import schemas, utils
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
 
 
+@ttl_cache(ttl=60)
 async def match_by_id(id: str) -> schemas.MatchWithDetails:
     """
     Function to fetch a match from VLR, and return the parsed response
@@ -306,6 +308,7 @@ async def get_previous_encounters_data(data: Tag) -> list[dict]:
     return response
 
 
+@ttl_cache(ttl=60)
 async def match_list() -> list[schemas.Match]:
     """
     Function to parse a list of matches from the VLR.gg homepage

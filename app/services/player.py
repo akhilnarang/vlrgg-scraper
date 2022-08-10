@@ -2,11 +2,13 @@ import asyncio
 
 import httpx
 from bs4 import BeautifulSoup, element
+from cachetools.func import ttl_cache
 
 from app import utils
 from app.constants import PLAYER_URL
 
 
+@ttl_cache(ttl=60)
 async def get_player_data(id: str) -> dict:
     """
     Function get a player's data from VLR and return a parsed version
