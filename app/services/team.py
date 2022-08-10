@@ -25,9 +25,9 @@ async def get_team_data(id: str) -> dict:
             ]
         )
 
-    soup = BeautifulSoup(response.content, "html.parser")
-    upcoming_matches = BeautifulSoup(upcoming_matches_response, "html.parser")
-    completed_matches = BeautifulSoup(completed_matches_response, "html.parser")
+    soup = BeautifulSoup(response.content, "lxml")
+    upcoming_matches = BeautifulSoup(upcoming_matches_response, "lxml")
+    completed_matches = BeautifulSoup(completed_matches_response, "lxml")
 
     team_info = soup.find("div", class_="team-header")
     name = team_info.find("h1").get_text().strip()

@@ -17,7 +17,7 @@ async def news_list() -> list[schemas.NewsItem]:
     async with httpx.AsyncClient() as client:
         response = await client.get(NEWS_URL)
 
-    soup = BeautifulSoup(response.content, "html.parser")
+    soup = BeautifulSoup(response.content, "lxml")
 
     return list(await asyncio.gather(*[parse_news(news) for news in soup.find_all("a", class_="wf-module-item")]))
 

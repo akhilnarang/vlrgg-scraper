@@ -21,7 +21,7 @@ async def match_by_id(id: str) -> schemas.MatchWithDetails:
     async with httpx.AsyncClient() as client:
         response = await client.get(MATCH_URL_WITH_ID.format(id))
 
-    soup = BeautifulSoup(response.content, "html.parser")
+    soup = BeautifulSoup(response.content, "lxml")
 
     teams, bans, event, video_data, map_ret, h2h_matches = await asyncio.gather(
         get_team_data(soup.find_all("div", class_="match-header-vs")),
@@ -331,7 +331,7 @@ async def get_upcoming_matches() -> list[schemas.Match]:
     """
     async with httpx.AsyncClient() as client:
         upcoming_matches_response = await client.get(UPCOMING_MATCHES_URL)
-    upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "html.parser")
+    upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "lxml")
     return await parse_matches(
         upcoming_matches.find_all("div", class_="wf-label"),
         upcoming_matches.find_all("div", class_="wf-card"),
@@ -346,7 +346,7 @@ async def get_completed_matches() -> list[schemas.Match]:
     async with httpx.AsyncClient() as client:
         previous_matches_response = await client.get(PAST_MATCHES_URL)
 
-    previous_matches = BeautifulSoup(previous_matches_response.content, "html.parser")
+    previous_matches = BeautifulSoup(previous_matches_response.content, "lxml")
 
     return await parse_matches(
         previous_matches.find_all("div", class_="wf-label"),

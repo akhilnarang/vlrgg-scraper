@@ -18,7 +18,7 @@ async def get_events() -> list[schemas.Event]:
     async with httpx.AsyncClient() as client:
         response = await client.get(EVENTS_URL)
 
-    soup = BeautifulSoup(response.content, "html.parser")
+    soup = BeautifulSoup(response.content, "lxml")
     return list(
         itertools.chain(
             *(
@@ -80,7 +80,7 @@ async def parse_events_data(id: str) -> dict:
     async with httpx.AsyncClient() as client:
         response = await client.get(EVENT_URL_WITH_ID.format(id))
     event: dict[str, str | list] = {"id": id}
-    soup = BeautifulSoup(response.content, "html.parser")
+    soup = BeautifulSoup(response.content, "lxml")
 
     if (event_header := soup.find_all("div", class_="event-header")) is None:
         raise HTTPException(detail="Event header was missing, please retry", status_code=status.HTTP_400_BAD_REQUEST)
@@ -114,7 +114,7 @@ async def parse_match_data(id: str) -> list:
     async with httpx.AsyncClient() as client:
         response = await client.get(EVENT_URL_WITH_ID_MATCHES.format(id))
 
-    soup = BeautifulSoup(response.content, "html.parser")
+    soup = BeautifulSoup(response.content, "lxml")
     return list(
         itertools.chain(
             *(

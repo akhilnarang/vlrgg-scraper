@@ -17,7 +17,7 @@ async def get_player_data(id: str) -> dict:
     async with httpx.AsyncClient() as client:
         response = await client.get(PLAYER_URL.format(id))
 
-    soup = BeautifulSoup(response.content, "html.parser")
+    soup = BeautifulSoup(response.content, "lxml")
     player_info = soup.find("div", class_="player-header")
     player_data = {
         "alias": player_info.find("h1").get_text().strip(),
