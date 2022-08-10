@@ -7,6 +7,7 @@ class TeamRanking(BaseModel):
     logo: HttpUrl
     rank: int
     points: int
+    country: str
 
 
 class Ranking(BaseModel):
