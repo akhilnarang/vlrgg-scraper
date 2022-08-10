@@ -15,6 +15,7 @@ python-dateutil = "^2.8.2"
 firebase-admin = "^5.2.0"
 brotli-asgi = "^1.1.0"
 sentry-sdk = {extras = ["fastapi"], version = "^1.9.3"}
+lxml = "^4.9.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
