@@ -16,6 +16,7 @@ firebase-admin = "^5.2.0"
 brotli-asgi = "^1.1.0"
 sentry-sdk = {extras = ["fastapi"], version = "^1.9.3"}
 lxml = "^4.9.1"
+cachetools = "^5.2.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
@@ -24,6 +25,7 @@ mypy = "^0.971"
 flake8 = "^5.0.4"
 autoflake = "^1.4"
 types-python-dateutil = "^2.8.19"
+types-cachetools = "^5.2.1"
 
 [tool.isort]
 multi_line_output = 3
