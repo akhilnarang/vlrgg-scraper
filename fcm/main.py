@@ -50,11 +50,12 @@ async def send() -> None:
                     "body": f"Match is starting in {time_to_start} minutes",
                     "match_id": match.id,
                 },
-                # Even if a person has subscribed to the match + both teams, they shouldn't receive multiple notifications
+                # Even if a person has subscribed to the match + both teams, they shouldn't receive multiple
+                # notifications
                 condition=f"'match-{match.id}' in topics || 'team-{team1_id}' in topics || 'team-{team2_id}' in topics",
             ),
         )
-    
+
     # Don't bother sending if there's nothing to send
     if messages:
         response = messaging.send_all(messages)
