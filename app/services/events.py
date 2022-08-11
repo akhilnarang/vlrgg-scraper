@@ -282,8 +282,11 @@ async def parse_team_data(team_data: element.Tag) -> list[dict[str, str]]:
     participants = []
     for team in team_data.find_all("div", class_="wf-card event-team"):
         event_team_name = team.find_all("a", class_="event-team-name")[0]
+        name = event_team_name.get_text().strip()
+        if name.lower() == "tbd":
+            continue
         participant = {
-            "name": event_team_name.get_text().strip(),
+            "name": name,
             "id": event_team_name["href"].split("/")[2],
             "img": utils.get_image_url(team.find_all("img", class_="event-team-players-mask-team")[0]["src"]),
         }
