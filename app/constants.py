@@ -37,3 +37,11 @@ class MatchStatus(str, Enum):
     UPCOMING = "upcoming"
     LIVE = "live"
     TBD = "tbd"
+
+
+REGION_NAME_MAPPING = {
+    "gc": "Game Changers",
+    "la-s": "Latin America - South",
+    "la-n": "Latin America - North",
+    "mena": "MENA",
+}

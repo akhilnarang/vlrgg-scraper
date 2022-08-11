@@ -5,7 +5,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from app import cache, schemas, utils
-from app.constants import RANKING_URL_REGION, RANKINGS_URL
+from app.constants import RANKING_URL_REGION, RANKINGS_URL, REGION_NAME_MAPPING
 
 
 async def ranking_list(limit: int) -> list[schemas.Ranking]:
@@ -49,8 +49,11 @@ async def parse_rankings(path: str, limit: int) -> schemas.Ranking:
 
     soup = BeautifulSoup(response.content, "lxml")
 
+    region_name = path.split("/")[-1]
+    region_name = REGION_NAME_MAPPING.get(region_name.lower()) or " ".join(region_name.split("-")).title()
+
     return schemas.Ranking(
-        region=" ".join(path.split("/")[-1].split("-")).title(),
+        region=region_name,
         teams=[
             schemas.TeamRanking(
                 name=team.find("a")["data-sort-value"].strip(),
