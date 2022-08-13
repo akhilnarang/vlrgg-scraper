@@ -331,7 +331,9 @@ async def get_upcoming_matches() -> list[schemas.Match]:
     """
     async with httpx.AsyncClient() as client:
         upcoming_matches_response = await client.get(UPCOMING_MATCHES_URL)
+
     upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "lxml")
+
     return await parse_matches(
         upcoming_matches.find_all("div", class_="wf-label"),
         upcoming_matches.find_all("div", class_="wf-card"),
