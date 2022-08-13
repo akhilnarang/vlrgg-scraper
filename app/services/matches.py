@@ -214,7 +214,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
                         "time": "Time out",
                         "defuse": "Defused",
                         "boom": "Spike exploded",
-                    }.get(round_win_data[0].find("img")["src"].split("/")[-1].split(".")[0], "Not played")
+                    }.get(round_win_data[0].find("img", {}).get("src", "").split("/")[-1].split(".")[0], "Not played")
                 else:
                     win_type = "Not Played"
                 rounds.append(
