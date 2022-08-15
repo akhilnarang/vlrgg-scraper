@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import sys
 from asyncio import Task
 from datetime import datetime
@@ -17,14 +18,19 @@ from app.core.config import settings
 from app.services import events, matches, news, rankings
 
 
-async def startup(_: dict) -> None:
+async def startup(ctx: dict) -> None:
     """
     To be run on startup of the cron
-    :param _: Context dict
+    :param ctx: Context dict
     :return: Nothing
     """
     # Initialize firebase
     initialize_app()
+
+    # Populate cache on startup, so that responses don't take time until the cron runs again
+    logging.info("Populating cache")
+    response = await asyncio.gather(rankings_cron(ctx), matches_cron(ctx), events_cron(ctx), news_cron(ctx))
+    logging.info(f"Populated cache:\n{response}")
 
 
 async def fcm_notification_cron(_: dict) -> None:
