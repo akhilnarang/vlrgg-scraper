@@ -27,7 +27,7 @@ async def fcm_notification(_: dict) -> None:
     :return: Nothing
     """
     # Ensure that env is setup
-    if os.getenv("GOOGLE_APPLICATION_CREDENTIALS") is None:
+    if settings.GOOGLE_APPLICATION_CREDENTIALS is None:
         print(
             "Please set the environment variable `GOOGLE_APPLICATION_CREDENTIALS` to the path of the service account "
             "JSON "

@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     REDIS_HOST: str
     REDIS_PASSWORD: str
 
+    GOOGLE_APPLICATION_CREDENTIALS: str | None
+
     class Config:
         env_file = ".env"
 
