@@ -10,7 +10,7 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 from app.api import deps
 from app.api.v1.api import router
 from app.core.config import settings
-from cron.main import arq_worker
+from app.cron import arq_worker
 
 logging.basicConfig(
     format="[%(levelname)s] (%(asctime)s) %(module)s:%(pathname)s:%(funcName)s:%(lineno)s:: %(message)s",

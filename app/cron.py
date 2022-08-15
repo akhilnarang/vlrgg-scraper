@@ -90,7 +90,7 @@ class ArqWorker:
         self.worker = create_worker(
             {
                 "on_startup": startup,
-                "cron_jobs": [cron("cron.main.fcm_notification", hour=None, minute={0, 15, 30, 45})],
+                "cron_jobs": [cron("app.cron.fcm_notification", hour=None, minute={0, 15, 30, 45})],
             },
             **kwargs,
         )
