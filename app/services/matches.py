@@ -1,5 +1,6 @@
 import asyncio
 import itertools
+import json
 from typing import Tuple
 from zoneinfo import ZoneInfo
 
@@ -9,6 +10,7 @@ from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet, Tag
 
 from app import schemas, utils
+from app.cache import cache
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
 
 
@@ -311,17 +313,19 @@ async def match_list() -> list[schemas.Match]:
     Function to parse a list of matches from the VLR.gg homepage
     :return: The parsed matches
     """
-
-    return list(
-        itertools.chain(
-            *(
-                await asyncio.gather(
-                    get_upcoming_matches(),
-                    get_completed_matches(),
+    try:
+        return [schemas.Match.parse_obj(match) for match in json.loads(await cache.get("matches"))]
+    except cache.CacheMiss:
+        return list(
+            itertools.chain(
+                *(
+                    await asyncio.gather(
+                        get_upcoming_matches(),
+                        get_completed_matches(),
+                    )
                 )
             )
         )
-    )
 
 
 async def get_upcoming_matches() -> list[schemas.Match]:

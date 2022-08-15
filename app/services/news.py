@@ -1,4 +1,5 @@
 import asyncio
+import json
 from zoneinfo import ZoneInfo
 
 import dateutil.parser
@@ -6,6 +7,7 @@ import httpx
 from bs4 import BeautifulSoup, element
 
 from app import schemas
+from app.cache import cache
 from app.constants import NEWS_URL, PREFIX
 
 
@@ -14,12 +16,15 @@ async def news_list() -> list[schemas.NewsItem]:
     Function to parse a list of matches from the VLR.gg homepage
     :return: The parsed matches
     """
-    async with httpx.AsyncClient() as client:
-        response = await client.get(NEWS_URL)
+    try:
+        return [schemas.NewsItem.parse_obj(news) for news in json.loads(await cache.get("news"))]
+    except cache.CacheMiss:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(NEWS_URL)
 
-    soup = BeautifulSoup(response.content, "lxml")
+        soup = BeautifulSoup(response.content, "lxml")
 
-    return list(await asyncio.gather(*[parse_news(news) for news in soup.find_all("a", class_="wf-module-item")]))
+        return list(await asyncio.gather(*[parse_news(news) for news in soup.find_all("a", class_="wf-module-item")]))
 
 
 async def parse_news(data: element.Tag) -> schemas.NewsItem:

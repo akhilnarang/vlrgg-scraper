@@ -1,17 +1,20 @@
 import asyncio
+import json
 import sys
 from asyncio import Task
 from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+import pydantic.json
 from arq import cron
 from arq.worker import Worker, create_worker
 from firebase_admin import initialize_app, messaging
 
+from app.cache import cache
 from app.constants import MatchStatus
 from app.core.config import settings
-from app.services import matches
+from app.services import events, matches, news, rankings
 
 
 async def startup(_: dict) -> None:
@@ -24,7 +27,7 @@ async def startup(_: dict) -> None:
     initialize_app()
 
 
-async def fcm_notification(_: dict) -> None:
+async def fcm_notification_cron(_: dict) -> None:
     """
     Function to notify users about upcoming matches
     :param _: Context dict
@@ -81,6 +84,54 @@ async def fcm_notification(_: dict) -> None:
         print("No notifications to send")
 
 
+async def rankings_cron(ctx: dict) -> None:
+    """
+    Function to fetch rankings from VLR and update the cache
+    :param ctx: Context dict
+    :return: Nothing
+    """
+    response = await rankings.ranking_list()
+    await ctx.get("redis", cache.get_client()).set(
+        "rankings", json.dumps([item.dict() for item in response], default=pydantic.json.pydantic_encoder)
+    )
+
+
+async def matches_cron(ctx: dict) -> None:
+    """
+    Function to fetch matches from VLR and update the cache
+    :param ctx: Context dict
+    :return: Nothing
+    """
+    response = await matches.match_list()
+    await ctx.get("redis", cache.get_client()).set(
+        "matches", json.dumps([item.dict() for item in response], default=pydantic.json.pydantic_encoder)
+    )
+
+
+async def events_cron(ctx: dict) -> None:
+    """
+    Function to fetch matches from VLR and update the cache
+    :param ctx: Context dict
+    :return: Nothing
+    """
+    response = await events.get_events()
+    await ctx.get("redis", cache.get_client()).set(
+        "events", json.dumps([item.dict() for item in response], default=pydantic.json.pydantic_encoder)
+    )
+
+
+async def news_cron(ctx: dict) -> None:
+    """
+    Function to fetch matches from VLR and update the cache
+    :param ctx: Context dict
+    :return: Nothing
+    """
+    response = await news.news_list()
+    await ctx.get("redis", cache.get_client()).set(
+        "news", json.dumps([item.dict() for item in response], default=pydantic.json.pydantic_encoder)
+    )
+
+
 class ArqWorker:
     def __init__(self) -> None:
         self.worker: Worker | None = None
@@ -90,7 +141,13 @@ class ArqWorker:
         self.worker = create_worker(
             {
                 "on_startup": startup,
-                "cron_jobs": [cron("app.cron.fcm_notification", hour=None, minute={0, 15, 30, 45})],
+                "cron_jobs": [
+                    cron("app.cron.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}),
+                    cron("app.cron.rankings_cron", hour=None, minute=40),
+                    cron("app.cron.matches_cron", hour=None, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
+                    cron("app.cron.events_cron", hour=None, minute=40),
+                    cron("app.cron.news_cron", hour=None, minute={0, 40}),
+                ],
             },
             **kwargs,
         )
