@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 import sys
 from asyncio import Task
 from datetime import datetime
@@ -10,27 +9,12 @@ from zoneinfo import ZoneInfo
 import pydantic.json
 from arq import cron
 from arq.worker import Worker, create_worker
-from firebase_admin import initialize_app, messaging
+from firebase_admin import delete_app, initialize_app, messaging
 
 from app.cache import cache
 from app.constants import MatchStatus
 from app.core.config import settings
 from app.services import events, matches, news, rankings
-
-
-async def startup(ctx: dict) -> None:
-    """
-    To be run on startup of the cron
-    :param ctx: Context dict
-    :return: Nothing
-    """
-    # Initialize firebase
-    initialize_app()
-
-    # Populate cache on startup, so that responses don't take time until the cron runs again
-    logging.info("Populating cache")
-    response = await asyncio.gather(rankings_cron(ctx), matches_cron(ctx), events_cron(ctx), news_cron(ctx))
-    logging.info(f"Populated cache:\n{response}")
 
 
 async def fcm_notification_cron(_: dict) -> None:
@@ -84,7 +68,9 @@ async def fcm_notification_cron(_: dict) -> None:
 
     # Don't bother sending if there's nothing to send
     if messages:
+        app = initialize_app()
         response = messaging.send_all(messages)
+        delete_app(app)
         print(f"{vars(response)=}")
     else:
         print("No notifications to send")
@@ -146,7 +132,6 @@ class ArqWorker:
     async def start(self, **kwargs: Any) -> None:
         self.worker = create_worker(
             {
-                "on_startup": startup,
                 "cron_jobs": [
                     cron("app.cron.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}),
                     cron("app.cron.rankings_cron", hour=None, minute=40),
