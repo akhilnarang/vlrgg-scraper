@@ -23,7 +23,7 @@ async def get(key: str) -> str:
     """
     if data := await get_client().get(key):
         return data
-    raise CacheMiss(f"{key} not found")
+    raise CacheMiss(f"`{key}` not found")
 
 
 async def set(key: str, value: str, ttl: int = 60) -> None:
