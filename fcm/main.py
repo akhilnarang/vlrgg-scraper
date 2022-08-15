@@ -3,13 +3,29 @@ import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from arq import cron
 from firebase_admin import initialize_app, messaging
 
 from app.constants import MatchStatus
 from app.services import matches
 
 
-async def send() -> None:
+async def startup(_: dict) -> None:
+    """
+    To be run on startup of the cron
+    :param _: Context dict
+    :return: Nothing
+    """
+    # Initialize firebase
+    initialize_app()
+
+
+async def send(_: dict) -> None:
+    """
+    Function to notify users about upcoming matches
+    :param _: Context dict
+    :return: Nothing
+    """
     # Ensure that env is setup
     if os.getenv("GOOGLE_APPLICATION_CREDENTIALS") is None:
         print(
@@ -25,9 +41,6 @@ async def send() -> None:
         for match in await matches.get_upcoming_matches()
         if match.status == MatchStatus.UPCOMING and (match.time - current_time).total_seconds() < 900
     ]
-
-    # Initialize firebase
-    initialize_app()
 
     # Initialize an empty list of messages
     messages = []
@@ -62,3 +75,8 @@ async def send() -> None:
         print(f"{vars(response)=}")
     else:
         print("No notifications to send")
+
+
+class WorkerSettings:
+    on_startup = startup
+    cron_jobs = [cron("fcm.main.send", hour=None, minute={0, 15, 30, 45})]
