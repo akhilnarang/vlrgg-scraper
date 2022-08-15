@@ -8,16 +8,14 @@ from app import cache, schemas, utils
 from app.constants import RANKING_URL_REGION, RANKINGS_URL, REGION_NAME_MAPPING
 
 
-async def ranking_list(limit: int) -> list[schemas.Ranking]:
+async def ranking_list() -> list[schemas.Ranking]:
     """
-    Function to parse a list of rankings from the VLR.gg rankgs page
+    Function to parse a list of rankings from the VLR.gg rankings page
 
-    :param limit: The number of teams you want data about
     :return: The parsed ranks
     """
-    key = f"rankings|{limit}"
     try:
-        return [schemas.Ranking.parse_obj(ranking) for ranking in json.loads(await cache.get(key))]
+        return [schemas.Ranking.parse_obj(ranking) for ranking in json.loads(await cache.get("rankings"))]
     except cache.CacheMiss:
         async with httpx.AsyncClient() as client:
             response = await client.get(RANKINGS_URL)
@@ -27,21 +25,19 @@ async def ranking_list(limit: int) -> list[schemas.Ranking]:
         data = list(
             await asyncio.gather(
                 *[
-                    parse_rankings(region["href"], limit)
+                    parse_rankings(region["href"])
                     for region in soup.find("div", class_="wf-nav mod-collapsible").find_all("a")[1:]
                 ]
             )
         )
-        await cache.set(key, json.dumps([item.dict() for item in data]), 3600)
         return data
 
 
-async def parse_rankings(path: str, limit: int) -> schemas.Ranking:
+async def parse_rankings(path: str) -> schemas.Ranking:
     """
     Function to parse team data from a region's ranking page
 
     :param path: The path to the region's page on VLR
-    :param limit: The number of teams we want data about
     :return: The parsed data
     """
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -63,6 +59,6 @@ async def parse_rankings(path: str, limit: int) -> schemas.Ranking:
                 points=team.find("div", class_="rank-item-rating").get_text().strip(),
                 country=team.find("div", class_="rank-item-team-country").get_text().strip(),
             )
-            for team in soup.find_all("div", class_="rank-item wf-card fc-flex")[:limit]
+            for team in soup.find_all("div", class_="rank-item wf-card fc-flex")
         ],
     )
