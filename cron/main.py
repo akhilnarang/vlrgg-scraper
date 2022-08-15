@@ -20,7 +20,7 @@ async def startup(_: dict) -> None:
     initialize_app()
 
 
-async def send(_: dict) -> None:
+async def fcm_notification(_: dict) -> None:
     """
     Function to notify users about upcoming matches
     :param _: Context dict
@@ -79,4 +79,4 @@ async def send(_: dict) -> None:
 
 class WorkerSettings:
     on_startup = startup
-    cron_jobs = [cron("fcm.main.send", hour=None, minute={0, 15, 30, 45})]
+    cron_jobs = [cron("cron.main.fcm_notification", hour=None, minute={0, 15, 30, 45})]
