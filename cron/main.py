@@ -1,12 +1,16 @@
-import os
+import asyncio
 import sys
+from asyncio import Task
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from arq import cron
+from arq.worker import Worker, create_worker
 from firebase_admin import initialize_app, messaging
 
 from app.constants import MatchStatus
+from app.core.config import settings
 from app.services import matches
 
 
@@ -77,6 +81,24 @@ async def fcm_notification(_: dict) -> None:
         print("No notifications to send")
 
 
-class WorkerSettings:
-    on_startup = startup
-    cron_jobs = [cron("cron.main.fcm_notification", hour=None, minute={0, 15, 30, 45})]
+class ArqWorker:
+    def __init__(self) -> None:
+        self.worker: Worker | None = None
+        self.task: Task | None = None
+
+    async def start(self, **kwargs: Any) -> None:
+        self.worker = create_worker(
+            {
+                "on_startup": startup,
+                "cron_jobs": [cron("cron.main.fcm_notification", hour=None, minute={0, 15, 30, 45})],
+            },
+            **kwargs,
+        )
+        self.task = asyncio.create_task(self.worker.async_run())
+
+    async def stop(self) -> None:
+        if self.worker:
+            await self.worker.close()
+
+
+arq_worker = ArqWorker()
