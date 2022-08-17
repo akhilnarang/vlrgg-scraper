@@ -1,10 +1,9 @@
 import asyncio
-import json
 
 import httpx
 from bs4 import BeautifulSoup
 
-from app import cache, schemas, utils
+from app import schemas, utils
 from app.constants import RANKING_URL_REGION, RANKINGS_URL, REGION_NAME_MAPPING
 
 
@@ -14,23 +13,20 @@ async def ranking_list() -> list[schemas.Ranking]:
 
     :return: The parsed ranks
     """
-    try:
-        return [schemas.Ranking.parse_obj(ranking) for ranking in json.loads(await cache.get("rankings"))]
-    except cache.CacheMiss:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(RANKINGS_URL)
+    async with httpx.AsyncClient() as client:
+        response = await client.get(RANKINGS_URL)
 
-        soup = BeautifulSoup(response.content, "lxml")
+    soup = BeautifulSoup(response.content, "lxml")
 
-        data = list(
-            await asyncio.gather(
-                *[
-                    parse_rankings(region["href"])
-                    for region in soup.find("div", class_="wf-nav mod-collapsible").find_all("a")[1:]
-                ]
-            )
+    data = list(
+        await asyncio.gather(
+            *[
+                parse_rankings(region["href"])
+                for region in soup.find("div", class_="wf-nav mod-collapsible").find_all("a")[1:]
+            ]
         )
-        return data
+    )
+    return data
 
 
 async def parse_rankings(path: str) -> schemas.Ranking:

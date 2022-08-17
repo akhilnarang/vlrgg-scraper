@@ -1,6 +1,5 @@
 import asyncio
 import itertools
-import json
 
 import httpx
 from bs4 import BeautifulSoup, element
@@ -8,7 +7,6 @@ from fastapi import HTTPException
 from starlette import status
 
 from app import schemas, utils
-from app.cache import cache
 from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL
 
 
@@ -17,23 +15,19 @@ async def get_events() -> list[schemas.Event]:
     Fetch a list of events from VLR, and return the parsed response
     :return: Parsed list of events
     """
-    try:
-        return [schemas.Event.parse_obj(event) for event in json.loads(await cache.get("events"))]
-    except cache.CacheMiss:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(EVENTS_URL)
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(EVENTS_URL)
-
-        soup = BeautifulSoup(response.content, "lxml")
-        return list(
-            itertools.chain(
-                *(
-                    await asyncio.gather(
-                        *[convert_to_list(data) for data in soup.find_all("div", class_="events-container-col")]
-                    )
+    soup = BeautifulSoup(response.content, "lxml")
+    return list(
+        itertools.chain(
+            *(
+                await asyncio.gather(
+                    *[convert_to_list(data) for data in soup.find_all("div", class_="events-container-col")]
                 )
             )
         )
+    )
 
 
 async def convert_to_list(events: element.Tag) -> list[schemas.Event]:
