@@ -134,9 +134,9 @@ class ArqWorker:
             {
                 "cron_jobs": [
                     cron("app.cron.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}),
-                    cron("app.cron.rankings_cron", hour=None, minute=30),
+                    cron("app.cron.rankings_cron", hour=None, minute={0, 30}),
                     cron("app.cron.matches_cron", hour=None, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
-                    cron("app.cron.events_cron", hour=None, minute=30),
+                    cron("app.cron.events_cron", hour=None, minute={0, 30}),
                     cron("app.cron.news_cron", hour=None, minute={0, 30}),
                 ],
             },
