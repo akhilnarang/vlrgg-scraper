@@ -46,8 +46,10 @@ async def fcm_notification_cron(_: dict) -> None:
     for match in upcoming_matches:
         print(f"Sending notification for {match=}")
 
+        match_details = await matches.match_by_id(match.id)
+
         # Retrieve team IDs by querying the match information
-        team1_id, team2_id = (team.id for team in (await matches.match_by_id(match.id)).teams)
+        team1_id, team2_id = (team.id for team in match_details.teams)
 
         # Calculate the time left in minutes
         time_to_start = int((match.time - current_time).total_seconds() // 60)
@@ -60,9 +62,10 @@ async def fcm_notification_cron(_: dict) -> None:
                     "body": f"Match is starting in {time_to_start} minutes",
                     "match_id": match.id,
                 },
-                # Even if a person has subscribed to the match + both teams, they shouldn't receive multiple
+                # Even if a person has subscribed to the event + match + both teams, they shouldn't receive multiple
                 # notifications
-                condition=f"'match-{match.id}' in topics || 'team-{team1_id}' in topics || 'team-{team2_id}' in topics",
+                condition=f"'event-{match_details.event.id}' || 'match-{match.id}' in topics || 'team-{team1_id}' in "
+                          f"topics || 'team-{team2_id}' in topics",
             ),
         )
 
