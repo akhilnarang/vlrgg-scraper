@@ -39,6 +39,13 @@ class MatchStatus(str, Enum):
     TBD = "tbd"
 
 
+class EventStatus(str, Enum):
+    COMPLETED = "completed"
+    ONGOING = "ongoing"
+    UPCOMING = "upcoming"
+    UNKNOWN = "unknown"
+
+
 REGION_NAME_MAPPING = {
     "gc": "Game Changers",
     "la-s": "Latin America - South",

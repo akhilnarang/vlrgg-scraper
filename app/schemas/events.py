@@ -1,6 +1,6 @@
 from pydantic import BaseModel, HttpUrl
 
-from app.constants import MatchStatus
+from app.constants import EventStatus, MatchStatus
 
 
 class Event(BaseModel):
@@ -69,6 +69,7 @@ class EventWithDetails(BaseModel):
     dates: str
     prize: str
     location: str
+    status: EventStatus
     img: HttpUrl
     prizes: list[Prize] = []
     brackets: list[Bracket]

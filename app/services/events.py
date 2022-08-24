@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from starlette import status
 
 from app import schemas, utils
-from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL
+from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL, EventStatus
 
 
 async def get_events() -> list[schemas.Event]:
@@ -84,6 +84,7 @@ async def parse_events_data(id: str) -> dict:
 
     if (event_header := soup.find_all("div", class_="event-header")) is None:
         raise HTTPException(detail="Event header was missing, please retry", status_code=status.HTTP_400_BAD_REQUEST)
+
     header = event_header[0]
     event["title"] = header.find_all("h1", class_="wf-title")[0].get_text().strip()
     event["subtitle"] = header.find_all("h2", class_="event-desc-subtitle")[0].get_text().strip()
@@ -106,6 +107,19 @@ async def parse_events_data(id: str) -> dict:
 
     if teams_container := soup.find_all("div", class_="event-teams-container"):
         event["teams"] = await parse_team_data(teams_container[0])
+
+    match_data = soup.find("div", class_="event-sidebar-matches").find_all("h2", class_="wf-label mod-large")
+
+    match len(match_data):
+        case 2:
+            event["status"] = EventStatus.ONGOING
+        case 1:
+            if match_data[0].get_text().strip().split(" ")[0].lower() == "upcoming":
+                event["status"] = EventStatus.UPCOMING
+            else:
+                event["status"] = EventStatus.COMPLETED
+        case _:
+            event["status"] = EventStatus.UNKNOWN
 
     return event
 
