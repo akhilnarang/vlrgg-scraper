@@ -65,7 +65,7 @@ async def fcm_notification_cron(_: dict) -> None:
                 # Even if a person has subscribed to the event + match + both teams, they shouldn't receive multiple
                 # notifications
                 condition=f"'event-{match_details.event.id}' || 'match-{match.id}' in topics || 'team-{team1_id}' in "
-                          f"topics || 'team-{team2_id}' in topics",
+                f"topics || 'team-{team2_id}' in topics",
             ),
         )
 
