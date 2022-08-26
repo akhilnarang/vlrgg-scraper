@@ -55,6 +55,6 @@ async def parse_rankings(path: str) -> schemas.Ranking:
                 points=team.find("div", class_="rank-item-rating").get_text().strip(),
                 country=team.find("div", class_="rank-item-team-country").get_text().strip(),
             )
-            for team in soup.find_all("div", class_="rank-item wf-card fc-flex")
+            for team in soup.find_all("div", class_="rank-item wf-card fc-flex")[:25]
         ],
     )
