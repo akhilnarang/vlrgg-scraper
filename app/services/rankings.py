@@ -23,6 +23,7 @@ async def ranking_list() -> list[schemas.Ranking]:
             *[
                 parse_rankings(region["href"])
                 for region in soup.find("div", class_="wf-nav mod-collapsible").find_all("a")[1:]
+                if not region["href"].endswith("/gc")
             ]
         )
     )

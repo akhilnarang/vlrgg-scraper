@@ -47,7 +47,7 @@ class EventStatus(str, Enum):
 
 
 REGION_NAME_MAPPING = {
-    "gc": "Game Changers",
+    # "gc": "Game Changers",
     "la-s": "Latin America South",
     "la-n": "Latin America North",
     "mena": "MENA",
