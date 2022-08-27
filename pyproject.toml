@@ -18,6 +18,7 @@ sentry-sdk = {extras = ["fastapi"], version = "^1.9.5"}
 lxml = "^4.9.1"
 redis = "^4.3.4"
 arq = "v0.23a1"
+semver = "^2.13.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
