@@ -41,14 +41,15 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "autoflake"
-version = "1.4"
+version = "1.5.1"
 description = "Removes unused imports and unused variables"
 category = "dev"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7"
 
 [package.dependencies]
 pyflakes = ">=1.1.0"
+toml = ">=0.10.2"
 
 [[package]]
 name = "beautifulsoup4"
@@ -859,6 +860,14 @@ anyio = ">=3.4.0,<5"
 full = ["itsdangerous", "jinja2", "python-multipart", "pyyaml", "requests"]
 
 [[package]]
+name = "toml"
+version = "0.10.2"
+description = "Python Library for Tom's Obvious, Minimal Language"
+category = "dev"
+optional = false
+python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+
+[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -976,7 +985,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "6ef1dc91d0ee29dc8cbdada27068598d563c6e15c1554cfadc4bf84ba5351100"
+content-hash = "611e46c6a22128d8e5588ef766ea6493ed6a24be2d044f306667bccaddf7046b"
 
 [metadata.files]
 anyio = [
@@ -992,7 +1001,8 @@ async-timeout = [
     {file = "async_timeout-4.0.2-py3-none-any.whl", hash = "sha256:8ca1e4fcf50d07413d66d1a5e416e42cfdf5851c981d679a09851a6853383b3c"},
 ]
 autoflake = [
-    {file = "autoflake-1.4.tar.gz", hash = "sha256:61a353012cff6ab94ca062823d1fb2f692c4acda51c76ff83a8d77915fba51ea"},
+    {file = "autoflake-1.5.1-py2.py3-none-any.whl", hash = "sha256:275e05e3caa8307269ad4d46f2e058b76a5c41ca7d1a7f57158d64e9df3ffdd6"},
+    {file = "autoflake-1.5.1.tar.gz", hash = "sha256:8272efbecf7c6d5e2b00fa3b2998478a3ad92d7c914a49a527d733dae7f800c5"},
 ]
 beautifulsoup4 = [
     {file = "beautifulsoup4-4.11.1-py3-none-any.whl", hash = "sha256:58d5c3d29f5a36ffeb94f02f0d786cd53014cf9b3b3951d42e0080d8a9498d30"},
@@ -1672,6 +1682,10 @@ soupsieve = [
 starlette = [
     {file = "starlette-0.19.1-py3-none-any.whl", hash = "sha256:5a60c5c2d051f3a8eb546136aa0c9399773a689595e099e0877704d5888279bf"},
     {file = "starlette-0.19.1.tar.gz", hash = "sha256:c6d21096774ecb9639acad41b86b7706e52ba3bf1dc13ea4ed9ad593d47e24c7"},
+]
+toml = [
+    {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
+    {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
 ]
 tomli = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
