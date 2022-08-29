@@ -54,14 +54,18 @@ async def fcm_notification_cron(_: dict) -> None:
         # Calculate the time left in minutes
         time_to_start = int((match.time - current_time).total_seconds() // 60)
 
+        # Define the notification payload
+        payload = {
+            "title": f"{match.team1.name} vs {match.team2.name}",
+            "body": f"Match is starting in {time_to_start} minutes",
+            "match_id": match.id,
+        }
+        streams = match_details.videos.streams
+
         # Create the firebase message
         messages.append(
             messaging.Message(
-                data={
-                    "title": f"{match.team1.name} vs {match.team2.name}",
-                    "body": f"Match is starting in {time_to_start} minutes",
-                    "match_id": match.id,
-                },
+                data=payload | {"stream_url": streams[0] if len(streams) > 0 else None},
                 # Even if a person has subscribed to the event + match + both teams, they shouldn't receive multiple
                 # notifications
                 condition=f"'event-{match_details.event.id}' || 'match-{match.id}' in topics || 'team-{team1_id}' in "
