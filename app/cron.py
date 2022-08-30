@@ -65,7 +65,7 @@ async def fcm_notification_cron(_: dict) -> None:
         # Create the firebase message
         messages.append(
             messaging.Message(
-                data=payload | {"stream_url": streams[0] if len(streams) > 0 else None},
+                data=payload | {"stream_url": streams[0].url if len(streams) > 0 else None},
                 # Even if a person has subscribed to the event + match + both teams, they shouldn't receive multiple
                 # notifications
                 condition=f"'event-{match_details.event.id}' || 'match-{match.id}' in topics || 'team-{team1_id}' in "
