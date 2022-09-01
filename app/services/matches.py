@@ -328,7 +328,7 @@ async def get_upcoming_matches() -> list[schemas.Match]:
     Function get a list of upcoming matches from VLR
     :return: The list of matches
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         upcoming_matches_response = await client.get(UPCOMING_MATCHES_URL)
 
     upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "lxml")
@@ -344,7 +344,7 @@ async def get_completed_matches() -> list[schemas.Match]:
     Function get a list of completed matches from VLR
     :return: The list of matches
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         previous_matches_response = await client.get(PAST_MATCHES_URL)
 
     previous_matches = BeautifulSoup(previous_matches_response.content, "lxml")
