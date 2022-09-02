@@ -14,7 +14,7 @@ gunicorn = "^20.1.0"
 python-dateutil = "^2.8.2"
 firebase-admin = "^5.3.0"
 brotli-asgi = "^1.1.0"
-sentry-sdk = {extras = ["fastapi"], version = "^1.9.6"}
+sentry-sdk = {extras = ["fastapi"], version = "^1.9.7"}
 lxml = "^4.9.1"
 redis = "^4.3.4"
 arq = "v0.23a1"
