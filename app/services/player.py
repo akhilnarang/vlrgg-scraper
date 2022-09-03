@@ -45,23 +45,31 @@ async def parse_agent_data(agent_data: element.ResultSet) -> dict:
     """
     img = agent_data[0].find("img")
     count, percent = agent_data[1].get_text().strip().split(" ")
-    return {
+    response = {
         "name": img["alt"],
         "img": utils.get_image_url(img["src"]),
         "count": count.replace("(", "").replace(")", ""),
         "percent": percent[:-1],
         "rounds": agent_data[2].get_text().strip(),
-        "acs": agent_data[3].get_text().strip(),
-        "kd": agent_data[4].get_text().strip(),
-        "adr": agent_data[5].get_text().strip(),
-        "kast": agent_data[6].get_text().strip() or None,
-        "kpr": agent_data[7].get_text().strip(),
-        "apr": agent_data[8].get_text().strip(),
-        "fkpr": agent_data[9].get_text().strip(),
-        "fdpr": agent_data[10].get_text().strip(),
-        "k": agent_data[11].get_text().strip(),
-        "d": agent_data[12].get_text().strip(),
-        "a": agent_data[13].get_text().strip(),
-        "fk": agent_data[14].get_text().strip(),
-        "fd": agent_data[15].get_text().strip(),
+        "rating": agent_data[3].get_text().strip() or 0,
+        "acs": agent_data[4].get_text().strip(),
+        "kd": agent_data[5].get_text().strip(),
+        "adr": agent_data[6].get_text().strip() or 0,
+        "kast": agent_data[7].get_text().strip()[:-1] or 0,
+        "kpr": agent_data[8].get_text().strip(),
+        "apr": agent_data[9].get_text().strip(),
+        "fkpr": agent_data[10].get_text().strip(),
+        "fdpr": agent_data[11].get_text().strip(),
+        "k": agent_data[12].get_text().strip(),
+        "d": agent_data[13].get_text().strip(),
+        "a": agent_data[14].get_text().strip(),
+        "fk": agent_data[15].get_text().strip(),
+        "fd": agent_data[16].get_text().strip(),
     }
+
+    # VLR, why would you put `nan` here instead of simply putting a 0?
+    if response["fdpr"] == "nan":
+        response["fdpr"] = 0
+
+    return response
+

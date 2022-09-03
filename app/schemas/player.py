@@ -7,10 +7,11 @@ class Agent(BaseModel):
     count: int
     percent: float
     rounds: int
+    rating: float
     acs: float
     kd: float
     adr: float
-    kast: int | None
+    kast: float
     kpr: float
     apr: float
     fkpr: float
