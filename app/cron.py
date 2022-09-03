@@ -36,7 +36,7 @@ async def fcm_notification_cron(_: dict) -> None:
     upcoming_matches = [
         match
         for match in await matches.get_upcoming_matches()
-        if match.status == MatchStatus.UPCOMING and (match.time - current_time).total_seconds() < 900
+        if match.status == MatchStatus.UPCOMING and 0 < (match.time - current_time).total_seconds() < 900
     ]
 
     # Initialize an empty list of messages
