@@ -23,6 +23,12 @@ class Agent(BaseModel):
     fd: int
 
 
+class PlayerTeam(BaseModel):
+    id: str
+    name: str
+    logo: HttpUrl
+
+
 class Player(BaseModel):
     name: str
     alias: str
@@ -32,3 +38,5 @@ class Player(BaseModel):
     img: HttpUrl
     agents: list[Agent]
     total_winnings: float = 0.0
+    current_team: PlayerTeam | None
+    past_teams: list[PlayerTeam] = []

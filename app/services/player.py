@@ -19,20 +19,42 @@ async def get_player_data(id: str) -> dict:
 
     soup = BeautifulSoup(response.content, "lxml")
     player_info = soup.find("div", class_="player-header")
+    player_summary_container_1 = soup.find("div", class_="player-summary-container-1")
+    player_summary_container_2 = soup.find("div", class_="player-summary-container-2")
+
     player_data = {
         "alias": player_info.find("h1").get_text().strip(),
         "name": player_info.find("h2").get_text().strip(),
         "img": utils.get_image_url(player_info.find("img")["src"]),
         "country": player_info.find("div", class_="ge-text-light").get_text().strip(),
+        "total_winnings": player_summary_container_2.find_all("div", class_="wf-card")[1]
+        .find("div")
+        .find("span")
+        .get_text()[1:]
+        .replace(",", ""),
         "agents": await asyncio.gather(
             *[parse_agent_data(agent.find_all("td")) for agent in soup.find("tbody").find_all("tr")]
         ),
     }
 
-    if player_summary := soup.find("div", class_="player-summary-container-2"):
-        player_data["total_winnings"] = (
-            player_summary.find_all("div", class_="wf-card")[1].find("div").find("span").get_text()[1:].replace(",", "")
-        )
+    for header in player_summary_container_1.find_all("h2"):
+        match header.get_text().strip().lower():
+            case "current teams":
+                current_team = header.find_next(name="div").find("a")
+                player_data["current_team"] = {
+                    "id": current_team["href"].split("/")[-2],
+                    "name": current_team.find_all("div")[1].find("div").get_text().strip(),
+                    "logo": utils.get_image_url(current_team.find("img")["src"]),
+                }
+            case "past teams":
+                player_data["past_teams"] = [
+                    {
+                        "id": current_team["href"].split("/")[-2],
+                        "name": current_team.find_all("div")[1].find("div").get_text().strip(),
+                        "logo": utils.get_image_url(current_team.find("img")["src"]),
+                    }
+                    for current_team in header.find_next(name="div").find_all("a")
+                ]
 
     for link in player_info.find_all("a"):
         if "twitter.com" in link["href"]:
