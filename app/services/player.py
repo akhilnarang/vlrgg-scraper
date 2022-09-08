@@ -34,7 +34,9 @@ async def get_player_data(id: str) -> dict:
 
     for header in player_summary_container_2.find_all("h2"):
         if header.get_text().strip().lower() == "event placements":
-            player_data["total_winnings"] = header.find_next("div").find("div").find("span").get_text()[1:].replace(",", "")
+            player_data["total_winnings"] = (
+                header.find_next("div").find("div").find("span").get_text()[1:].replace(",", "")
+            )
 
     for header in player_summary_container_1.find_all("h2"):
         match header.get_text().strip().lower():
