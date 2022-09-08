@@ -43,14 +43,14 @@ async def get_player_data(id: str) -> dict:
                 player_data["current_team"] = {
                     "id": current_team["href"].split("/")[-2],
                     "name": current_team.find_all("div")[1].find("div").get_text().strip(),
-                    "logo": utils.get_image_url(current_team.find("img")["src"]),
+                    "img": utils.get_image_url(current_team.find("img")["src"]),
                 }
             case "past teams":
                 player_data["past_teams"] = [
                     {
                         "id": current_team["href"].split("/")[-2],
                         "name": current_team.find_all("div")[1].find("div").get_text().strip(),
-                        "logo": utils.get_image_url(current_team.find("img")["src"]),
+                        "img": utils.get_image_url(current_team.find("img")["src"]),
                     }
                     for current_team in header.find_next(name="div").find_all("a")
                 ]

@@ -26,7 +26,7 @@ class Agent(BaseModel):
 class PlayerTeam(BaseModel):
     id: str
     name: str
-    logo: HttpUrl
+    img: HttpUrl
 
 
 class Player(BaseModel):
