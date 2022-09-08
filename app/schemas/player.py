@@ -31,3 +31,4 @@ class Player(BaseModel):
     country: str
     img: HttpUrl
     agents: list[Agent]
+    total_winnings: float = 0.0

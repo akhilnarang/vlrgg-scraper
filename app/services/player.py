@@ -29,6 +29,11 @@ async def get_player_data(id: str) -> dict:
         ),
     }
 
+    if player_summary := soup.find("div", class_="player-summary-container-2"):
+        player_data["total_winnings"] = (
+            player_summary.find_all("div", class_="wf-card")[1].find("div").find("span").get_text()[1:].replace(",", "")
+        )
+
     for link in player_info.find_all("a"):
         if "twitter.com" in link["href"]:
             player_data["twitter"] = link.get_text().strip()
@@ -72,4 +77,3 @@ async def parse_agent_data(agent_data: element.ResultSet) -> dict:
         response["fdpr"] = 0
 
     return response
-
