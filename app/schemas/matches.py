@@ -31,6 +31,7 @@ class Agent(BaseModel):
 
 
 class TeamMember(BaseModel):
+    id: str
     name: str
     team: str
     agents: list[Agent]
