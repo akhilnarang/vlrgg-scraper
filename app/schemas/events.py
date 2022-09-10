@@ -26,11 +26,6 @@ class Prize(BaseModel):
     team: PrizeTeam | None
 
 
-class Bracket(BaseModel):
-    upper: list = []
-    lower: list = []
-
-
 class Player(BaseModel):
     id: str
     name: str
@@ -72,6 +67,5 @@ class EventWithDetails(BaseModel):
     status: EventStatus
     img: HttpUrl
     prizes: list[Prize] = []
-    brackets: list[Bracket]
     teams: list[Team] = []
     matches: list[Match]

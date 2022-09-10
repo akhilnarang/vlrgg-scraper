@@ -99,12 +99,6 @@ async def parse_events_data(id: str) -> dict:
     if prizes_data := soup.find_all("table", class_="wf-table"):
         event["prizes"] = await prizes_parser(prizes_data[-1])
 
-    if bracket_containers := soup.find_all("div", class_="event-brackets-container"):
-        bracket_coroutines = [get_bracket_data(container) for container in bracket_containers]
-    else:
-        bracket_coroutines = [get_bracket_data(soup)]
-    event["brackets"] = list(await asyncio.gather(*bracket_coroutines))
-
     if teams_container := soup.find_all("div", class_="event-teams-container"):
         event["teams"] = await parse_team_data(teams_container[0])
 
@@ -144,78 +138,6 @@ async def parse_match_data(id: str) -> list:
             )
         )
     )
-
-
-async def get_bracket_data(data: BeautifulSoup | element.ResultSet) -> dict:
-    """
-    Function to get bracket data
-    :param data: The HTML
-    :return: The parsed data
-    """
-    if upper_bracket_container := data.find_all("div", class_="bracket-container mod-upper"):
-        upper_bracket = await asyncio.gather(
-            *[bracket_parser(column) for column in upper_bracket_container[0].find_all("div", class_="bracket-col")]
-        )
-
-    elif upper_bracket_container := data.find_all("div", class_="bracket-container mod-upper mod-compact"):
-        upper_bracket = await asyncio.gather(
-            *[bracket_parser(column) for column in upper_bracket_container[0].find_all("div", class_="bracket-col")]
-        )
-
-    else:
-        upper_bracket = []
-
-    if lower_bracket_container := data.find_all("div", class_="bracket-container mod-lower"):
-        lower_bracket = await asyncio.gather(
-            *[
-                bracket_parser(column)
-                for column in lower_bracket_container[0].find_all("div", class_="bracket-col")
-                if "mod-placeholder" not in column.attrs["class"]
-            ]
-        )
-    elif lower_bracket_container := data.find_all("div", class_="bracket-container mod-lower mod-compact"):
-        lower_bracket = await asyncio.gather(
-            *[
-                bracket_parser(column)
-                for column in lower_bracket_container[0].find_all("div", class_="bracket-col")
-                if "mod-placeholder" not in column.attrs["class"]
-            ]
-        )
-    else:
-        lower_bracket = []
-
-    return {"upper": upper_bracket, "lower": lower_bracket}
-
-
-async def bracket_parser(bracket: element.Tag) -> dict[str, str | list[dict[str, str | list[str]]]]:
-    """
-    Parse bracket data
-    :param bracket: The HTML
-    :return: The parsed data as a dict
-    """
-    matches = []
-    title = bracket.find_all("div", class_="bracket-col-label")[0].get_text().strip()
-    for match_data in bracket.find_all("a", class_="bracket-item"):
-        match = {}
-        if href := match_data.get("href"):
-            match["id"] = href.split("/")[1]
-
-        if time := match_data.find("div", class_="bracket-item-status"):
-            match["time"] = time.get_text().strip()
-
-        teams = []
-        for i in range(0, 2):
-            data = match_data.find_all("div", class_="bracket-item-team-name")[i]
-            teams.append(
-                {
-                    "name": data.get_text().strip(),
-                    "score": match_data.find_all("div", class_="bracket-item-team-score")[i].get_text().strip(),
-                    "img": utils.get_image_url(data.find("img")["src"]),
-                }
-            )
-        match["teams"] = teams
-        matches.append(match)
-    return {"title": title, "matches": matches}
 
 
 async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[str, str]]]:
