@@ -1,5 +1,6 @@
 import asyncio
 import itertools
+from datetime import datetime
 from typing import Tuple
 from zoneinfo import ZoneInfo
 
@@ -90,19 +91,11 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
     """
     event_data = soup.find("div", class_="match-header-super")
     event_link = event_data.find("a", class_="match-header-event")
-    date_str = (
-        soup.find_all("div", class_="match-header-date")[0]
-        .get_text()
-        .strip()
-        .replace("\t", "")
-        .replace("\n", " ")
-        .replace("    ", ", ")
-        .split("   ")[0]
-    )
-    if "tbd" in date_str.lower():
-        date = None
-    else:
-        date = dateutil.parser.parse(date_str, ignoretz=True).astimezone(ZoneInfo("UTC"))
+    event_date: datetime | None = None
+    if (
+        date_str := " ".join([data.get_text().strip() for data in soup.find_all("div", class_="moment-tz-convert")])
+    ) and "tbd" not in date_str.lower():
+        event_date = dateutil.parser.parse(date_str, ignoretz=True).astimezone(ZoneInfo("UTC"))
 
     if soup.find("span", class_="match-header-vs-note mod-upcoming"):
         status = "upcoming"
@@ -120,7 +113,7 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
         .strip()
         .replace("\t", "")
         .replace("\n", ""),
-        "date": date,
+        "date": event_date,
         "status": status,
     }
     if (patch_data := event_data.find_all("div", class_="wf-tooltip")) and "patch" in (
