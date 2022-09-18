@@ -17,7 +17,7 @@ brotli-asgi = "^1.1.0"
 sentry-sdk = {extras = ["fastapi"], version = "^1.9.8"}
 lxml = "^4.9.1"
 redis = "^4.3.4"
-arq = "v0.23a1"
+arq = "^0.24.0"
 semver = "^2.13.0"
 
 [tool.poetry.dev-dependencies]
