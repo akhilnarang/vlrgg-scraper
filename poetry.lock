@@ -894,7 +894,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "types-python-dateutil"
-version = "2.8.19"
+version = "2.8.19.1"
 description = "Typing stubs for python-dateutil"
 category = "dev"
 optional = false
@@ -1776,8 +1776,8 @@ tomli = [
     {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
 ]
 types-python-dateutil = [
-    {file = "types-python-dateutil-2.8.19.tar.gz", hash = "sha256:bfd3eb39c7253aea4ba23b10f69b017d30b013662bb4be4ab48b20bbd763f309"},
-    {file = "types_python_dateutil-2.8.19-py3-none-any.whl", hash = "sha256:6284df1e4783d8fc6e587f0317a81333856b872a6669a282f8a325342bce7fa8"},
+    {file = "types-python-dateutil-2.8.19.1.tar.gz", hash = "sha256:d642f7af2bb99fe78f5a776fd0ca4e32932720047f400e25ad62bc2a5b18dc94"},
+    {file = "types_python_dateutil-2.8.19.1-py3-none-any.whl", hash = "sha256:a560f63b31ece652e891f9659216fb315abd6dc169f9356c077d11b4f432aa7d"},
 ]
 types-redis = [
     {file = "types-redis-4.3.21.2.tar.gz", hash = "sha256:ab542249a47d3903b94162e6395ae6be0cc0f562fd184ed51a0a34d8a7021a39"},
