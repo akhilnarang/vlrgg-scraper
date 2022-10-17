@@ -41,7 +41,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "autoflake"
-version = "1.7.4"
+version = "1.7.6"
 description = "Removes unused imports and unused variables"
 category = "dev"
 optional = false
@@ -1018,8 +1018,8 @@ async-timeout = [
     {file = "async_timeout-4.0.2-py3-none-any.whl", hash = "sha256:8ca1e4fcf50d07413d66d1a5e416e42cfdf5851c981d679a09851a6853383b3c"},
 ]
 autoflake = [
-    {file = "autoflake-1.7.4-py2.py3-none-any.whl", hash = "sha256:9daac24b55cb0eed619e8260c4c15e6572b7a28e8f55c8ac23530766d7f4c957"},
-    {file = "autoflake-1.7.4.tar.gz", hash = "sha256:57dcc60a1c20ba92644230d812a7a8c64a6bff9d78b61d5374e07d666a1f4d32"},
+    {file = "autoflake-1.7.6-py3-none-any.whl", hash = "sha256:9fa63cb814c1dfc02103a361b449c024226348c2130b6839cd94278c309c4a65"},
+    {file = "autoflake-1.7.6.tar.gz", hash = "sha256:f2a8e107ba6c02a25e0acf2beebab247792998132e6b1f24efa7b0b7faa30cb6"},
 ]
 beautifulsoup4 = [
     {file = "beautifulsoup4-4.11.1-py3-none-any.whl", hash = "sha256:58d5c3d29f5a36ffeb94f02f0d786cd53014cf9b3b3951d42e0080d8a9498d30"},
