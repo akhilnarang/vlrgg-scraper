@@ -1,13 +1,13 @@
-import asyncio
-import itertools
+from asyncio import gather
 from datetime import datetime
+from itertools import chain
 from typing import Tuple
 from zoneinfo import ZoneInfo
 
 import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
-from bs4.element import ResultSet, Tag
+from bs4.element import ResultSet
 
 from app import schemas, utils
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
@@ -24,7 +24,7 @@ async def match_by_id(id: str) -> schemas.MatchWithDetails:
 
     soup = BeautifulSoup(response.content, "lxml")
 
-    teams, bans, event, video_data, map_ret, h2h_matches = await asyncio.gather(
+    teams, bans, event, video_data, map_ret, h2h_matches = await gather(
         get_team_data(soup.find_all("div", class_="match-header-vs")),
         get_ban_data(soup.find_all("div", class_="match-header-note")),
         get_event_data(soup),
@@ -57,7 +57,7 @@ async def get_team_data(data: ResultSet) -> list[dict]:
     ):
         match_score = (match_data[0].get_text().replace("\n", "").replace("\t", "")).split(":")
     else:
-        match_score = [None, None]
+        match_score = (None, None)
 
     response = []
     for i, score in enumerate(match_score):
@@ -129,18 +129,20 @@ async def get_video_data(data: element.Tag) -> dict[str, list]:
     :param data: The data about the videos
     :return: The parsed URLs
     """
-    response: dict[str, list] = {"streams": [], "vods": []}
-    for stream in data.find("div", class_="match-streams").find_all("div", class_="wf-card"):
-        if (name := stream.find("span")) and (url := stream.find("a", class_="match-streams-btn-external")):
-            response["streams"].append(
-                {
-                    "name": name.get_text().strip(),
-                    "url": url.get("href"),
-                }
-            )
-
-    for vod in data.find("div", class_="match-vods").find_all("a", class_="wf-card"):
-        response["vods"].append({"name": vod.get_text().strip(), "url": vod.get("href")})
+    response: dict[str, list] = {
+        "streams": [
+            {
+                "name": name.get_text().strip(),
+                "url": url.get("href"),
+            }
+            for stream in data.find("div", class_="match-streams").find_all("div", class_="wf-card")
+            if (name := stream.find("span")) and (url := stream.find("a", class_="match-streams-btn-external"))
+        ],
+        "vods": [
+            {"name": vod.get_text().strip(), "url": vod.get("href")}
+            for vod in data.find("div", class_="match-vods").find_all("a", class_="wf-card")
+        ],
+    }
 
     return response
 
@@ -161,7 +163,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
     }
     if maps == {}:
         maps = {stats["data-game-id"]: stats.find_all("div", class_="map")[0].find("span").get_text().strip()}
-        map_stats = [stats.find_all("div", class_="vm-stats-game")[0]]
+        map_stats = stats.find_all("div", class_="vm-stats-game")[0]
         map_count = 1
     else:
         map_stats = stats.find_all("div", class_="vm-stats-game")
@@ -183,13 +185,14 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
         ]
         team_name_mapping = {short: long["name"] for short, long in zip(team_short_name, teams)}
         rounds = []
-        prev = [0, 0]
+        # TODO: find a better solution, only done to prevent warning at 201 (tuple[int, ...] vs tuple[int, int])
+        prev: tuple[int, ...] = (0, 0)
         for round_data in map_data.find_all("div", class_="vlr-rounds-row-col")[1:]:
             if round_current_score := round_data.find_all("div", class_="rnd-currscore"):
                 round_score = round_current_score[0].get_text().strip()
                 side, round_winner = "", ""
                 if round_score != "":
-                    current = list(map(int, round_score.split("-")))
+                    current = tuple(map(int, round_score.split("-")))
                     if prev[0] == current[0]:
                         round_winner = "team2"
                     elif prev[1] == current[1]:
@@ -225,9 +228,9 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
                 "map": maps.get(match_map_id),
                 "teams": teams,
                 "members": list(
-                    itertools.chain(
+                    chain(
                         *(
-                            await asyncio.gather(
+                            await gather(
                                 *[
                                     parse_scoreboard(element, team_name_mapping)
                                     for element in map_data.find_all("tbody")
@@ -278,7 +281,7 @@ async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str])
     return ret
 
 
-async def get_previous_encounters_data(data: Tag) -> list[dict]:
+async def get_previous_encounters_data(data: element.Tag) -> list[dict]:
     """
     :param data: Previous encounters data
     :return: List of match IDs
@@ -306,9 +309,9 @@ async def match_list() -> list[schemas.Match]:
     :return: The parsed matches
     """
     return list(
-        itertools.chain(
+        chain(
             *(
-                await asyncio.gather(
+                await gather(
                     get_upcoming_matches(),
                     get_completed_matches(),
                 )
@@ -356,11 +359,19 @@ async def parse_matches(dates: ResultSet, match_data: ResultSet) -> list[schemas
     :param match_data: The matches
     :return: The parsed matches
     """
-    ret = []
-    for date, matches in zip(dates, match_data[1:]):
-        for match in matches.find_all("a", class_="wf-module-item"):
-            ret.append((date, match))
-    return list(await asyncio.gather(*[parse_match(date, match_info) for date, match_info in ret]))
+
+    return list(
+        await gather(
+            *[
+                parse_match(date, match_info)
+                for date, match_info in [
+                    (date, match)
+                    for date, matches in zip(dates, match_data[1:])
+                    for match in matches.find_all("a", class_="wf-module-item")
+                ]
+            ]
+        )
+    )
 
 
 async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Match:
