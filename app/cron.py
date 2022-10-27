@@ -23,14 +23,6 @@ async def fcm_notification_cron(_: dict) -> None:
     :param _: Context dict
     :return: Nothing
     """
-    # Ensure that env is setup
-    if settings.GOOGLE_APPLICATION_CREDENTIALS is None:
-        print(
-            "Please set the environment variable `GOOGLE_APPLICATION_CREDENTIALS` to the path of the service account "
-            "JSON "
-        )
-        sys.exit(1)
-
     # Get the current time, so that we can filter for matches starting in the next 15 minutes
     current_time = datetime.now(tz=ZoneInfo("UTC"))
     upcoming_matches = [
@@ -69,7 +61,7 @@ async def fcm_notification_cron(_: dict) -> None:
                 # Even if a person has subscribed to the event + match + both teams, they shouldn't receive multiple
                 # notifications
                 condition=f"'event-{match_details.event.id}' in topics || 'match-{match.id}' in topics || "
-                f"'team-{team1_id}' in topics || 'team-{team2_id}' in topics",
+                          f"'team-{team1_id}' in topics || 'team-{team2_id}' in topics",
             ),
         )
 
@@ -137,15 +129,20 @@ class ArqWorker:
         self.task: Task | None = None
 
     async def start(self, **kwargs: Any) -> None:
+        cron_jobs = [
+            cron("app.cron.rankings_cron", hour=None, minute={0, 30}),
+            cron("app.cron.matches_cron", hour=None, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
+            cron("app.cron.events_cron", hour=None, minute={0, 30}),
+            cron("app.cron.news_cron", hour=None, minute={0, 30}),
+        ]
+
+        # Only try to run the FCM cron if we have a service account JSON
+        if settings.GOOGLE_APPLICATION_CREDENTIALS is not None:
+            cron_jobs.append(cron("app.cron.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}))
+
         self.worker = create_worker(
             {
-                "cron_jobs": [
-                    cron("app.cron.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}),
-                    cron("app.cron.rankings_cron", hour=None, minute={0, 30}),
-                    cron("app.cron.matches_cron", hour=None, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
-                    cron("app.cron.events_cron", hour=None, minute={0, 30}),
-                    cron("app.cron.news_cron", hour=None, minute={0, 30}),
-                ],
+                "cron_jobs": cron_jobs
             },
             **kwargs,
         )
