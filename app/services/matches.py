@@ -155,19 +155,25 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
     """
     stats = data[0]
 
+    # Extract stats first
+    map_stats = stats.find_all("div", class_="vm-stats-game")
+
+    # Extract map names if there were multiple maps
     maps = {
         map_data["data-game-id"]: "".join(
             i for i in map_data.get_text().strip().replace("\n", "").replace("\t", "") if not i.isdigit()
         )
         for map_data in stats.find_all("div", class_="vm-stats-gamesnav-item")
     }
+
+    # If the above dict is empty (i.e. no vm-stats-gamesnav-item), we know that there is a single map
     if maps == {}:
         maps = {stats["data-game-id"]: stats.find_all("div", class_="map")[0].find("span").get_text().strip()}
-        map_stats = stats.find_all("div", class_="vm-stats-game")[0]
         map_count = 1
     else:
-        map_stats = stats.find_all("div", class_="vm-stats-game")
+        # Set the number of maps actually played (remove disabled ones basically)
         map_count = len(maps) - 1 - len(stats.find_all("div", class_="mod-disabled"))
+
     map_ret = []
     for map_data in map_stats:
         if (match_map_id := map_data["data-game-id"]) == "all" or maps.get(match_map_id) == "TBD":
