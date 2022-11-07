@@ -1,6 +1,5 @@
 import asyncio
 import json
-import sys
 from asyncio import Task
 from datetime import datetime
 from typing import Any
@@ -61,7 +60,7 @@ async def fcm_notification_cron(_: dict) -> None:
                 # Even if a person has subscribed to the event + match + both teams, they shouldn't receive multiple
                 # notifications
                 condition=f"'event-{match_details.event.id}' in topics || 'match-{match.id}' in topics || "
-                          f"'team-{team1_id}' in topics || 'team-{team2_id}' in topics",
+                f"'team-{team1_id}' in topics || 'team-{team2_id}' in topics",
             ),
         )
 
@@ -141,9 +140,7 @@ class ArqWorker:
             cron_jobs.append(cron("app.cron.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}))
 
         self.worker = create_worker(
-            {
-                "cron_jobs": cron_jobs
-            },
+            {"cron_jobs": cron_jobs},
             **kwargs,
         )
         self.task = asyncio.create_task(self.worker.async_run())
