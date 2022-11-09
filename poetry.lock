@@ -959,7 +959,7 @@ python-versions = "*"
 
 [[package]]
 name = "types-python-dateutil"
-version = "2.8.19.2"
+version = "2.8.19.3"
 description = "Typing stubs for python-dateutil"
 category = "dev"
 optional = false
@@ -1947,8 +1947,8 @@ types-cryptography = [
     {file = "types_cryptography-3.3.23.1-py3-none-any.whl", hash = "sha256:b9f8aa93d9e4d7ff920961cdce3dc7cca479946890924d68356b66f15f4f35e3"},
 ]
 types-python-dateutil = [
-    {file = "types-python-dateutil-2.8.19.2.tar.gz", hash = "sha256:e6e32ce18f37765b08c46622287bc8d8136dc0c562d9ad5b8fd158c59963d7a7"},
-    {file = "types_python_dateutil-2.8.19.2-py3-none-any.whl", hash = "sha256:3f4dbe465e7e0c6581db11fd7a4855d1355b78712b3f292bd399cd332247e9c0"},
+    {file = "types-python-dateutil-2.8.19.3.tar.gz", hash = "sha256:a313284df5ed3fd078303262edc0efde28998cd08e5061ef1ccc0bb5fef4d2da"},
+    {file = "types_python_dateutil-2.8.19.3-py3-none-any.whl", hash = "sha256:ce6af1bdf0aca6b7dc8815a664f0e8b55da91ff7851102cf87c87178e7c8e7ec"},
 ]
 types-redis = [
     {file = "types-redis-4.3.21.3.tar.gz", hash = "sha256:2e1f184056188c8754ded0b5173dc01824d2bfe41975fe318068a68beedfb62c"},
