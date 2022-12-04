@@ -266,22 +266,23 @@ async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str])
                     {"title": agent["title"], "img": utils.get_image_url(agent["src"])}
                     for agent in team.find_all("td", class_="mod-agents")[0].find_all("img")
                 ],
-                "acs": stats[0].find("span", class_="side mod-side mod-both").get_text().strip() or 0,
-                "kills": stats[1].find("span", class_="side mod-side mod-both").get_text().strip() or 0,
-                "deaths": stats[2]
+                "rating": stats[0].find("span", class_="side mod-side mod-both").get_text().strip() or 0.0,
+                "acs": stats[1].find("span", class_="side mod-side mod-both").get_text().strip() or 0,
+                "kills": stats[2].find("span", class_="side mod-side mod-both").get_text().strip() or 0,
+                "deaths": stats[3]
                 .find("span", class_="side mod-both")
                 .get_text()
                 .strip()
                 .replace("/", "")
                 .replace("\xa0", "")
                 or 0,
-                "assists": stats[3].find("span", class_="side mod-both").get_text().strip() or 0,
-                "kast": stats[5].find("span", class_="side mod-both").get_text().strip()[:-1] or 0,
-                "adr": stats[6].find("span", class_="side mod-both").get_text().strip() or 0,
-                "headshot_percent": stats[7].find("span", class_="side mod-both").get_text().strip()[:-1] or 0,
-                "first_kills": stats[8].find("span", class_="side mod-both").get_text().strip() or 0,
-                "first_deaths": stats[9].find("span", class_="side mod-both").get_text().strip() or 0,
-                "first_kills_diff": stats[10].find("span", class_="mod-both").get_text().strip() or 0,
+                "assists": stats[4].find("span", class_="side mod-both").get_text().strip() or 0,
+                "kast": stats[6].find("span", class_="side mod-both").get_text().strip()[:-1] or 0,
+                "adr": stats[7].find("span", class_="side mod-both").get_text().strip() or 0,
+                "headshot_percent": stats[8].find("span", class_="side mod-both").get_text().strip()[:-1] or 0,
+                "first_kills": stats[9].find("span", class_="side mod-both").get_text().strip() or 0,
+                "first_deaths": stats[10].find("span", class_="side mod-both").get_text().strip() or 0,
+                "first_kills_diff": stats[11].find("span", class_="mod-both").get_text().strip() or 0,
             }
         )
     return ret

@@ -35,6 +35,7 @@ class TeamMember(BaseModel):
     name: str
     team: str
     agents: list[Agent]
+    rating: float
     acs: int
     kills: int
     deaths: int
