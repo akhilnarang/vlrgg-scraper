@@ -17,7 +17,7 @@ trio = ["trio (>=0.16,<0.22)"]
 
 [[package]]
 name = "arq"
-version = "0.24.0"
+version = "0.25.0"
 description = "Job queues in python with asyncio and redis"
 category = "main"
 optional = false
@@ -1025,7 +1025,7 @@ python-versions = ">=3.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "42a4dbe61e973f16a1c7902d811382e8bbe1fee11fb3768e93df45fbc5958296"
+content-hash = "409ac7f472d32b4ca421bedfb7a79500e5c2c0c775a3fed45aab56948fd2dc02"
 
 [metadata.files]
 anyio = [
@@ -1033,8 +1033,8 @@ anyio = [
     {file = "anyio-3.6.2.tar.gz", hash = "sha256:25ea0d673ae30af41a0c442f81cf3b38c7e79fdc7b60335a4c14e05eb0947421"},
 ]
 arq = [
-    {file = "arq-0.24.0-py3-none-any.whl", hash = "sha256:76f85f84da76c67cb57a8f78ff8170f63f3e5039d49b3a6949109907e322ec1d"},
-    {file = "arq-0.24.0.tar.gz", hash = "sha256:048db0f63d7a5736c043b8abfd1d34a054f46a943eec46668062861b5b5e4f3c"},
+    {file = "arq-0.25.0-py3-none-any.whl", hash = "sha256:db072d0f39c0bc06b436db67ae1f315c81abc1527563b828955670531815290b"},
+    {file = "arq-0.25.0.tar.gz", hash = "sha256:d176ebadfba920c039dc578814d19b7814d67fa15f82fdccccaedb4330d65dae"},
 ]
 async-timeout = [
     {file = "async-timeout-4.0.2.tar.gz", hash = "sha256:2163e1640ddb52b7a8c80d0a67a08587e5d245cc9c553a74a847056bc2976b15"},
