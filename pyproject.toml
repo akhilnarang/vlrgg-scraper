@@ -21,7 +21,7 @@ arq = "^0.25.0"
 semver = "^2.13.0"
 
 [tool.poetry.dev-dependencies]
-black = "^22.10.0"
+black = "^22.12.0"
 isort = "^5.10.1"
 mypy = "^0.991"
 flake8 = "^6.0.0"
