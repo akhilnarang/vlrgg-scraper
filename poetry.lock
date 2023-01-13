@@ -217,14 +217,14 @@ files = [
 
 [[package]]
 name = "brotli-asgi"
-version = "1.2.0"
+version = "1.3.0"
 description = "A compression AGSI middleware using brotli"
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 files = [
-    {file = "brotli-asgi-1.2.0.tar.gz", hash = "sha256:9ed91e2c9007c23dbab8ff220ad6b721ddc550a15509617a9c83c60b989dc9c0"},
-    {file = "brotli_asgi-1.2.0-py3-none-any.whl", hash = "sha256:cec0c1e921579e31fb874338d1bad8d02f41b6f013b14860fbe142f498ed2fc8"},
+    {file = "brotli-asgi-1.3.0.tar.gz", hash = "sha256:5e7160a3a86f22659e9d978829f46615914cdd6c7fd04054f4050a2ec78da79c"},
+    {file = "brotli_asgi-1.3.0-py3-none-any.whl", hash = "sha256:ec99c4c388c46ba3fbd111c330dafa8fc1b057da473ca58a2183427ed2de1885"},
 ]
 
 [package.dependencies]
@@ -232,8 +232,8 @@ brotli = ">=1.0.7"
 starlette = ">=0.13.4"
 
 [package.extras]
-test-brotli = ["mypy (==0.770)", "requests (==2.23.0)"]
-test-brotlipy = ["brotlipy (==0.7.0)", "mypy (==0.770)", "requests (==2.23.0)"]
+test-brotli = ["mypy (>=0.770)", "requests (>=2.23.0)"]
+test-brotlipy = ["brotlipy (>=0.7.0)", "mypy (>=0.770)", "requests (>=2.23.0)"]
 
 [[package]]
 name = "CacheControl"
@@ -2064,4 +2064,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "fb95eed36af80c4cc326c2fc44cd2468773a8390d42301bfeacb929ba7a6beac"
+content-hash = "2c3db8452fc902c687a65b81b7fd002ecf15111f7f8f9e7091a51d11d53e1884"
