@@ -1,15 +1,14 @@
 import asyncio
-from zoneinfo import ZoneInfo
 
 import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
 
-from app import utils
+from app import schemas, utils
 from app.constants import TEAM_COMPLETED_MATCHES_URL, TEAM_UPCOMING_MATCHES_URL, TEAM_URL
 
 
-async def get_team_data(id: str) -> dict:
+async def get_team_data(id: str) -> schemas.Team:
     """
     Function get a team's data from VLR and return a parsed version
     :param id: The team's ID
@@ -73,19 +72,21 @@ async def get_team_data(id: str) -> dict:
             ),
         ]
     )
-    return {
-        "name": name,
-        "tag": tag,
-        "img": img,
-        "website": website,
-        "twitter": twitter,
-        "country": country,
-        "rank": rank,
-        "region": region,
-        "roster": roster,
-        "upcoming": upcoming_matches,
-        "completed": completed_matches,
-    }
+    return schemas.Team.parse_obj(
+        {
+            "name": name,
+            "tag": tag,
+            "img": img,
+            "website": website,
+            "twitter": twitter,
+            "country": country,
+            "rank": rank,
+            "region": region,
+            "roster": roster,
+            "upcoming": upcoming_matches,
+            "completed": completed_matches,
+        }
+    )
 
 
 async def parse_player(player_data: element.Tag) -> dict:

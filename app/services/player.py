@@ -3,11 +3,11 @@ import asyncio
 import httpx
 from bs4 import BeautifulSoup, element
 
-from app import utils
+from app import schemas, utils
 from app.constants import PLAYER_URL
 
 
-async def get_player_data(id: str) -> dict:
+async def get_player_data(id: str) -> schemas.Player:
     """
     Function get a player's data from VLR and return a parsed version
     :param id: The player's ID
@@ -62,7 +62,7 @@ async def get_player_data(id: str) -> dict:
             player_data["twitter"] = link.get_text().strip()
         elif "twitch.tv" in link["href"]:
             player_data["twitch"] = link["href"]
-    return player_data
+    return schemas.Player.parse_obj(player_data)
 
 
 async def parse_agent_data(agent_data: element.ResultSet) -> dict:

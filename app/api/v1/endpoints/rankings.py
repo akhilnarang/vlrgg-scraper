@@ -1,5 +1,4 @@
 import json
-from typing import Any
 
 import semver
 from fastapi import APIRouter, Header
@@ -10,8 +9,8 @@ from app.services import rankings
 router = APIRouter()
 
 
-@router.get("/", response_model=list[schemas.Ranking])
-async def get_rankings(app_version: str | None = Header(None)) -> Any:
+@router.get("/")
+async def get_rankings(app_version: str | None = Header(None)) -> list[schemas.Ranking]:
     try:
         response = [schemas.Ranking.parse_obj(ranking) for ranking in json.loads(await cache.get("rankings"))]
     except cache.CacheMiss:

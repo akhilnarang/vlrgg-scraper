@@ -1,5 +1,4 @@
 import json
-from typing import Any
 
 from fastapi import APIRouter
 
@@ -9,14 +8,14 @@ from app.services import events
 router = APIRouter()
 
 
-@router.get("/", response_model=list[schemas.Event])
-async def list_events() -> Any:
+@router.get("/")
+async def list_events() -> list[schemas.Event]:
     try:
         return [schemas.Event.parse_obj(event) for event in json.loads(await cache.get("events"))]
     except cache.CacheMiss:
         return await events.get_events()
 
 
-@router.get("/{id}", response_model=schemas.EventWithDetails)
-async def event_by_id(id: str) -> Any:
+@router.get("/{id}")
+async def event_by_id(id: str) -> schemas.EventWithDetails:
     return await events.get_event_by_id(id)
