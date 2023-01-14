@@ -10,6 +10,8 @@ class Settings(BaseSettings):
 
     GOOGLE_APPLICATION_CREDENTIALS: str | None
 
+    TIMEZONE: str
+
     class Config:
         env_file = ".env"
 

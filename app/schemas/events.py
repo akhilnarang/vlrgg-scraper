@@ -1,6 +1,9 @@
+from datetime import datetime
+
 from pydantic import BaseModel, HttpUrl
 
 from app.constants import EventStatus, MatchStatus
+from app.schemas.base import fix_datetime_tz
 
 
 class Event(BaseModel):
@@ -11,6 +14,9 @@ class Event(BaseModel):
     dates: str
     location: str
     img: HttpUrl
+
+    class Config:
+        json_encoders = {datetime: fix_datetime_tz}
 
 
 class PrizeTeam(BaseModel):
@@ -69,3 +75,6 @@ class EventWithDetails(BaseModel):
     prizes: list[Prize] = []
     teams: list[Team] = []
     matches: list[Match]
+
+    class Config:
+        json_encoders = {datetime: fix_datetime_tz}

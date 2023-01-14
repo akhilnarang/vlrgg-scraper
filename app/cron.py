@@ -10,6 +10,7 @@ from arq import cron
 from arq.worker import Worker, create_worker
 from firebase_admin import delete_app, initialize_app, messaging
 
+from app import utils
 from app.cache import cache
 from app.constants import MatchStatus
 from app.core.config import settings
@@ -23,7 +24,7 @@ async def fcm_notification_cron(_: dict) -> None:
     :return: Nothing
     """
     # Get the current time, so that we can filter for matches starting in the next 15 minutes
-    current_time = datetime.now(tz=ZoneInfo("UTC"))
+    current_time = utils.clear_datetime_tz(datetime.now(tz=ZoneInfo(settings.TIMEZONE)))
     upcoming_matches = [
         match
         for match in await matches.get_upcoming_matches()

@@ -140,7 +140,5 @@ async def parse_match(match_data: element.Tag) -> dict:
             .replace("\t", "")
         )
 
-    response["date"] = dateutil.parser.parse(
-        match_data.find("div", class_="m-item-date").get_text(), ignoretz=True
-    ).astimezone(ZoneInfo("UTC"))
+    response["date"] = dateutil.parser.parse(match_data.find("div", class_="m-item-date").get_text(), ignoretz=True)
     return response

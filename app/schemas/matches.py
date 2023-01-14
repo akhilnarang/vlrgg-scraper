@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, HttpUrl
 
 from app.constants import MatchStatus
+from app.schemas.base import fix_datetime_tz
 
 
 class Team(BaseModel):
@@ -87,6 +88,9 @@ class MatchWithDetails(BaseModel):
     data: list[MatchData]
     previous_encounters: list[PreviousEncounters]
 
+    class Config:
+        json_encoders = {datetime: fix_datetime_tz}
+
 
 class MatchTeam(BaseModel):
     name: str
@@ -101,3 +105,6 @@ class Match(BaseModel):
     time: datetime
     event: str
     series: str
+
+    class Config:
+        json_encoders = {datetime: fix_datetime_tz}
