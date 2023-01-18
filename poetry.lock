@@ -1816,6 +1816,21 @@ files = [
 ]
 
 [[package]]
+name = "types-pyopenssl"
+version = "23.0.0.1"
+description = "Typing stubs for pyOpenSSL"
+category = "dev"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-pyOpenSSL-23.0.0.1.tar.gz", hash = "sha256:cb317e92f75e8b01d1ad4e89cac92062e8eed563205b9762c1ddd82603a056c4"},
+    {file = "types_pyOpenSSL-23.0.0.1-py3-none-any.whl", hash = "sha256:09c2dbbfb743282ba3d71c24a4e90f8b5f2c90f21771ff43ca46de6c4896bf77"},
+]
+
+[package.dependencies]
+cryptography = ">=35.0.0"
+
+[[package]]
 name = "types-python-dateutil"
 version = "2.8.19.5"
 description = "Typing stubs for python-dateutil"
@@ -1829,15 +1844,19 @@ files = [
 
 [[package]]
 name = "types-redis"
-version = "4.4.0.0"
+version = "4.4.0.1"
 description = "Typing stubs for redis"
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "types-redis-4.4.0.0.tar.gz", hash = "sha256:7d826d458e9a6dbd7d4f21fdf6d7c39ba2e2f3474c8a348000241965860a0edf"},
-    {file = "types_redis-4.4.0.0-py3-none-any.whl", hash = "sha256:cc3832caab14f86af2c62ac3c865694df925df525b8083509035842ecb6b5950"},
+    {file = "types-redis-4.4.0.1.tar.gz", hash = "sha256:4d07b278e333921a6a4874bc24f44d7706c93cc164289fa55a888963879c3c07"},
+    {file = "types_redis-4.4.0.1-py3-none-any.whl", hash = "sha256:29610fb7ac57817f5b13c0e96c81ce7da4a94da12a207655c694b6097f89a499"},
 ]
+
+[package.dependencies]
+cryptography = ">=35.0.0"
+types-pyOpenSSL = "*"
 
 [[package]]
 name = "typing-extensions"
