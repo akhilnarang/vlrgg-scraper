@@ -1844,14 +1844,14 @@ files = [
 
 [[package]]
 name = "types-redis"
-version = "4.4.0.1"
+version = "4.4.0.3"
 description = "Typing stubs for redis"
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "types-redis-4.4.0.1.tar.gz", hash = "sha256:4d07b278e333921a6a4874bc24f44d7706c93cc164289fa55a888963879c3c07"},
-    {file = "types_redis-4.4.0.1-py3-none-any.whl", hash = "sha256:29610fb7ac57817f5b13c0e96c81ce7da4a94da12a207655c694b6097f89a499"},
+    {file = "types-redis-4.4.0.3.tar.gz", hash = "sha256:99fc86307fb19b775a0ad5de91d2fc0ccdb9a2be7ac790f4553911d2f2abdf61"},
+    {file = "types_redis-4.4.0.3-py3-none-any.whl", hash = "sha256:fc25550bc108908a32bb47cfdecde8d2155b6b7e40688af99a4bacbd7e3e857e"},
 ]
 
 [package.dependencies]
