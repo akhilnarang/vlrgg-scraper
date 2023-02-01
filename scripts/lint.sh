@@ -8,7 +8,7 @@ if [[ -z "$path" ]]; then
 fi
 
 # Lint
-mypy $path
+mypy $path --explicit-package-bases
 black $path --check
 isort --check-only $path
 flake8 $path
