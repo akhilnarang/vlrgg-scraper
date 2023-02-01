@@ -8,7 +8,7 @@ import httpx
 from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet
 
-from app import schemas, utils
+from app import constants, schemas, utils
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
 
 
@@ -93,7 +93,7 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
     event_date: datetime | None = None
     if (
         date_str := " ".join([data.get_text().strip() for data in soup.find_all("div", class_="moment-tz-convert")])
-    ) and "tbd" not in date_str.lower():
+    ) and constants.TBD not in date_str.lower():
         event_date = dateutil.parser.parse(date_str, ignoretz=True)
 
     if soup.find("span", class_="match-header-vs-note mod-upcoming"):
@@ -175,7 +175,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
 
     map_ret = []
     for map_data in map_stats:
-        if (match_map_id := map_data["data-game-id"]) == "all" or maps.get(match_map_id) == "TBD":
+        if (match_map_id := map_data["data-game-id"]) == "all" or maps.get(match_map_id, "").lower() == constants.TBD:
             continue
         teams = [
             {
@@ -392,7 +392,7 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
     status = match_info.find("div", class_="ml-status").get_text().strip().lower()
     date = date.get_text().split("\n")[1].strip().replace("\t", "").replace("\n", "")
     time = match_info.find("div", class_="match-item-time").get_text().strip()
-    if time == "TBD":
+    if time.lower() == constants.TBD:
         date_string = date
     else:
         date_string = date + " " + time

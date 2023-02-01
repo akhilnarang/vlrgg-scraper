@@ -30,13 +30,15 @@ RANKINGS_URL = f"{PREFIX}/rankings"
 
 RANKING_URL_REGION = f"{PREFIX}{{}}"
 
+TBD = "tbd"
+
 
 class MatchStatus(str, Enum):
     COMPLETED = "completed"
     ONGOING = "ongoing"
     UPCOMING = "upcoming"
     LIVE = "live"
-    TBD = "tbd"
+    TBD = TBD
 
 
 class EventStatus(str, Enum):

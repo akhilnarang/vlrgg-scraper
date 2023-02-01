@@ -7,8 +7,8 @@ from bs4 import BeautifulSoup, element
 from fastapi import HTTPException
 from starlette import status
 
-from app import schemas, utils
-from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL, EventStatus
+from app import schemas, utils, constants
+from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL, EventStatus, MatchStatus
 
 
 async def get_events() -> list[schemas.Event]:
@@ -198,7 +198,7 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
                 data["score"] = int(score_data)
             team_data.append(data)
         match["teams"] = team_data
-        if match["status"] not in ("live", "tbd"):
+        if match["status"] not in (MatchStatus.LIVE, MatchStatus.TBD):
             match["eta"] = match_data.find_all("div", class_="ml-eta")[0].get_text().strip()
 
         match_item_event = (
@@ -220,7 +220,7 @@ async def parse_team_data(team_data: element.Tag) -> list[dict[str, str]]:
     for team in team_data.find_all("div", class_="wf-card event-team"):
         event_team_name = team.find_all("a", class_="event-team-name")[0]
         name = event_team_name.get_text().strip()
-        if name.lower() == "tbd":
+        if name.lower() == constants.TBD:
             continue
         participant = {
             "name": name,
