@@ -1,5 +1,7 @@
 import asyncio
 import itertools
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import dateutil.parser
 import httpx
@@ -7,8 +9,9 @@ from bs4 import BeautifulSoup, element
 from fastapi import HTTPException
 from starlette import status
 
-from app import schemas, utils, constants
+from app import constants, schemas, utils
 from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL, EventStatus, MatchStatus
+from app.core.config import settings
 
 
 async def get_events() -> list[schemas.Event]:
@@ -181,12 +184,24 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
     """
     matches = []
     for match_data in day_matches.find_all("a", class_="match-item"):
+        time = match_data.find_all("div", class_="match-item-time")[0].get_text().strip()
+        match_timing: datetime | None = None
+        if constants.TBD not in time.lower():
+            match_timing = (
+                dateutil.parser.parse(
+                    f"{date.lower().replace('yesterday', '').replace('today', '')} {time}", ignoretz=True
+                )
+                .replace(tzinfo=ZoneInfo(settings.TIMEZONE))
+                .astimezone(ZoneInfo("UTC"))
+            )
         match = {
             "id": match_data["href"].split("/")[1],
-            "time": match_data.find_all("div", class_="match-item-time")[0].get_text().strip(),
             "status": match_data.find_all("div", class_="ml-status")[0].get_text().strip().lower(),
-            "date": dateutil.parser.parse(date, ignoretz=True),
         }
+        if match_timing:
+            match |= {"date": match_timing.date(), "time": match_timing.time().isoformat()}
+        else:
+            match |= {"date": dateutil.parser.parse(date, ignoretz=True), "time": time}
         team_data = []
         for team in match_data.find_all("div", class_="match-item-vs-team"):
             data = {
