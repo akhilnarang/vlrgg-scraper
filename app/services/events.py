@@ -1,6 +1,7 @@
 import asyncio
 import itertools
 
+import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
 from fastapi import HTTPException
@@ -184,7 +185,7 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
             "id": match_data["href"].split("/")[1],
             "time": match_data.find_all("div", class_="match-item-time")[0].get_text().strip(),
             "status": match_data.find_all("div", class_="ml-status")[0].get_text().strip().lower(),
-            "date": date,
+            "date": dateutil.parser.parse(date, ignoretz=True),
         }
         team_data = []
         for team in match_data.find_all("div", class_="match-item-vs-team"):

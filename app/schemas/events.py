@@ -55,7 +55,7 @@ class MatchTeam(BaseModel):
 class Match(BaseModel):
     id: str
     time: str
-    date: str
+    date: datetime
     eta: str | None
     status: MatchStatus
     teams: list[MatchTeam]
