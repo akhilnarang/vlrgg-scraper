@@ -27,7 +27,7 @@ if settings.SENTRY_DSN:
             StarletteIntegration(),
             FastApiIntegration(),
         ],
-        traces_sample_rate=1.0,
+        traces_sample_rate=0.3,
     )
 
 app = FastAPI(title="Scraper", description="Scraper for VLR.gg that exposes a REST API for some data available there")
