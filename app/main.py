@@ -1,9 +1,9 @@
 import logging
-import sys
 
 import sentry_sdk
 from brotli_asgi import BrotliMiddleware
 from fastapi import Depends, FastAPI
+from rich.logging import RichHandler
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
@@ -16,7 +16,7 @@ logging.basicConfig(
     format="[%(levelname)s] (%(asctime)s) %(module)s:%(pathname)s:%(funcName)s:%(lineno)s:: %(message)s",
     level=logging.INFO,
     datefmt="%d-%m-%y %H:%M:%S",
-    stream=sys.stdout,
+    handlers=[RichHandler(rich_tracebacks=True)],
 )
 
 # Initialize Sentry SDK if a DSN is defined in our environment
