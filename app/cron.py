@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from asyncio import Task
 from datetime import datetime
 from typing import Any
@@ -36,7 +37,7 @@ async def fcm_notification_cron(_: dict) -> None:
 
     # Iterate over upcoming matches
     for match in upcoming_matches:
-        print(f"Sending notification for {match=}")
+        logging.info(f"Sending notification for {match=}")
 
         match_details = await matches.match_by_id(match.id)
 
@@ -70,9 +71,9 @@ async def fcm_notification_cron(_: dict) -> None:
         app = initialize_app()
         response = messaging.send_all(messages)
         delete_app(app)
-        print(f"{vars(response)=}")
+        logging.info(f"{vars(response)=}")
     else:
-        print("No notifications to send")
+        logging.info("No notifications to send")
 
 
 async def rankings_cron(ctx: dict) -> None:
