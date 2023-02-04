@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import uuid
 from asyncio import Task
 from datetime import datetime
 from typing import Any
@@ -18,10 +19,10 @@ from app.core.config import settings
 from app.services import events, matches, news, rankings
 
 
-async def fcm_notification_cron(_: dict) -> None:
+async def fcm_notification_cron(ctx: dict) -> None:
     """
     Function to notify users about upcoming matches
-    :param _: Context dict
+    :param ctx: Context dict
     :return: Nothing
     """
     # Get the current time, so that we can filter for matches starting in the next 15 minutes
@@ -68,10 +69,11 @@ async def fcm_notification_cron(_: dict) -> None:
 
     # Don't bother sending if there's nothing to send
     if messages:
-        app = initialize_app()
+        app_name = ctx.get("job_id", uuid.uuid4())
+        app = initialize_app(name=app_name)
         response = messaging.send_all(messages)
         delete_app(app)
-        logging.info(f"{vars(response)=}")
+        logging.info("Sent notification", response)
     else:
         logging.info("No notifications to send")
 
