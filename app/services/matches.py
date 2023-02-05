@@ -204,27 +204,29 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
                         round_winner = "team1"
 
                     prev = current
+
+                win_type: str | None = None
                 if round_win_data := round_data.find_all("div", class_="mod-win"):
                     side = {
                         "mod-t": "attack",
                         "mod-ct": "defense",
-                    }.get(round_win_data[0].get("class")[2], "Unknown")
+                    }.get(round_win_data[0].get("class")[2], "")
 
-                    win_type = {
-                        "elim": "Elimination",
-                        "time": "Time out",
-                        "defuse": "Defused",
-                        "boom": "Spike exploded",
-                    }.get(round_win_data[0].find("img", {}).get("src", "").split("/")[-1].split(".")[0], "Not played")
-                else:
-                    win_type = "Not Played"
+                    if (img := round_win_data[0].find("img")) and (img_src := img.get("src")):
+                        win_type = {
+                            "elim": "Elimination",
+                            "time": "Time out",
+                            "defuse": "Defused",
+                            "boom": "Spike exploded",
+                        }.get(img_src.split("/")[-1].split(".")[0])
+
                 rounds.append(
                     {
                         "round_number": round_data.find_all("div", class_="rnd-num")[0].get_text().strip(),
                         "round_score": round_score,
                         "winner": round_winner,
                         "side": side,
-                        "win_type": win_type,
+                        "win_type": win_type or "Not Played",
                     }
                 )
 
