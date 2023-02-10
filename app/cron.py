@@ -71,7 +71,7 @@ async def fcm_notification_cron(ctx: dict) -> None:
     if messages:
         app_name = ctx.get("job_id", uuid.uuid4())
         app = initialize_app(name=app_name)
-        response = messaging.send_all(messages)
+        response = messaging.send_all(messages=messages, app=app)
         delete_app(app)
         logging.info("Sent notification", response)
     else:
