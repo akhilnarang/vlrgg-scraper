@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 import pydantic.json
 from arq import cron
 from arq.worker import Worker, create_worker
-from firebase_admin import delete_app, initialize_app, messaging
+from firebase_admin import credentials, delete_app, initialize_app, messaging
 
 from app import utils
 from app.cache import cache
@@ -70,7 +70,7 @@ async def fcm_notification_cron(ctx: dict) -> None:
     # Don't bother sending if there's nothing to send
     if messages:
         app_name = ctx.get("job_id", uuid.uuid4())
-        app = initialize_app(name=app_name)
+        app = initialize_app(name=app_name, credential=credentials.Certificate(settings.GOOGLE_APPLICATION_CREDENTIALS))
         response = messaging.send_all(messages=messages, app=app)
         delete_app(app)
         logging.info("Sent notification", response)
