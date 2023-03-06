@@ -1932,6 +1932,7 @@ files = [
 ]
 
 [package.dependencies]
+arq = {version = ">=0.23", optional = true, markers = "extra == \"arq\""}
 certifi = "*"
 fastapi = {version = ">=0.79.0", optional = true, markers = "extra == \"fastapi\""}
 urllib3 = {version = ">=1.26.11", markers = "python_version >= \"3.6\""}
@@ -2312,4 +2313,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "05a007af32bf57f9ecdd6261e519283040593d925a5f55923206969b12c24873"
+content-hash = "0930ced9f95b1b9afae2805d2eac27dc69c509039e249c6df4ccf67ba38bb8a5"

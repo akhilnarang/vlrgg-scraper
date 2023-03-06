@@ -4,6 +4,7 @@ import sentry_sdk
 from brotli_asgi import BrotliMiddleware
 from fastapi import Depends, FastAPI
 from rich.logging import RichHandler
+from sentry_sdk.integrations.arq import ArqIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
@@ -26,6 +27,7 @@ if settings.SENTRY_DSN:
         integrations=[
             StarletteIntegration(),
             FastApiIntegration(),
+            ArqIntegration(),
         ],
         traces_sample_rate=0.3,
     )
