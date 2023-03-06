@@ -28,8 +28,10 @@ async def get_player_data(id: str) -> schemas.Player:
         "img": utils.get_image_url(player_info.find("img")["src"]),
         "country": player_info.find("div", class_="ge-text-light").get_text().strip(),
         "agents": await asyncio.gather(
-            *[parse_agent_data(agent.find_all("td")) for agent in soup.find("tbody").find_all("tr")]
-        ),
+            *[parse_agent_data(agent.find_all("td")) for agent in agent_data.find_all("tr") if agent]
+        )
+        if (agent_data := soup.find("tbody"))
+        else [],
     }
 
     for header in player_summary_container_2.find_all("h2"):
