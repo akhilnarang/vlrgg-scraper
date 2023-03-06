@@ -92,7 +92,9 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
     event_link = event_data.find("a", class_="match-header-event")
     event_date: datetime | None = None
     if (
-        date_str := " ".join([data.get_text().strip() for data in soup.find_all("div", class_="moment-tz-convert")])
+        date_str := " ".join(
+            [data.get_text().strip() for data in soup.find_all("div", class_="moment-tz-convert")]
+        ).strip()
     ) and constants.TBD not in date_str.lower():
         event_date = dateutil.parser.parse(date_str, ignoretz=True)
 
