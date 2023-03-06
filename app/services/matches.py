@@ -48,6 +48,10 @@ async def get_team_data(data: ResultSet) -> list[dict]:
     :param data: The data
     :return: The parsed team data
     """
+    # Ensure that we have team data to parse
+    if len(data) == 0:
+        return []
+
     match_header = data[0]
     names = match_header.find_all("div", class_="wf-title-med")
     images = match_header.find_all("a", class_="match-header-link")
