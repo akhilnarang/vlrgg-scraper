@@ -416,12 +416,12 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
     )
 
 
-async def parse_score(data: element.Tag) -> str | None:
+async def parse_score(data: element.Tag) -> int | None:
     """
     Function that takes in a tag to parse the score
     :param data: The tag
     :return: The score if it exists, else None
     """
     if (score := data.get_text().strip()).isdigit():
-        return score
+        return int(score)
     return None
