@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 import sentry_sdk
 from brotli_asgi import BrotliMiddleware
@@ -32,21 +33,22 @@ if settings.SENTRY_DSN:
         traces_sample_rate=0.3,
     )
 
-app = FastAPI(title="Scraper", description="Scraper for VLR.gg that exposes a REST API for some data available there")
-app.add_middleware(BrotliMiddleware)
 
-
-@app.on_event("startup")
-async def app_start() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     logging.info("Starting arq worker")
     await arq_worker.start(handle_signals=False)
-
-
-@app.on_event("shutdown")
-async def app_stop() -> None:
+    yield
     logging.info("Stopping arq worker")
     await arq_worker.stop()
 
+
+app = FastAPI(
+    title="Scraper",
+    description="Scraper for VLR.gg that exposes a REST API for some data available there",
+    lifespan=lifespan,
+)
+app.add_middleware(BrotliMiddleware)
 
 if settings.SECRET_KEY:
     app.include_router(router, prefix="/api/v1", dependencies=[Depends(deps.verify_token)])
