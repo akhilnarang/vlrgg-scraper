@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from typing import AsyncIterator
 
 import sentry_sdk
 from brotli_asgi import BrotliMiddleware
@@ -35,7 +36,7 @@ if settings.SENTRY_DSN:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator:
     logging.info("Starting arq worker")
     await arq_worker.start(handle_signals=False)
     yield
