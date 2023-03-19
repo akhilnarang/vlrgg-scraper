@@ -31,7 +31,7 @@ if settings.SENTRY_DSN:
             FastApiIntegration(),
             ArqIntegration(),
         ],
-        traces_sample_rate=0.3,
+        traces_sample_rate=0.2,
     )
 
 
