@@ -2,11 +2,14 @@
 
 set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
-apt update --yes
-apt install build-essential --yes
-pip --no-cache-dir install poetry
-poetry config virtualenvs.create false
-poetry install
-rm -rf $(poetry config cache-dir)
-apt autoremove build-essential --yes
-rm -rf /var/apt/lib/lists
+apt update -yq
+apt install build-essential curl -yq
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Create a virtual environment
+python -m venv venv
+
+# Activate the virtual environment
+source ./venv/bin/activate
+
+/root/.local/bin/poetry install --without=dev
