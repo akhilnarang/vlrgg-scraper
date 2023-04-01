@@ -1,17 +1,18 @@
 on:
   push:
-    branches: 
-    - master
+    branches:
+      - master
 
 name: Build and push docker image to container registry
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Build image.
-        run: docker build -t ghcr.io/akhilnarang/vlrgg-scraper:master .
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
       - name: Login to container registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io --username akhilnarang --password-stdin
-      - name: Push image
-        run: docker push ghcr.io/akhilnarang/vlrgg-scraper:master
+      - name: Build and push image
+        run: docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/akhilnarang/vlrgg-scraper:master . --push
