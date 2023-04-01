@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 import pydantic.json
 from arq import cron
+from arq.connections import RedisSettings
 from arq.worker import Worker, create_worker
 from firebase_admin import credentials, delete_app, initialize_app, messaging
 
@@ -128,6 +129,8 @@ async def news_cron(ctx: dict) -> None:
 
 
 class ArqWorker:
+    redis_settings = RedisSettings(host=settings.REDIS_HOST)
+
     def __init__(self) -> None:
         self.worker: Worker | None = None
         self.task: Task | None = None
