@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 import sentry_sdk
+from arq.connections import RedisSettings
 from brotli_asgi import BrotliMiddleware
 from fastapi import Depends, FastAPI
 from rich.logging import RichHandler
@@ -38,7 +39,12 @@ if settings.SENTRY_DSN:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator:
     logging.info("Starting arq worker")
-    await arq_worker.start(handle_signals=False)
+    await arq_worker.start(
+        handle_signals=False,
+        redis_settings=RedisSettings(
+            host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD
+        ),
+    )
     yield
     logging.info("Stopping arq worker")
     await arq_worker.stop()

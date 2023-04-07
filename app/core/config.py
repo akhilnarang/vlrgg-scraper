@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     SENTRY_DSN: str | None
 
     REDIS_HOST: str
+    REDIS_PORT: int = 6379
     REDIS_PASSWORD: str
 
     GOOGLE_APPLICATION_CREDENTIALS: str | None
