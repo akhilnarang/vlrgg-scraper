@@ -3,7 +3,7 @@ import json
 import logging
 import uuid
 from asyncio import Task
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -65,6 +65,7 @@ async def fcm_notification_cron(ctx: dict) -> None:
                 # notifications
                 condition=f"'event-{match_details.event.id}' in topics || 'match-{match.id}' in topics || "
                 f"'team-{team1_id}' in topics || 'team-{team2_id}' in topics",
+                android=messaging.AndroidConfig(ttl=timedelta(minutes=30)),
             ),
         )
 
