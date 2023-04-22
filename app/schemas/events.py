@@ -63,6 +63,19 @@ class Match(BaseModel):
     stage: str
 
 
+class EventStandings(BaseModel):
+    logo: HttpUrl
+    team: str
+    country: str
+    wins: int
+    losses: int
+    ties: int
+    map_difference: str
+    round_difference: str
+    round_delta: int
+    group: str | None
+
+
 class EventWithDetails(BaseModel):
     id: str
     title: str
@@ -75,6 +88,7 @@ class EventWithDetails(BaseModel):
     prizes: list[Prize] = []
     teams: list[Team] = []
     matches: list[Match]
+    standings: list[EventStandings] = []
 
     class Config:
         json_encoders = {datetime: fix_datetime_tz}

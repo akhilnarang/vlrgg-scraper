@@ -119,6 +119,7 @@ async def parse_events_data(id: str) -> dict:
         case _:
             event["status"] = EventStatus.UNKNOWN
 
+    event["standings"] = parse_event_standings(soup.find("div", class_="event-container"))
     return event
 
 
@@ -254,3 +255,58 @@ async def parse_team_data(team_data: element.Tag) -> list[dict[str, str]]:
         # participant["roster"] = roster
         participants.append(participant)
     return participants
+
+
+def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
+    event_standings = []
+    if event_groups := data.find("div", class_="event-groups-container"):
+        for table in event_groups.find_all("table", class_="wf-table mod-simple mod-group"):
+            group = table.find("thead").find("tr").find("th").get_text().strip()
+            for row in table.find("tbody").find_all("tr"):
+                columns = row.find_all("td")
+                img = columns[0].find("img").get("src")
+                team, country = (s.strip() for s in columns[0].get_text().split("\n") if s)
+                wins, losses = columns[1].get_text().replace("\t", "").replace("\n", "").split("–")
+                ties = 0  # TODO: figure out if there's anything for this
+                map_difference = columns[2].get_text().replace("\t", "").replace("\n", "")
+                round_difference = columns[3].get_text().replace("\t", "").replace("\n", "")
+                round_delta = columns[4].get_text()
+                event_standings.append(
+                    {
+                        "group": group,
+                        "logo": utils.get_image_url(img),
+                        "team": team,
+                        "country": country,
+                        "wins": wins,
+                        "losses": losses,
+                        "ties": ties,
+                        "map_difference": map_difference,
+                        "round_difference": round_difference,
+                        "round_delta": round_delta,
+                    }
+                )
+    elif event_table := data.find("table", class_="wf-table mod-simple mod-group"):
+        for row in event_table.find("tbody").find_all("tr"):
+            columns = row.find_all("td")
+            img = columns[0].find("img").get("src")
+            team, country = (s.strip() for s in columns[0].get_text().split("\n") if s)
+            wins = columns[1].get_text().replace("\t", "").replace("\n", "")
+            losses = columns[2].get_text().replace("\t", "").replace("\n", "")
+            ties = columns[3].get_text().replace("\t", "").replace("\n", "")
+            map_difference = columns[4].get_text().replace("\t", "").replace("\n", "")
+            round_difference = columns[5].get_text().replace("\t", "").replace("\n", "")
+            round_delta = columns[6].get_text()
+            event_standings.append(
+                {
+                    "logo": utils.get_image_url(img),
+                    "team": team,
+                    "country": country,
+                    "wins": wins,
+                    "losses": losses,
+                    "ties": ties,
+                    "map_difference": map_difference,
+                    "round_difference": round_difference,
+                    "round_delta": round_delta,
+                }
+            )
+    return event_standings
