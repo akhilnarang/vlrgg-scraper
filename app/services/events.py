@@ -266,11 +266,19 @@ def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
                 columns = row.find_all("td")
                 img = columns[0].find("img").get("src")
                 team, country = (s.strip() for s in columns[0].get_text().split("\n") if s)
-                wins, losses = columns[1].get_text().replace("\t", "").replace("\n", "").split("–")
-                ties = 0  # TODO: figure out if there's anything for this
-                map_difference = columns[2].get_text().replace("\t", "").replace("\n", "")
-                round_difference = columns[3].get_text().replace("\t", "").replace("\n", "")
-                round_delta = columns[4].get_text()
+                if len(columns) > 5:
+                    wins = columns[1].get_text().replace("\t", "").replace("\n", "")
+                    losses = columns[2].get_text().replace("\t", "").replace("\n", "")
+                    ties = columns[3].get_text().replace("\t", "").replace("\n", "")
+                    map_difference = columns[4].get_text().replace("\t", "").replace("\n", "")
+                    round_difference = columns[5].get_text().replace("\t", "").replace("\n", "")
+                    round_delta = columns[6].get_text()
+                else:
+                    wins, losses = columns[1].get_text().replace("\t", "").replace("\n", "").split("–")
+                    ties = 0  # TODO: figure out if there's anything for this
+                    map_difference = columns[2].get_text().replace("\t", "").replace("\n", "")
+                    round_difference = columns[3].get_text().replace("\t", "").replace("\n", "")
+                    round_delta = columns[4].get_text()
                 event_standings.append(
                     {
                         "group": group,
