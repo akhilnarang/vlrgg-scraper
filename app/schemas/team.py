@@ -27,6 +27,7 @@ class CompletedMatch(MatchBase):
     score: str
 
 
+# Response for `GET /api/v1/team/{id}`
 class Team(BaseModel):
     name: str
     tag: str

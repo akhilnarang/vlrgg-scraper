@@ -10,6 +10,7 @@ class TeamRanking(BaseModel):
     country: str
 
 
+# Response for `GET /api/v1/rankings`
 class Ranking(BaseModel):
     region: str
     teams: list[TeamRanking]

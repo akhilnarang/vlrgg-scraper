@@ -6,6 +6,7 @@ from app.constants import EventStatus, MatchStatus
 from app.schemas.base import fix_datetime_tz
 
 
+# Response for `GET /api/v1/events`
 class Event(BaseModel):
     id: int
     title: str
@@ -76,6 +77,7 @@ class EventStandings(BaseModel):
     group: str | None
 
 
+# Response for `GET /api/v1/events/{id}`
 class EventWithDetails(BaseModel):
     id: str
     title: str

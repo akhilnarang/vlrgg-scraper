@@ -29,6 +29,7 @@ class PlayerTeam(BaseModel):
     img: HttpUrl
 
 
+# Response for `GET /api/v1/player/{id}`
 class Player(BaseModel):
     name: str
     alias: str

@@ -79,6 +79,7 @@ class MatchVideos(BaseModel):
     vods: list[Video]
 
 
+# Response for `GET /api/v1/matches/{match_id}`
 class MatchWithDetails(BaseModel):
     teams: list[TeamWithImage]
     bans: list[str]
@@ -97,6 +98,7 @@ class MatchTeam(BaseModel):
     score: int | None
 
 
+# Response for `GET /api/v1/matches`
 class Match(BaseModel):
     id: str
     team1: MatchTeam
