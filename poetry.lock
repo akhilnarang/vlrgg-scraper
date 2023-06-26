@@ -528,13 +528,13 @@ all = ["email-validator (>=1.1.1)", "httpx (>=0.23.0)", "itsdangerous (>=1.1.0)"
 
 [[package]]
 name = "firebase-admin"
-version = "6.1.0"
+version = "6.2.0"
 description = "Firebase Admin Python SDK"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "firebase_admin-6.1.0-py3-none-any.whl", hash = "sha256:3daa806d16a35d83a809a70a325f973ba9dc242601fe69cd68e6f54a6ffdcd57"},
-    {file = "firebase_admin-6.1.0.tar.gz", hash = "sha256:52e13e393c9d3dc6237f2c376b8e55aacdaaeebe455c0b7e8cfbf35b6491e19d"},
+    {file = "firebase_admin-6.2.0-py3-none-any.whl", hash = "sha256:e3c42351fb6194d7279a6fd9209a947005fb4ee7e9037d19762e6cb3da4a82e1"},
+    {file = "firebase_admin-6.2.0.tar.gz", hash = "sha256:e3b334d18bbea039f2f3e8a792ad6870d2a7cc79a13ed10659dedd63f5b475e4"},
 ]
 
 [package.dependencies]
@@ -2210,4 +2210,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4361e37150def7195b99ea016047ee3aaaa885f3268982a4df1d0056b61cacf1"
+content-hash = "963f4dab0c81f4886a2f7edbc37e9405f4d7bfd1963898f5467347a8ac4cea6e"
