@@ -55,7 +55,7 @@ async def fcm_notification_cron(ctx: dict) -> None:
             "match_id": match.id,
         }
         if streams := match_details.videos.streams:
-            payload |= {"stream_url": streams[0].url}
+            payload |= {"stream_url": streams[0].url.unicode_string()}
 
         # Create the firebase message
         messages.append(

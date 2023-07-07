@@ -1,13 +1,16 @@
 from datetime import datetime
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, field_serializer
+from pydantic_core.core_schema import SerializationInfo
+
+from app.schemas.base import fix_datetime_tz
 
 
 class Player(BaseModel):
     id: str
-    name: str | None
+    name: str | None = None
     alias: str
-    role: str | None
+    role: str | None = None
     img: HttpUrl
 
 
@@ -18,9 +21,13 @@ class MatchBase(BaseModel):
     opponent: str
     date: datetime
 
+    @field_serializer("date")
+    def serialize_dt(self, value: datetime, _info: SerializationInfo) -> str:
+        return fix_datetime_tz(value)
+
 
 class UpcomingMatch(MatchBase):
-    eta: str | None
+    eta: str | None = None
 
 
 class CompletedMatch(MatchBase):
@@ -32,8 +39,8 @@ class Team(BaseModel):
     name: str
     tag: str
     img: HttpUrl
-    website: HttpUrl | None
-    twitter: str | None
+    website: HttpUrl | None = None
+    twitter: str | None = None
     country: str
     rank: int
     region: str

@@ -1,9 +1,9 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    SECRET_KEY: str | None
-    SENTRY_DSN: str | None
+    SECRET_KEY: str | None = None
+    SENTRY_DSN: str | None = None
 
     REDIS_HOST: str
     REDIS_PORT: int = 6379
@@ -12,9 +12,7 @@ class Settings(BaseSettings):
     GOOGLE_APPLICATION_CREDENTIALS: str | None
 
     TIMEZONE: str
-
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
 
 
-settings = Settings()  # type: ignore
+settings = Settings()

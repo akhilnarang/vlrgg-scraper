@@ -33,11 +33,11 @@ class PlayerTeam(BaseModel):
 class Player(BaseModel):
     name: str
     alias: str
-    twitch: HttpUrl | None
-    twitter: str | None
+    twitch: HttpUrl | None = None
+    twitter: str | None = None
     country: str
     img: HttpUrl
     agents: list[Agent]
     total_winnings: float = 0.0
-    current_team: PlayerTeam | None
+    current_team: PlayerTeam | None = None
     past_teams: list[PlayerTeam] = []

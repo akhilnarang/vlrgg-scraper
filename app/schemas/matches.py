@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, field_serializer
+from pydantic_core.core_schema import SerializationInfo
 
 from app.constants import MatchStatus
 from app.schemas.base import fix_datetime_tz
@@ -8,12 +9,12 @@ from app.schemas.base import fix_datetime_tz
 
 class Team(BaseModel):
     name: str
-    score: int | None
+    score: int | None = None
 
 
 class TeamWithImage(Team):
     img: HttpUrl
-    id: str | None
+    id: str | None = None
 
 
 class Event(BaseModel):
@@ -21,9 +22,13 @@ class Event(BaseModel):
     img: HttpUrl
     series: str
     stage: str
-    date: datetime | None
-    patch: str | None
-    status: str | None
+    date: datetime | None = None
+    patch: str | None = None
+    status: str | None = None
+
+    @field_serializer("date")
+    def serialize_dt(self, value: datetime, _info: SerializationInfo) -> str:
+        return fix_datetime_tz(value)
 
 
 class Agent(BaseModel):
@@ -89,13 +94,10 @@ class MatchWithDetails(BaseModel):
     data: list[MatchData]
     previous_encounters: list[PreviousEncounters]
 
-    class Config:
-        json_encoders = {datetime: fix_datetime_tz}
-
 
 class MatchTeam(BaseModel):
     name: str
-    score: int | None
+    score: int | None = None
 
 
 # Response for `GET /api/v1/matches`
@@ -108,5 +110,6 @@ class Match(BaseModel):
     event: str
     series: str
 
-    class Config:
-        json_encoders = {datetime: fix_datetime_tz}
+    @field_serializer("time")
+    def serialize_dt(self, value: datetime, _info: SerializationInfo) -> str:
+        return fix_datetime_tz(value)

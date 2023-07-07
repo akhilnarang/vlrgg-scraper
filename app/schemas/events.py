@@ -1,9 +1,8 @@
-from datetime import date, datetime
+from datetime import date
 
 from pydantic import BaseModel, HttpUrl
 
 from app.constants import EventStatus, MatchStatus
-from app.schemas.base import fix_datetime_tz
 
 
 # Response for `GET /api/v1/events`
@@ -16,9 +15,6 @@ class Event(BaseModel):
     location: str
     img: HttpUrl
 
-    class Config:
-        json_encoders = {datetime: fix_datetime_tz}
-
 
 class PrizeTeam(BaseModel):
     id: str
@@ -30,7 +26,7 @@ class PrizeTeam(BaseModel):
 class Prize(BaseModel):
     position: str
     prize: str
-    team: PrizeTeam | None
+    team: PrizeTeam | None = None
 
 
 class Player(BaseModel):
@@ -43,21 +39,21 @@ class Team(BaseModel):
     name: str
     id: str
     img: HttpUrl
-    seed: str | None
+    seed: str | None = None
     # roster: list[Player]
 
 
 class MatchTeam(BaseModel):
     name: str
     region: str
-    score: int | None
+    score: int | None = None
 
 
 class Match(BaseModel):
     id: str
     time: str
     date: date
-    eta: str | None
+    eta: str | None = None
     status: MatchStatus
     teams: list[MatchTeam]
     round: str
@@ -74,7 +70,7 @@ class EventStandings(BaseModel):
     map_difference: str
     round_difference: str
     round_delta: int
-    group: str | None
+    group: str | None = None
 
 
 # Response for `GET /api/v1/events/{id}`
@@ -91,6 +87,3 @@ class EventWithDetails(BaseModel):
     teams: list[Team] = []
     matches: list[Match]
     standings: list[EventStandings] = []
-
-    class Config:
-        json_encoders = {datetime: fix_datetime_tz}
