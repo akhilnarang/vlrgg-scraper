@@ -6,7 +6,7 @@ authors = ["Akhil Narang <me@akhilnarang.dev>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = "^0.99.1"
+fastapi = "^0.100.0"
 httpx = "^0.24.1"
 beautifulsoup4 = "^4.12.2"
 uvicorn = {extras = ["standard"], version = "^0.22.0"}
@@ -14,8 +14,8 @@ gunicorn = "^20.1.0"
 python-dateutil = "^2.8.2"
 firebase-admin = "^6.2.0"
 brotli-asgi = "^1.4.0"
-sentry-sdk = {extras = ["arq", "fastapi"], version = "^1.26.0"}
-lxml = "^4.9.2"
+sentry-sdk = {extras = ["arq", "fastapi"], version = "^1.27.1"}
+lxml = "^4.9.3"
 redis = "^4.6.0"
 arq = "^0.25.0"
 semver = "^3.0.1"
