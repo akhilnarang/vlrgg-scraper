@@ -1,9 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, HttpUrl, field_serializer
-from pydantic_core.core_schema import SerializationInfo
-
-from app.schemas.base import fix_datetime_tz
+from pydantic import BaseModel, HttpUrl
 
 
 # Response for `GET /api/v1/news`
@@ -13,7 +10,3 @@ class NewsItem(BaseModel):
     description: str
     date: datetime
     author: str
-
-    @field_serializer("date")
-    def serialize_dt(self, value: datetime, _info: SerializationInfo) -> str:
-        return fix_datetime_tz(value)

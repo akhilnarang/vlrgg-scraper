@@ -100,7 +100,7 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
             [data.get_text().strip() for data in soup.find_all("div", class_="moment-tz-convert")]
         ).strip()
     ) and constants.TBD not in date_str.lower():
-        event_date = dateutil.parser.parse(date_str, ignoretz=True)
+        event_date = utils.fix_datetime_tz(dateutil.parser.parse(date_str, ignoretz=True))
 
     if soup.find("span", class_="match-header-vs-note mod-upcoming"):
         status = "upcoming"
@@ -409,7 +409,7 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
         team1=schemas.MatchTeam(name=team_names[0].get_text().strip(), score=await parse_score(team_scores[0])),
         team2=schemas.MatchTeam(name=team_names[1].get_text().strip(), score=await parse_score(team_scores[1])),
         status=status,
-        time=dateutil.parser.parse(date_string, ignoretz=True),
+        time=utils.fix_datetime_tz(dateutil.parser.parse(date_string, ignoretz=True)),
         id=match_info.get("href").split("/")[1],
         event=match_info.find("div", class_="match-item-event").get_text().split("\n")[-1].strip(),
         series=match_info.find("div", class_="match-item-event-series").get_text().strip(),

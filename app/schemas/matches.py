@@ -1,10 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, HttpUrl, field_serializer
-from pydantic_core.core_schema import SerializationInfo
+from pydantic import BaseModel, HttpUrl
 
 from app.constants import MatchStatus
-from app.schemas.base import fix_datetime_tz
 
 
 class Team(BaseModel):
@@ -25,10 +23,6 @@ class Event(BaseModel):
     date: datetime | None = None
     patch: str | None = None
     status: str | None = None
-
-    @field_serializer("date")
-    def serialize_dt(self, value: datetime, _info: SerializationInfo) -> str:
-        return fix_datetime_tz(value)
 
 
 class Agent(BaseModel):
@@ -109,7 +103,3 @@ class Match(BaseModel):
     time: datetime
     event: str
     series: str
-
-    @field_serializer("time")
-    def serialize_dt(self, value: datetime, _info: SerializationInfo) -> str:
-        return fix_datetime_tz(value)

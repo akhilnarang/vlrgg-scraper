@@ -1,9 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, HttpUrl, field_serializer
-from pydantic_core.core_schema import SerializationInfo
-
-from app.schemas.base import fix_datetime_tz
+from pydantic import BaseModel, HttpUrl
 
 
 class Player(BaseModel):
@@ -20,10 +17,6 @@ class MatchBase(BaseModel):
     stage: str
     opponent: str
     date: datetime
-
-    @field_serializer("date")
-    def serialize_dt(self, value: datetime, _info: SerializationInfo) -> str:
-        return fix_datetime_tz(value)
 
 
 class UpcomingMatch(MatchBase):

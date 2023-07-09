@@ -1,6 +1,8 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from app.constants import PREFIX, VLR_IMAGE
+from app.core.config import settings
 
 
 def get_image_url(img: str) -> str:
@@ -22,3 +24,7 @@ def clear_datetime_tz(source: datetime) -> datetime:
     :return: A timezone-naive datetime object
     """
     return source.replace(tzinfo=None)
+
+
+def fix_datetime_tz(value: datetime) -> datetime:
+    return value.replace(tzinfo=ZoneInfo(settings.TIMEZONE)).astimezone(ZoneInfo("UTC"))
