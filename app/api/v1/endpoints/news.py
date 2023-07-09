@@ -11,6 +11,6 @@ router = APIRouter()
 @router.get("/")
 async def get_news() -> list[schemas.NewsItem]:
     try:
-        return [schemas.NewsItem.parse_obj(news_item) for news_item in json.loads(await cache.get("news"))]
+        return [schemas.NewsItem.model_validate(news_item) for news_item in json.loads(await cache.get("news"))]
     except cache.CacheMiss:
         return await news.news_list()

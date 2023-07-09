@@ -12,7 +12,7 @@ router = APIRouter()
 @router.get("/")
 async def get_rankings(app_version: str | None = Header(None)) -> list[schemas.Ranking]:
     try:
-        response = [schemas.Ranking.parse_obj(ranking) for ranking in json.loads(await cache.get("rankings"))]
+        response = [schemas.Ranking.model_validate(ranking) for ranking in json.loads(await cache.get("rankings"))]
     except cache.CacheMiss:
         response = await rankings.ranking_list()
 

@@ -64,7 +64,7 @@ async def get_player_data(id: str) -> schemas.Player:
             player_data["twitter"] = link.get_text().strip()
         elif "twitch.tv" in link["href"]:
             player_data["twitch"] = link["href"]
-    return schemas.Player.parse_obj(player_data)
+    return schemas.Player.model_validate(player_data)
 
 
 async def parse_agent_data(agent_data: element.ResultSet) -> dict:

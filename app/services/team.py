@@ -72,7 +72,7 @@ async def get_team_data(id: str) -> schemas.Team:
             ),
         ]
     )
-    return schemas.Team.parse_obj(
+    return schemas.Team.model_validate(
         {
             "name": name,
             "tag": tag,

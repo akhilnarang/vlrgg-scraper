@@ -11,7 +11,7 @@ router = APIRouter()
 @router.get("/")
 async def list_events() -> list[schemas.Event]:
     try:
-        return [schemas.Event.parse_obj(event) for event in json.loads(await cache.get("events"))]
+        return [schemas.Event.model_validate(event) for event in json.loads(await cache.get("events"))]
     except cache.CacheMiss:
         return await events.get_events()
 
