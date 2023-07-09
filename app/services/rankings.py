@@ -52,7 +52,7 @@ async def parse_rankings(path: str) -> schemas.Ranking:
                 name=team.find("a")["data-sort-value"].strip(),
                 id=team.find("a")["href"].split("/")[2],
                 logo=utils.get_image_url(team.find("img")["src"]),
-                rank=team.find("div", class_="rank-item-rank").get_text(),
+                rank=team.find("div", class_="rank-item-rank").get_text().replace("\t", "").replace("\n", "").strip(),
                 points=team.find("div", class_="rank-item-rating").get_text().strip(),
                 country=team.find("div", class_="rank-item-team-country").get_text().strip(),
             )
