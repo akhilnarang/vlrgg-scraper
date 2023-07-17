@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
-import pydantic.json
 from arq import cron
 from arq.worker import Worker, create_worker
+from fastapi.encoders import jsonable_encoder
 from firebase_admin import credentials, delete_app, initialize_app, messaging
 
 from app.cache import cache
@@ -87,7 +87,7 @@ async def rankings_cron(ctx: dict) -> None:
     """
     response = await rankings.ranking_list()
     await ctx.get("redis", cache.get_client()).set(
-        "rankings", json.dumps([item.model_dump() for item in response], default=pydantic.json.pydantic_encoder)
+        "rankings", json.dumps([item.model_dump() for item in response], default=jsonable_encoder)
     )
 
 
@@ -99,7 +99,7 @@ async def matches_cron(ctx: dict) -> None:
     """
     response = await matches.match_list()
     await ctx.get("redis", cache.get_client()).set(
-        "matches", json.dumps([item.model_dump() for item in response], default=pydantic.json.pydantic_encoder)
+        "matches", json.dumps([item.model_dump() for item in response], default=jsonable_encoder)
     )
 
 
@@ -111,7 +111,7 @@ async def events_cron(ctx: dict) -> None:
     """
     response = await events.get_events()
     await ctx.get("redis", cache.get_client()).set(
-        "events", json.dumps([item.model_dump() for item in response], default=pydantic.json.pydantic_encoder)
+        "events", json.dumps([item.model_dump() for item in response], default=jsonable_encoder)
     )
 
 
@@ -123,7 +123,7 @@ async def news_cron(ctx: dict) -> None:
     """
     response = await news.news_list()
     await ctx.get("redis", cache.get_client()).set(
-        "news", json.dumps([item.model_dump() for item in response], default=pydantic.json.pydantic_encoder)
+        "news", json.dumps([item.model_dump() for item in response], default=jsonable_encoder)
     )
 
 
