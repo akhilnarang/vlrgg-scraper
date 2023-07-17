@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str
 
-    GOOGLE_APPLICATION_CREDENTIALS: str | None
+    GOOGLE_APPLICATION_CREDENTIALS: str | None = None
 
     TIMEZONE: str
     model_config = SettingsConfigDict(env_file=".env")
