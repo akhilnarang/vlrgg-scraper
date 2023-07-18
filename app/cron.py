@@ -51,6 +51,7 @@ async def fcm_notification_cron(ctx: dict) -> None:
         payload = {
             "title": f"{match.team1.name} vs {match.team2.name}",
             "body": f"Match is starting in {time_to_start} minutes",
+            "timestamp": match.time.isoformat(),
             "match_id": match.id,
         }
         if streams := match_details.videos.streams:
