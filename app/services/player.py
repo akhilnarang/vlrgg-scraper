@@ -39,6 +39,7 @@ async def get_player_data(id: str) -> schemas.Player:
             player_data["total_winnings"] = (
                 header.find_next("div").find("div").find("span").get_text()[1:].replace(",", "")
             )
+            break
 
     for header in player_summary_container_1.find_all("h2"):
         match header.get_text().strip().lower():
