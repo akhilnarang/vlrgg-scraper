@@ -272,13 +272,13 @@ def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
                     ties = columns[3].get_text().replace("\t", "").replace("\n", "")
                     map_difference = columns[4].get_text().replace("\t", "").replace("\n", "")
                     round_difference = columns[5].get_text().replace("\t", "").replace("\n", "")
-                    round_delta = columns[6].get_text()
+                    round_delta = columns[6].get_text().replace("\t", "").replace("\n", "")
                 else:
                     wins, losses = columns[1].get_text().replace("\t", "").replace("\n", "").split("–")
                     ties = 0  # TODO: figure out if there's anything for this
                     map_difference = columns[2].get_text().replace("\t", "").replace("\n", "")
                     round_difference = columns[3].get_text().replace("\t", "").replace("\n", "")
-                    round_delta = columns[4].get_text()
+                    round_delta = columns[4].get_text().replace("\t", "").replace("\n", "")
                 event_standings.append(
                     {
                         "group": group,
