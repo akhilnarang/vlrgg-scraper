@@ -303,7 +303,7 @@ def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
             ties = columns[3].get_text().replace("\t", "").replace("\n", "")
             map_difference = columns[4].get_text().replace("\t", "").replace("\n", "")
             round_difference = columns[5].get_text().replace("\t", "").replace("\n", "")
-            round_delta = columns[6].get_text()
+            round_delta = columns[6].get_text().replace("\t", "").replace("\n", "")
             event_standings.append(
                 {
                     "logo": utils.get_image_url(img),
