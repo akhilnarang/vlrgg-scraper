@@ -19,7 +19,7 @@ lxml = "^4.9.3"
 redis = "^5.0.0"
 arq = "^0.25.0"
 semver = "^3.0.1"
-rich = "^13.5.2"
+rich = "^13.5.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.9.1"
