@@ -2,6 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
+import redis.asyncio as redis
 import sentry_sdk
 from arq.connections import RedisSettings
 from brotli_asgi import BrotliMiddleware
@@ -13,6 +14,7 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 
 from app.api import deps
 from app.api.v1.api import router
+from app.core import connections
 from app.core.config import settings
 from app.cron import arq_worker
 
@@ -38,6 +40,10 @@ if settings.SENTRY_DSN:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator:
+    logging.info("Connecting to redis")
+    connections.redis_pool = redis.ConnectionPool(
+        host=settings.REDIS_HOST, password=settings.REDIS_PASSWORD, port=settings.REDIS_PORT
+    )
     logging.info("Starting arq worker")
     await arq_worker.start(
         handle_signals=False,
@@ -48,6 +54,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
     yield
     logging.info("Stopping arq worker")
     await arq_worker.stop()
+    logging.info("Closing redis connection")
+    await connections.redis_pool.disconnect()
 
 
 app = FastAPI(

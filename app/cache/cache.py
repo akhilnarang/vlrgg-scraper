@@ -1,7 +1,6 @@
 import redis.asyncio as redis
 
-from app.core.config import settings
-
+from ..core.connections import redis_pool
 from .exceptions import CacheMiss
 
 
@@ -11,7 +10,7 @@ def get_client() -> redis.Redis:
 
     :return: The redis client object
     """
-    return redis.Redis(host=settings.REDIS_HOST, password=settings.REDIS_PASSWORD)
+    return redis.Redis(connection_pool=redis_pool)
 
 
 async def get(key: str) -> str:
