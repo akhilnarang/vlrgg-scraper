@@ -20,9 +20,13 @@ async def get(key: str) -> str:
     :param key: The key to retrieve
     :return: The value from redis
     """
-    if data := await get_client().get(key):
-        return data
-    raise CacheMiss(f"`{key}` not found")
+    client = get_client()
+    try:
+        if data := await client.get(key):
+            return data
+        raise CacheMiss(f"`{key}` not found")
+    finally:
+        await client.close()
 
 
 async def set(key: str, value: str, ttl: int = 60) -> None:
@@ -34,4 +38,8 @@ async def set(key: str, value: str, ttl: int = 60) -> None:
     :param ttl: The number of seconds before the item should expire
     :return: Nothing
     """
-    await get_client().set(key, value, ttl)
+    client = get_client()
+    try:
+        await client.set(key, value, ttl)
+    finally:
+        await client.close()
