@@ -10,7 +10,7 @@ from fastapi import Depends, FastAPI
 from rich.logging import RichHandler
 from sentry_sdk.integrations.arq import ArqIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.integrations.httpx import HttpxIntegration
 
 from app.api import deps
 from app.api.v1.api import router
@@ -30,8 +30,8 @@ if settings.SENTRY_DSN:
     sentry_sdk.init(
         dsn=settings.SENTRY_DSN,
         integrations=[
-            StarletteIntegration(),
             FastApiIntegration(),
+            HttpxIntegration(),
             ArqIntegration(),
         ],
         traces_sample_rate=0.1,
