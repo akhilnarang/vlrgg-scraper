@@ -15,7 +15,7 @@ async def get_team_data(id: str) -> schemas.Team:
     :return: The parsed data
     """
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=15.0) as client:
         response, upcoming_matches_response, completed_matches_response = await asyncio.gather(
             *[
                 client.get(TEAM_URL.format(id)),
