@@ -50,8 +50,8 @@ async def parse_event(event: element.Tag) -> schemas.Event:
     :return: The event parsed
     """
     event_id = event["href"].split("/")[2]
-    title = event.find_all("div", class_="event-item-title")[0].get_text().strip()
-    status = event.find_all("span", class_="event-item-desc-item-status")[0].get_text().strip()
+    title = utils.clean_string(event.find_all("div", class_="event-item-title")[0].get_text())
+    status = utils.clean_string(event.find_all("span", class_="event-item-desc-item-status")[0].get_text())
     prize = event.find_all("div", class_="mod-prize")[0].get_text().strip().replace("\t", "").split("\n")[0]
     dates = event.find_all("div", class_="mod-dates")[0].get_text().strip().replace("\t", "").split("\n")[0]
     location = (
@@ -90,12 +90,12 @@ async def parse_events_data(id: str) -> dict:
         raise HTTPException(detail="Event header was missing, please retry", status_code=status.HTTP_400_BAD_REQUEST)
 
     header = event_header[0]
-    event["title"] = header.find_all("h1", class_="wf-title")[0].get_text().strip()
-    event["subtitle"] = header.find_all("h2", class_="event-desc-subtitle")[0].get_text().strip()
+    event["title"] = utils.clean_string(header.find_all("h1", class_="wf-title")[0].get_text())
+    event["subtitle"] = utils.clean_string(header.find_all("h2", class_="event-desc-subtitle")[0].get_text())
     event_desc_item_value = header.find_all("div", class_="event-desc-item-value")
-    event["dates"] = event_desc_item_value[0].get_text().strip()
-    event["prize"] = event_desc_item_value[1].get_text().strip().replace("\t", "").replace("\n", " ")
-    event["location"] = event_desc_item_value[2].get_text().strip() or event_desc_item_value[2].find_all(
+    event["dates"] = utils.clean_string(event_desc_item_value[0].get_text())
+    event["prize"] = utils.clean_string(event_desc_item_value[1].get_text())
+    event["location"] = utils.clean_string(event_desc_item_value[2].get_text()) or event_desc_item_value[2].find_all(
         "i", class_="flag"
     )[0].get("class")[1].replace("mod-", "")
     event["img"] = utils.get_image_url(header.find_all("div", class_="event-header-thumb")[0].find("img")["src"])
@@ -112,7 +112,7 @@ async def parse_events_data(id: str) -> dict:
         case 2:
             event["status"] = EventStatus.ONGOING
         case 1:
-            if match_data[0].get_text().strip().split(" ")[0].lower() == "upcoming":
+            if utils.clean_string(match_data[0].get_text()).split(" ")[0].lower() == "upcoming":
                 event["status"] = EventStatus.UPCOMING
             else:
                 event["status"] = EventStatus.COMPLETED
@@ -135,7 +135,7 @@ async def parse_match_data(id: str) -> list:
                     *[
                         match_parser(
                             soup.find_all("div", class_="wf-card")[day + 1],
-                            date.get_text().strip().replace("\n", "").replace("\t", ""),
+                            utils.clean_string(date.get_text()),
                         )
                         for (day, date) in enumerate(soup.find_all("div", class_="wf-label mod-large"))
                     ]
@@ -154,10 +154,10 @@ async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[
     prizes = []
 
     for row in prizes_table.find("tbody").find_all("tr")[:3]:
-        prize = {}
+        prize: dict = {}
         row_data = row.find_all("td")
-        prize["position"] = row_data[0].get_text().strip()
-        prize["prize"] = row_data[1].get_text().strip().replace("\t", "")
+        prize["position"] = utils.clean_string(row_data[0].get_text())
+        prize["prize"] = utils.clean_string(row_data[1].get_text())
         team_row = row_data[2]
         if team_row_anchor := team_row.find_all("a"):
             prize["team"] = {
@@ -169,7 +169,7 @@ async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[
                     .strip()
                 ),
                 "id": team_row_anchor[0]["href"].split("/")[2],
-                "country": team_row.find_all("div", class_="ge-text-light")[0].get_text().strip(),
+                "country": utils.clean_string(team_row.find_all("div", class_="ge-text-light")[0].get_text()),
                 "img": utils.get_image_url(team_row.find("img")["src"]),
             }
         prizes.append(prize)
@@ -206,22 +206,22 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
         team_data = []
         for team in match_data.find_all("div", class_="match-item-vs-team"):
             data = {
-                "name": team.find_all("div", class_="match-item-vs-team-name")[0].get_text().strip(),
+                "name": utils.clean_string(team.find_all("div", class_="match-item-vs-team-name")[0].get_text()),
                 "region": team.find_all("span", class_="flag")[0].get("class")[1].replace("mod-", ""),
             }
-            score_data = team.find_all("div", class_="match-item-vs-team-score")[0].get_text().strip()
+            score_data = utils.clean_string(team.find_all("div", class_="match-item-vs-team-score")[0].get_text())
             if score_data.isdigit():
                 data["score"] = int(score_data)
             team_data.append(data)
         match["teams"] = team_data
         if match["status"] not in (MatchStatus.LIVE, MatchStatus.TBD):
-            match["eta"] = match_data.find_all("div", class_="ml-eta")[0].get_text().strip()
+            match["eta"] = utils.clean_string(match_data.find_all("div", class_="ml-eta")[0].get_text())
 
         match_item_event = (
             match_data.find_all("div", class_="match-item-event text-of")[0].get_text().strip().split("\n")
         )
-        match["round"] = match_item_event[0].strip()
-        match["stage"] = match_item_event[1].strip()
+        match["round"] = utils.clean_string(match_item_event[0])
+        match["stage"] = utils.clean_string(match_item_event[1])
         matches.append(match)
     return matches
 
@@ -235,7 +235,7 @@ async def parse_team_data(team_data: element.Tag) -> list[dict[str, str]]:
     participants = []
     for team in team_data.find_all("div", class_="wf-card event-team"):
         event_team_name = team.find_all("a", class_="event-team-name")[0]
-        name = event_team_name.get_text().strip()
+        name = utils.clean_string(event_team_name.get_text())
         if name.lower() == constants.TBD:
             continue
         participant = {
@@ -245,7 +245,7 @@ async def parse_team_data(team_data: element.Tag) -> list[dict[str, str]]:
         }
 
         if seed_data := team.find_all("div", class_="wf-module-item"):
-            participant["seed"] = seed_data[0].get_text().strip()
+            participant["seed"] = utils.clean_string(seed_data[0].get_text())
 
         # for player in team.find_all("a", class_="event-team-players-item"):
         #     id = player["href"].split("/")[2]
@@ -261,24 +261,24 @@ def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
     event_standings = []
     if event_groups := data.find("div", class_="event-groups-container"):
         for table in event_groups.find_all("table", class_="wf-table mod-simple mod-group"):
-            group = table.find("thead").find("tr").find("th").get_text().strip()
+            group = utils.clean_string(table.find("thead").find("tr").find("th").get_text())
             for row in table.find("tbody").find_all("tr"):
                 columns = row.find_all("td")
                 img = columns[0].find("img").get("src")
                 team, country = (s.strip() for s in columns[0].get_text().split("\n") if s)
                 if len(columns) > 5:
-                    wins = columns[1].get_text().replace("\t", "").replace("\n", "")
-                    losses = columns[2].get_text().replace("\t", "").replace("\n", "")
-                    ties = columns[3].get_text().replace("\t", "").replace("\n", "")
-                    map_difference = columns[4].get_text().replace("\t", "").replace("\n", "")
-                    round_difference = columns[5].get_text().replace("\t", "").replace("\n", "")
-                    round_delta = columns[6].get_text().replace("\t", "").replace("\n", "")
+                    wins = utils.clean_number_string(columns[1].get_text())
+                    losses = utils.clean_number_string(columns[2].get_text())
+                    ties = utils.clean_number_string(columns[3].get_text())
+                    map_difference = utils.clean_number_string(columns[4].get_text())
+                    round_difference = utils.clean_number_string(columns[5].get_text())
+                    round_delta = utils.clean_number_string(columns[6].get_text())
                 else:
-                    wins, losses = columns[1].get_text().replace("\t", "").replace("\n", "").split("–")
+                    wins, losses = map(int, utils.clean_string(columns[1].get_text()).split("–"))
                     ties = 0  # TODO: figure out if there's anything for this
-                    map_difference = columns[2].get_text().replace("\t", "").replace("\n", "")
-                    round_difference = columns[3].get_text().replace("\t", "").replace("\n", "")
-                    round_delta = columns[4].get_text().replace("\t", "").replace("\n", "")
+                    map_difference = utils.clean_number_string(columns[2].get_text())
+                    round_difference = utils.clean_number_string(columns[3].get_text())
+                    round_delta = utils.clean_number_string(columns[4].get_text())
                 event_standings.append(
                     {
                         "group": group,
@@ -297,13 +297,13 @@ def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
         for row in event_table.find("tbody").find_all("tr"):
             columns = row.find_all("td")
             img = columns[0].find("img").get("src")
-            team, country = (s.strip() for s in columns[0].get_text().split("\n") if s)
-            wins = columns[1].get_text().replace("\t", "").replace("\n", "")
-            losses = columns[2].get_text().replace("\t", "").replace("\n", "")
-            ties = columns[3].get_text().replace("\t", "").replace("\n", "")
-            map_difference = columns[4].get_text().replace("\t", "").replace("\n", "")
-            round_difference = columns[5].get_text().replace("\t", "").replace("\n", "")
-            round_delta = columns[6].get_text().replace("\t", "").replace("\n", "")
+            team, country = (utils.clean_string(s) for s in columns[0].get_text().split("\n") if s)
+            wins = utils.clean_number_string(columns[1].get_text())
+            losses = utils.clean_number_string(columns[2].get_text())
+            ties = utils.clean_number_string(columns[3].get_text())
+            map_difference = utils.clean_number_string(columns[4].get_text())
+            round_difference = utils.clean_number_string(columns[5].get_text())
+            round_delta = utils.clean_number_string(columns[6])
             event_standings.append(
                 {
                     "logo": utils.get_image_url(img),

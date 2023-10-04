@@ -58,14 +58,14 @@ async def get_team_data(data: ResultSet) -> list[dict]:
     if (match_data := match_header.find_all("div", class_="match-header-vs-score")) and (
         match_data := match_data[0].find_all("div", class_="js-spoiler")
     ):
-        match_score = (match_data[0].get_text().replace("\n", "").replace("\t", "")).split(":")
+        match_score = (utils.clean_string(match_data[0].get_text())).split(":")
     else:
-        match_score = (None, None)
+        return []
 
     response = []
     for i, score in enumerate(match_score):
         data = {
-            "name": names[i].get_text().strip().replace("\t", ""),
+            "name": utils.clean_string(names[i].get_text()),
             "img": utils.get_image_url(images[i].find("img")["src"]),
             "score": score,
         }
@@ -105,7 +105,7 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
     if soup.find("span", class_="match-header-vs-note mod-upcoming"):
         status = "upcoming"
     elif status_data := soup.find("div", class_="match-header-vs-note"):
-        status = status_data.get_text().strip().replace("\t", "").replace("\n", "").lower()
+        status = utils.clean_string(status_data.get_text()).lower()
     else:
         status = None
 
@@ -113,18 +113,14 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
         "id": event_link["href"].split("/")[2],
         "img": utils.get_image_url(event_link.find("img")["src"]),
         "series": event_link.find_all("div")[0].find_all("div")[0].get_text().strip(),
-        "stage": event_link.find_all("div", class_="match-header-event-series")[0]
-        .get_text()
-        .strip()
-        .replace("\t", "")
-        .replace("\n", ""),
+        "stage": utils.clean_string(event_link.find_all("div", class_="match-header-event-series")[0].get_text()),
         "date": event_date,
         "status": status,
     }
     if (patch_data := event_data.find_all("div", class_="wf-tooltip")) and "patch" in (
-        patch_data := patch_data[-1].get_text().strip().lower()
+        patch_data := utils.clean_string(patch_data[-1].get_text())
     ):
-        ret["patch"] = patch_data.split("\n")[0].replace("\t", "")
+        ret["patch"] = utils.clean_string(patch_data.split("\n")[0])
     return ret
 
 
@@ -165,9 +161,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
 
     # Extract map names if there were multiple maps
     maps = {
-        map_data["data-game-id"]: "".join(
-            i for i in map_data.get_text().strip().replace("\n", "").replace("\t", "") if not i.isdigit()
-        )
+        map_data["data-game-id"]: "".join(i for i in utils.clean_string(map_data.get_text()) if not i.isdigit())
         for map_data in stats.find_all("div", class_="vm-stats-gamesnav-item")
     }
 
@@ -191,7 +185,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
             for i in range(2)
         ]
         team_short_name = [
-            elem.get_text().strip().replace("\n", "").replace("\t", "")
+            utils.clean_string(elem.get_text())
             for elem in map_data.find("div", class_="vlr-rounds").find_all("div", class_="team")
         ]
         team_name_mapping = {short: long["name"] for short, long in zip(team_short_name, teams)}
@@ -200,7 +194,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
         prev: tuple[int, ...] = (0, 0)
         for round_data in map_data.find_all("div", class_="vlr-rounds-row-col")[1:]:
             if round_current_score := round_data.find_all("div", class_="rnd-currscore"):
-                round_score = round_current_score[0].get_text().strip()
+                round_score = utils.clean_string(round_current_score[0].get_text())
                 side, round_winner = "", ""
                 if round_score != "":
                     current = tuple(map(int, round_score.split("-")))
@@ -228,7 +222,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
 
                 rounds.append(
                     {
-                        "round_number": round_data.find_all("div", class_="rnd-num")[0].get_text().strip(),
+                        "round_number": utils.clean_string(round_data.find_all("div", class_="rnd-num")[0].get_text()),
                         "round_score": round_score,
                         "winner": round_winner,
                         "side": side,
@@ -263,33 +257,31 @@ async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str])
     for team in data.find_all("tr"):
         data = team.find_all("td", class_="mod-player")[0]
         stats = team.find_all("td", class_="mod-stat")
-        team_name_short = data.find_all("div", class_="ge-text-light")[0].get_text().strip()
+        team_name_short = utils.clean_string(data.find_all("div", class_="ge-text-light")[0].get_text())
         ret.append(
             {
                 "id": data.find("a").get("href").split("/")[-2],
-                "name": data.find_all("div", class_="text-of")[0].get_text().strip(),
+                "name": utils.clean_string(data.find_all("div", class_="text-of")[0].get_text()),
                 "team": team_name_mapping.get(team_name_short, team_name_short),
                 "agents": [
                     {"title": agent["title"], "img": utils.get_image_url(agent["src"])}
                     for agent in team.find_all("td", class_="mod-agents")[0].find_all("img")
                 ],
-                "rating": stats[0].find("span", class_="side mod-side mod-both").get_text().strip() or 0.0,
-                "acs": stats[1].find("span", class_="side mod-side mod-both").get_text().strip() or 0,
-                "kills": stats[2].find("span", class_="side mod-side mod-both").get_text().strip() or 0,
-                "deaths": stats[3]
-                .find("span", class_="side mod-both")
-                .get_text()
-                .strip()
-                .replace("/", "")
-                .replace("\xa0", "")
-                or 0,
-                "assists": stats[4].find("span", class_="side mod-both").get_text().strip() or 0,
-                "kast": stats[6].find("span", class_="side mod-both").get_text().strip()[:-1] or 0,
-                "adr": stats[7].find("span", class_="side mod-both").get_text().strip() or 0,
-                "headshot_percent": stats[8].find("span", class_="side mod-both").get_text().strip()[:-1] or 0,
-                "first_kills": stats[9].find("span", class_="side mod-both").get_text().strip() or 0,
-                "first_deaths": stats[10].find("span", class_="side mod-both").get_text().strip() or 0,
-                "first_kills_diff": stats[11].find("span", class_="mod-both").get_text().strip() or 0,
+                "rating": utils.clean_number_string(stats[0].find("span", class_="side mod-side mod-both").get_text()),
+                "acs": utils.clean_number_string(stats[1].find("span", class_="side mod-side mod-both").get_text()),
+                "kills": utils.clean_number_string(stats[2].find("span", class_="side mod-side mod-both").get_text()),
+                "deaths": utils.clean_number_string(stats[3].get_text()),
+                "assists": utils.clean_number_string(stats[4].find("span", class_="side mod-both").get_text()),
+                "kast": utils.clean_number_string(stats[6].find("span", class_="side mod-both").get_text()),
+                "adr": utils.clean_number_string(stats[7].find("span", class_="side mod-both").get_text()),
+                "headshot_percent": utils.clean_number_string(stats[8].find("span", class_="side mod-both").get_text()),
+                "first_kills": utils.clean_number_string(stats[9].find("span", class_="side mod-both").get_text()),
+                "first_deaths": utils.clean_number_string(
+                    stats[10].find("span", class_="side mod-both").get_text().strip()
+                ),
+                "first_kills_diff": utils.clean_number_string(
+                    stats[11].find("span", class_="mod-both").get_text().strip()
+                ),
             }
         )
     return ret
@@ -398,21 +390,25 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
     team_names = match_info.find_all("div", class_="text-of")
     team_scores = match_info.find_all("div", class_="match-item-vs-team-score")
     status = match_info.find("div", class_="ml-status").get_text().strip().lower()
-    date = date.get_text().split("\n")[1].strip().replace("\t", "").replace("\n", "")
-    time = match_info.find("div", class_="match-item-time").get_text().strip()
+    date = utils.clean_string(date.get_text().split("\n")[1])
+    time = utils.clean_string(match_info.find("div", class_="match-item-time").get_text())
     if time.lower() == constants.TBD:
         date_string = date
     else:
         date_string = date + " " + time
 
     return schemas.Match(
-        team1=schemas.MatchTeam(name=team_names[0].get_text().strip(), score=await parse_score(team_scores[0])),
-        team2=schemas.MatchTeam(name=team_names[1].get_text().strip(), score=await parse_score(team_scores[1])),
+        team1=schemas.MatchTeam(
+            name=utils.clean_string(team_names[0].get_text()), score=await parse_score(team_scores[0])
+        ),
+        team2=schemas.MatchTeam(
+            name=utils.clean_string(team_names[1].get_text()), score=await parse_score(team_scores[1])
+        ),
         status=status,
         time=utils.fix_datetime_tz(dateutil.parser.parse(date_string, ignoretz=True)),
         id=match_info.get("href").split("/")[1],
-        event=match_info.find("div", class_="match-item-event").get_text().split("\n")[-1].strip(),
-        series=match_info.find("div", class_="match-item-event-series").get_text().strip(),
+        event=utils.clean_string(match_info.find("div", class_="match-item-event").get_text().split("\n")[-1]),
+        series=utils.clean_string(match_info.find("div", class_="match-item-event-series").get_text()),
     )
 
 

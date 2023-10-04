@@ -29,7 +29,7 @@ async def get_team_data(id: str) -> schemas.Team:
     completed_matches = BeautifulSoup(completed_matches_response, "lxml")
 
     team_info = soup.find("div", class_="team-header")
-    name = team_info.find("h1").get_text().strip()
+    name = utils.clean_string(team_info.find("h1").get_text())
     img = utils.get_image_url(team_info.find("img")["src"])
 
     tag = ""
@@ -37,7 +37,7 @@ async def get_team_data(id: str) -> schemas.Team:
     twitter = None
 
     if tag_element := team_info.find("h2"):
-        tag = tag_element.get_text().strip()
+        tag = utils.clean_string(tag_element.get_text())
 
     for link in soup.find("div", class_="team-header-links").find_all("a"):
         if link := link.get("href"):
@@ -46,18 +46,18 @@ async def get_team_data(id: str) -> schemas.Team:
             else:
                 website = link
 
-    country = soup.find("div", class_="team-header-country").get_text().strip()
+    country = utils.clean_string(soup.find("div", class_="team-header-country").get_text())
 
     team_data = soup.find("div", class_="team-summary-container-1")
 
     # Rank doesn't show up on VLR sometimes - not sure why. So we default to 0 if we can't find it.
     if rank_div := team_data.find("div", class_="rank-num mod-"):
-        rank = rank_div.get_text().strip()
+        rank = utils.clean_number_string(rank_div.get_text())
     else:
         rank = 0
 
     if region_div := team_data.find("div", class_="rating-txt"):
-        region = region_div.get_text().strip()
+        region = utils.clean_string(region_div.get_text())
     else:
         region = ""
 
@@ -97,16 +97,16 @@ async def parse_player(player_data: element.Tag) -> dict:
     """
     response = {
         "id": player_data.find("a")["href"].split("/")[2],
-        "alias": player_data.find("div", class_="team-roster-item-name-alias").get_text().strip(),
+        "alias": utils.clean_string(player_data.find("div", class_="team-roster-item-name-alias").get_text()),
         "img": utils.get_image_url(player_data.find("div", class_="team-roster-item-img").find("img")["src"]),
     }
     if name_div := player_data.find("div", class_="team-roster-item-name-real"):
-        response["name"] = name_div.get_text().strip()
+        response["name"] = utils.clean_string(name_div.get_text())
 
     if role := player_data.find("div", class_="team-roster-item-name-role"):
-        response["role"] = role.get_text().strip()
+        response["role"] = utils.clean_string(role.get_text())
     elif role := player_data.find("i", class_="fa fa-star"):
-        response["role"] = role["title"]
+        response["role"] = utils.clean_string(role["title"])
     return response
 
 
@@ -123,21 +123,14 @@ async def parse_match(match_data: element.Tag) -> dict:
     ]
     response = {"event": event, "stage": "".join(stage), "id": match_data["href"].split("/")[1]}
     if eta := match_data.find("span", class_="rm-item-score-eta"):
-        response["eta"] = eta.get_text().strip()
-        response["opponent"] = (
-            eta.find_next("div").find_next("div").find_next("div").get_text().strip().split("\n")[0].replace("\t", "")
+        response["eta"] = utils.clean_string(eta.get_text())
+        response["opponent"] = utils.clean_string(
+            eta.find_next("div").find_next("div").find_next("div").get_text().strip().split("\n")[0]
         )
     elif score := match_data.find("div", class_="m-item-result"):
-        response["score"] = score.get_text().strip().replace("\n", "")
-        response["opponent"] = (
-            score.find_next("div")
-            .find_next("div")
-            .find_next("div")
-            .find_next("div")
-            .get_text()
-            .strip()
-            .split("\n")[0]
-            .replace("\t", "")
+        response["score"] = utils.clean_string(score.get_text())
+        response["opponent"] = utils.clean_string(
+            score.find_next("div").find_next("div").find_next("div").find_next("div").get_text().strip().split("\n")[0]
         )
 
     response["date"] = utils.fix_datetime_tz(

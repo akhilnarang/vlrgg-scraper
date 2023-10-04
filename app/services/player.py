@@ -81,25 +81,21 @@ async def parse_agent_data(agent_data: element.ResultSet) -> dict:
         "img": utils.get_image_url(img["src"]),
         "count": count.replace("(", "").replace(")", ""),
         "percent": percent[:-1],
-        "rounds": agent_data[2].get_text().strip(),
-        "rating": agent_data[3].get_text().strip() or 0,
-        "acs": agent_data[4].get_text().strip(),
-        "kd": agent_data[5].get_text().strip(),
-        "adr": agent_data[6].get_text().strip() or 0,
-        "kast": agent_data[7].get_text().strip()[:-1] or 0,
-        "kpr": agent_data[8].get_text().strip(),
-        "apr": agent_data[9].get_text().strip(),
-        "fkpr": agent_data[10].get_text().strip(),
-        "fdpr": agent_data[11].get_text().strip(),
-        "k": agent_data[12].get_text().strip(),
-        "d": agent_data[13].get_text().strip(),
-        "a": agent_data[14].get_text().strip(),
-        "fk": agent_data[15].get_text().strip(),
-        "fd": agent_data[16].get_text().strip(),
+        "rounds": utils.clean_number_string(agent_data[2].get_text()),
+        "rating": utils.clean_number_string(agent_data[3].get_text()),
+        "acs": utils.clean_number_string(agent_data[4].get_text()),
+        "kd": utils.clean_number_string(agent_data[5].get_text()),
+        "adr": utils.clean_number_string(agent_data[6].get_text()),
+        "kast": utils.clean_number_string(agent_data[7].get_text()),
+        "kpr": utils.clean_number_string(agent_data[8].get_text()),
+        "apr": utils.clean_number_string(agent_data[9].get_text()),
+        "fkpr": utils.clean_number_string(agent_data[10].get_text()),
+        "fdpr": utils.clean_number_string(agent_data[11].get_text()),
+        "k": utils.clean_number_string(agent_data[12].get_text()),
+        "d": utils.clean_number_string(agent_data[13].get_text()),
+        "a": utils.clean_number_string(agent_data[14].get_text()),
+        "fk": utils.clean_number_string(agent_data[15].get_text()),
+        "fd": utils.clean_number_string(agent_data[16].get_text()),
     }
-
-    # VLR, why would you put `nan` here instead of simply putting a 0?
-    if response["fdpr"] == "nan":
-        response["fdpr"] = 0
 
     return response
