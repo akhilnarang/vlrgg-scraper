@@ -47,8 +47,7 @@ def clean_number_string(value: str | None) -> int | float:
     :param value: The value to clean
     :return: The cleaned integer/floating point value
     """
-    if value:
-        value = clean_string(value)
+    if value and (value := clean_string(value)):
         # Ensure that the value is not "nan"
         if value != "nan":
             # Remove the percentage sign if it exists
