@@ -55,12 +55,11 @@ async def get_team_data(data: ResultSet) -> list[dict]:
     match_header = data[0]
     names = match_header.find_all("div", class_="wf-title-med")
     images = match_header.find_all("a", class_="match-header-link")
+    match_score: list = [None, None]  # Default to None for both teams - required for upcoming matches
     if (match_data := match_header.find_all("div", class_="match-header-vs-score")) and (
         match_data := match_data[0].find_all("div", class_="js-spoiler")
     ):
         match_score = (utils.clean_string(match_data[0].get_text())).split(":")
-    else:
-        return []
 
     response = []
     for i, score in enumerate(match_score):
