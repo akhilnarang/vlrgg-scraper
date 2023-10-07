@@ -81,7 +81,7 @@ async def parse_events_data(id: str) -> dict:
     :param id: The ID of the event
     :ret: Dict of the parsed data
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.get(EVENT_URL_WITH_ID.format(id))
     event: dict[str, str | list] = {"id": id}
     soup = BeautifulSoup(response.content, "lxml")
@@ -124,7 +124,7 @@ async def parse_events_data(id: str) -> dict:
 
 
 async def parse_match_data(id: str) -> list:
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.get(EVENT_URL_WITH_ID_MATCHES.format(id))
 
     soup = BeautifulSoup(response.content, "lxml")
