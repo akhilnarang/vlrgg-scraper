@@ -296,14 +296,23 @@ def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
     elif event_table := data.find("table", class_="wf-table mod-simple mod-group"):
         for row in event_table.find("tbody").find_all("tr"):
             columns = row.find_all("td")
-            img = columns[0].find("img").get("src")
-            team, country = (utils.clean_string(s) for s in columns[0].get_text().split("\n") if s)
-            wins = utils.clean_number_string(columns[1].get_text())
-            losses = utils.clean_number_string(columns[2].get_text())
-            ties = utils.clean_number_string(columns[3].get_text())
-            map_difference = utils.clean_number_string(columns[4].get_text())
-            round_difference = utils.clean_number_string(columns[5].get_text())
-            round_delta = utils.clean_number_string(columns[6].get_text())
+            if len(columns) < 7:
+                img = columns[0].find("img").get("src")
+                team, country = (utils.clean_string(s) for s in columns[0].get_text().split("\n") if s)
+                wins, losses = map(int, utils.clean_string(columns[1].get_text()).split("–"))
+                ties = 0  # TODO: figure out if there's anything for this
+                map_difference = utils.clean_number_string(columns[2].get_text())
+                round_difference = utils.clean_number_string(columns[3].get_text())
+                round_delta = utils.clean_number_string(columns[4].get_text())
+            else:
+                img = columns[0].find("img").get("src")
+                team, country = (utils.clean_string(s) for s in columns[0].get_text().split("\n") if s)
+                wins = utils.clean_number_string(columns[1].get_text())
+                losses = utils.clean_number_string(columns[2].get_text())
+                ties = utils.clean_number_string(columns[3].get_text())
+                map_difference = utils.clean_number_string(columns[4].get_text())
+                round_difference = utils.clean_number_string(columns[5].get_text())
+                round_delta = utils.clean_number_string(columns[6].get_text())
             event_standings.append(
                 {
                     "logo": utils.get_image_url(img),

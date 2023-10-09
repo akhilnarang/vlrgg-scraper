@@ -67,8 +67,8 @@ class EventStandings(BaseModel):
     wins: int
     losses: int
     ties: int
-    map_difference: str
-    round_difference: str
+    map_difference: int
+    round_difference: int
     round_delta: int
     group: str | None = None
 
