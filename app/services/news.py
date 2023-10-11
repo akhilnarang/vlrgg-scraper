@@ -4,8 +4,9 @@ import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
 
-from app import schemas, utils
+from app import schemas
 from app.constants import NEWS_URL, PREFIX
+from app.utils import fix_datetime_tz
 
 
 async def news_list() -> list[schemas.NewsItem]:
@@ -29,5 +30,5 @@ async def parse_news(data: element.Tag) -> schemas.NewsItem:
         title=title,
         description=description,
         author=metadata[-1].replace("by", "").strip(),
-        date=utils.fix_datetime_tz(dateutil.parser.parse(metadata[1].strip(), ignoretz=True)),
+        date=fix_datetime_tz(dateutil.parser.parse(metadata[1].strip(), ignoretz=True)),
     )

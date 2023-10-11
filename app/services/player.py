@@ -3,8 +3,9 @@ import asyncio
 import httpx
 from bs4 import BeautifulSoup, element
 
-from app import schemas, utils
+from app import schemas
 from app.constants import PLAYER_URL
+from app.utils import clean_number_string, get_image_url
 
 
 async def get_player_data(id: str) -> schemas.Player:
@@ -25,7 +26,7 @@ async def get_player_data(id: str) -> schemas.Player:
     player_data = {
         "alias": player_info.find("h1").get_text().strip(),
         "name": player_info.find("h2").get_text().strip(),
-        "img": utils.get_image_url(player_info.find("img")["src"]),
+        "img": get_image_url(player_info.find("img")["src"]),
         "country": player_info.find("div", class_="ge-text-light").get_text().strip(),
         "agents": await asyncio.gather(
             *[parse_agent_data(agent.find_all("td")) for agent in agent_data.find_all("tr") if agent]
@@ -48,14 +49,14 @@ async def get_player_data(id: str) -> schemas.Player:
                 player_data["current_team"] = {
                     "id": current_team["href"].split("/")[-2],
                     "name": current_team.find_all("div")[1].find("div").get_text().strip(),
-                    "img": utils.get_image_url(current_team.find("img")["src"]),
+                    "img": get_image_url(current_team.find("img")["src"]),
                 }
             case "past teams":
                 player_data["past_teams"] = [
                     {
                         "id": current_team["href"].split("/")[-2],
                         "name": current_team.find_all("div")[1].find("div").get_text().strip(),
-                        "img": utils.get_image_url(current_team.find("img")["src"]),
+                        "img": get_image_url(current_team.find("img")["src"]),
                     }
                     for current_team in header.find_next(name="div").find_all("a")
                 ]
@@ -78,24 +79,24 @@ async def parse_agent_data(agent_data: element.ResultSet) -> dict:
     count, percent = agent_data[1].get_text().strip().split(" ")
     response = {
         "name": img["alt"],
-        "img": utils.get_image_url(img["src"]),
+        "img": get_image_url(img["src"]),
         "count": count.replace("(", "").replace(")", ""),
         "percent": percent[:-1],
-        "rounds": utils.clean_number_string(agent_data[2].get_text()),
-        "rating": utils.clean_number_string(agent_data[3].get_text()),
-        "acs": utils.clean_number_string(agent_data[4].get_text()),
-        "kd": utils.clean_number_string(agent_data[5].get_text()),
-        "adr": utils.clean_number_string(agent_data[6].get_text()),
-        "kast": utils.clean_number_string(agent_data[7].get_text()),
-        "kpr": utils.clean_number_string(agent_data[8].get_text()),
-        "apr": utils.clean_number_string(agent_data[9].get_text()),
-        "fkpr": utils.clean_number_string(agent_data[10].get_text()),
-        "fdpr": utils.clean_number_string(agent_data[11].get_text()),
-        "k": utils.clean_number_string(agent_data[12].get_text()),
-        "d": utils.clean_number_string(agent_data[13].get_text()),
-        "a": utils.clean_number_string(agent_data[14].get_text()),
-        "fk": utils.clean_number_string(agent_data[15].get_text()),
-        "fd": utils.clean_number_string(agent_data[16].get_text()),
+        "rounds": clean_number_string(agent_data[2].get_text()),
+        "rating": clean_number_string(agent_data[3].get_text()),
+        "acs": clean_number_string(agent_data[4].get_text()),
+        "kd": clean_number_string(agent_data[5].get_text()),
+        "adr": clean_number_string(agent_data[6].get_text()),
+        "kast": clean_number_string(agent_data[7].get_text()),
+        "kpr": clean_number_string(agent_data[8].get_text()),
+        "apr": clean_number_string(agent_data[9].get_text()),
+        "fkpr": clean_number_string(agent_data[10].get_text()),
+        "fdpr": clean_number_string(agent_data[11].get_text()),
+        "k": clean_number_string(agent_data[12].get_text()),
+        "d": clean_number_string(agent_data[13].get_text()),
+        "a": clean_number_string(agent_data[14].get_text()),
+        "fk": clean_number_string(agent_data[15].get_text()),
+        "fd": clean_number_string(agent_data[16].get_text()),
     }
 
     return response

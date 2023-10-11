@@ -8,8 +8,9 @@ import httpx
 from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet
 
-from app import constants, schemas, utils
+from app import constants, schemas
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
+from app.utils import clean_number_string, clean_string, fix_datetime_tz, get_image_url
 
 
 async def match_by_id(id: str) -> schemas.MatchWithDetails:
@@ -59,13 +60,13 @@ async def get_team_data(data: ResultSet) -> list[dict]:
     if (match_data := match_header.find_all("div", class_="match-header-vs-score")) and (
         match_data := match_data[0].find_all("div", class_="js-spoiler")
     ):
-        match_score = (utils.clean_string(match_data[0].get_text())).split(":")
+        match_score = (clean_string(match_data[0].get_text())).split(":")
 
     response = []
     for i, score in enumerate(match_score):
         data = {
-            "name": utils.clean_string(names[i].get_text()),
-            "img": utils.get_image_url(images[i].find("img")["src"]),
+            "name": clean_string(names[i].get_text()),
+            "img": get_image_url(images[i].find("img")["src"]),
             "score": score,
         }
         if team_url := images[i].get("href"):
@@ -99,27 +100,27 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
             [data.get_text().strip() for data in soup.find_all("div", class_="moment-tz-convert")]
         ).strip()
     ) and constants.TBD not in date_str.lower():
-        event_date = utils.fix_datetime_tz(dateutil.parser.parse(date_str, ignoretz=True))
+        event_date = fix_datetime_tz(dateutil.parser.parse(date_str, ignoretz=True))
 
     if soup.find("span", class_="match-header-vs-note mod-upcoming"):
         status = "upcoming"
     elif status_data := soup.find("div", class_="match-header-vs-note"):
-        status = utils.clean_string(status_data.get_text()).lower()
+        status = clean_string(status_data.get_text()).lower()
     else:
         status = None
 
     ret = {
         "id": event_link["href"].split("/")[2],
-        "img": utils.get_image_url(event_link.find("img")["src"]),
+        "img": get_image_url(event_link.find("img")["src"]),
         "series": event_link.find_all("div")[0].find_all("div")[0].get_text().strip(),
-        "stage": utils.clean_string(event_link.find_all("div", class_="match-header-event-series")[0].get_text()),
+        "stage": clean_string(event_link.find_all("div", class_="match-header-event-series")[0].get_text()),
         "date": event_date,
         "status": status,
     }
     if (patch_data := event_data.find_all("div", class_="wf-tooltip")) and "patch" in (
-        patch_data := utils.clean_string(patch_data[-1].get_text())
+        patch_data := clean_string(patch_data[-1].get_text())
     ):
-        ret["patch"] = utils.clean_string(patch_data.split("\n")[0])
+        ret["patch"] = clean_string(patch_data.split("\n")[0])
     return ret
 
 
@@ -160,7 +161,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
 
     # Extract map names if there were multiple maps
     maps = {
-        map_data["data-game-id"]: "".join(i for i in utils.clean_string(map_data.get_text()) if not i.isdigit())
+        map_data["data-game-id"]: "".join(i for i in clean_string(map_data.get_text()) if not i.isdigit())
         for map_data in stats.find_all("div", class_="vm-stats-gamesnav-item")
     }
 
@@ -184,7 +185,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
             for i in range(2)
         ]
         team_short_name = [
-            utils.clean_string(elem.get_text())
+            clean_string(elem.get_text())
             for elem in map_data.find("div", class_="vlr-rounds").find_all("div", class_="team")
         ]
         team_name_mapping = {short: long["name"] for short, long in zip(team_short_name, teams)}
@@ -193,7 +194,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
         prev: tuple[int, ...] = (0, 0)
         for round_data in map_data.find_all("div", class_="vlr-rounds-row-col")[1:]:
             if round_current_score := round_data.find_all("div", class_="rnd-currscore"):
-                round_score = utils.clean_string(round_current_score[0].get_text())
+                round_score = clean_string(round_current_score[0].get_text())
                 side, round_winner = "", ""
                 if round_score != "":
                     current = tuple(map(int, round_score.split("-")))
@@ -221,7 +222,7 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
 
                 rounds.append(
                     {
-                        "round_number": utils.clean_string(round_data.find_all("div", class_="rnd-num")[0].get_text()),
+                        "round_number": clean_string(round_data.find_all("div", class_="rnd-num")[0].get_text()),
                         "round_score": round_score,
                         "winner": round_winner,
                         "side": side,
@@ -256,31 +257,27 @@ async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str])
     for team in data.find_all("tr"):
         data = team.find_all("td", class_="mod-player")[0]
         stats = team.find_all("td", class_="mod-stat")
-        team_name_short = utils.clean_string(data.find_all("div", class_="ge-text-light")[0].get_text())
+        team_name_short = clean_string(data.find_all("div", class_="ge-text-light")[0].get_text())
         ret.append(
             {
                 "id": data.find("a").get("href").split("/")[-2],
-                "name": utils.clean_string(data.find_all("div", class_="text-of")[0].get_text()),
+                "name": clean_string(data.find_all("div", class_="text-of")[0].get_text()),
                 "team": team_name_mapping.get(team_name_short, team_name_short),
                 "agents": [
-                    {"title": agent["title"], "img": utils.get_image_url(agent["src"])}
+                    {"title": agent["title"], "img": get_image_url(agent["src"])}
                     for agent in team.find_all("td", class_="mod-agents")[0].find_all("img")
                 ],
-                "rating": utils.clean_number_string(stats[0].find("span", class_="side mod-side mod-both").get_text()),
-                "acs": utils.clean_number_string(stats[1].find("span", class_="side mod-side mod-both").get_text()),
-                "kills": utils.clean_number_string(stats[2].find("span", class_="side mod-side mod-both").get_text()),
-                "deaths": utils.clean_number_string(stats[3].get_text()),
-                "assists": utils.clean_number_string(stats[4].find("span", class_="side mod-both").get_text()),
-                "kast": utils.clean_number_string(stats[6].find("span", class_="side mod-both").get_text()),
-                "adr": utils.clean_number_string(stats[7].find("span", class_="side mod-both").get_text()),
-                "headshot_percent": utils.clean_number_string(stats[8].find("span", class_="side mod-both").get_text()),
-                "first_kills": utils.clean_number_string(stats[9].find("span", class_="side mod-both").get_text()),
-                "first_deaths": utils.clean_number_string(
-                    stats[10].find("span", class_="side mod-both").get_text().strip()
-                ),
-                "first_kills_diff": utils.clean_number_string(
-                    stats[11].find("span", class_="mod-both").get_text().strip()
-                ),
+                "rating": clean_number_string(stats[0].find("span", class_="side mod-side mod-both").get_text()),
+                "acs": clean_number_string(stats[1].find("span", class_="side mod-side mod-both").get_text()),
+                "kills": clean_number_string(stats[2].find("span", class_="side mod-side mod-both").get_text()),
+                "deaths": clean_number_string(stats[3].get_text()),
+                "assists": clean_number_string(stats[4].find("span", class_="side mod-both").get_text()),
+                "kast": clean_number_string(stats[6].find("span", class_="side mod-both").get_text()),
+                "adr": clean_number_string(stats[7].find("span", class_="side mod-both").get_text()),
+                "headshot_percent": clean_number_string(stats[8].find("span", class_="side mod-both").get_text()),
+                "first_kills": clean_number_string(stats[9].find("span", class_="side mod-both").get_text()),
+                "first_deaths": clean_number_string(stats[10].find("span", class_="side mod-both").get_text().strip()),
+                "first_kills_diff": clean_number_string(stats[11].find("span", class_="mod-both").get_text().strip()),
             }
         )
     return ret
@@ -389,25 +386,21 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
     team_names = match_info.find_all("div", class_="text-of")
     team_scores = match_info.find_all("div", class_="match-item-vs-team-score")
     status = match_info.find("div", class_="ml-status").get_text().strip().lower()
-    date = utils.clean_string(date.get_text().split("\n")[1])
-    time = utils.clean_string(match_info.find("div", class_="match-item-time").get_text())
+    date = clean_string(date.get_text().split("\n")[1])
+    time = clean_string(match_info.find("div", class_="match-item-time").get_text())
     if time.lower() == constants.TBD:
         date_string = date
     else:
         date_string = date + " " + time
 
     return schemas.Match(
-        team1=schemas.MatchTeam(
-            name=utils.clean_string(team_names[0].get_text()), score=await parse_score(team_scores[0])
-        ),
-        team2=schemas.MatchTeam(
-            name=utils.clean_string(team_names[1].get_text()), score=await parse_score(team_scores[1])
-        ),
+        team1=schemas.MatchTeam(name=clean_string(team_names[0].get_text()), score=await parse_score(team_scores[0])),
+        team2=schemas.MatchTeam(name=clean_string(team_names[1].get_text()), score=await parse_score(team_scores[1])),
         status=status,
-        time=utils.fix_datetime_tz(dateutil.parser.parse(date_string, ignoretz=True)),
+        time=fix_datetime_tz(dateutil.parser.parse(date_string, ignoretz=True)),
         id=match_info.get("href").split("/")[1],
-        event=utils.clean_string(match_info.find("div", class_="match-item-event").get_text().split("\n")[-1]),
-        series=utils.clean_string(match_info.find("div", class_="match-item-event-series").get_text()),
+        event=clean_string(match_info.find("div", class_="match-item-event").get_text().split("\n")[-1]),
+        series=clean_string(match_info.find("div", class_="match-item-event-series").get_text()),
     )
 
 
