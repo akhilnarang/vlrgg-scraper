@@ -4,3 +4,4 @@ from .news import NewsItem
 from .player import Player
 from .rankings import Ranking, TeamRanking
 from .team import Team
+from .version import VersionResponse
