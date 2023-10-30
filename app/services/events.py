@@ -62,7 +62,15 @@ async def parse_event(event: element.Tag) -> schemas.Event:
         .replace("mod-", "")
     )
     img = get_image_url(event.find_all("div", class_="event-item-thumb")[0].find("img")["src"])
-    return schemas.Event(id=event_id, title=title, status=status, prize=prize, dates=dates, location=location, img=img)
+    return schemas.Event(
+        id=event_id,
+        title=title,
+        status=status,
+        prize=prize,
+        dates=dates,
+        location=location,
+        img=img,
+    )
 
 
 async def get_event_by_id(id: str) -> schemas.EventWithDetails:
@@ -88,7 +96,10 @@ async def parse_events_data(id: str) -> dict:
     soup = BeautifulSoup(response.content, "lxml")
 
     if (event_header := soup.find_all("div", class_="event-header")) is None:
-        raise HTTPException(detail="Event header was missing, please retry", status_code=status.HTTP_400_BAD_REQUEST)
+        raise HTTPException(
+            detail="Event header was missing, please retry",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
     header = event_header[0]
     event["title"] = clean_string(header.find_all("h1", class_="wf-title")[0].get_text())
@@ -146,7 +157,9 @@ async def parse_match_data(id: str) -> list:
     )
 
 
-async def prizes_parser(prizes_table: element.Tag) -> list[dict[str, str | dict[str, str]]]:
+async def prizes_parser(
+    prizes_table: element.Tag,
+) -> list[dict[str, str | dict[str, str]]]:
     """
     Parse prize data
     :param prizes_table: The HTML
@@ -191,7 +204,8 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
         if constants.TBD not in time.lower():
             match_timing = (
                 dateutil.parser.parse(
-                    f"{date.lower().replace('yesterday', '').replace('today', '')} {time}", ignoretz=True
+                    f"{date.lower().replace('yesterday', '').replace('today', '')} {time}",
+                    ignoretz=True,
                 )
                 .replace(tzinfo=ZoneInfo(settings.TIMEZONE))
                 .astimezone(ZoneInfo("UTC"))
@@ -201,7 +215,10 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
             "status": match_data.find_all("div", class_="ml-status")[0].get_text().strip().lower(),
         }
         if match_timing:
-            match |= {"date": match_timing.date(), "time": match_timing.time().isoformat()}
+            match |= {
+                "date": match_timing.date(),
+                "time": match_timing.time().isoformat(),
+            }
         else:
             match |= {"date": dateutil.parser.parse(date, ignoretz=True), "time": time}
         team_data = []

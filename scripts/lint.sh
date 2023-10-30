@@ -9,6 +9,4 @@ fi
 
 # Lint
 mypy $path --explicit-package-bases
-black $path --check
-isort --check-only $path
-flake8 $path
+ruff check $path

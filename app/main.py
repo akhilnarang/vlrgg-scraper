@@ -44,13 +44,17 @@ if settings.SENTRY_DSN:
 async def lifespan(app: FastAPI) -> AsyncIterator:
     logging.info("Connecting to redis")
     connections.redis_pool = redis.ConnectionPool(
-        host=settings.REDIS_HOST, password=settings.REDIS_PASSWORD, port=settings.REDIS_PORT
+        host=settings.REDIS_HOST,
+        password=settings.REDIS_PASSWORD,
+        port=settings.REDIS_PORT,
     )
     logging.info("Starting arq worker")
     await arq_worker.start(
         handle_signals=False,
         redis_settings=RedisSettings(
-            host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            password=settings.REDIS_PASSWORD,
         ),
     )
     yield

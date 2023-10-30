@@ -56,7 +56,10 @@ async def get_team_data(data: ResultSet) -> list[dict]:
     match_header = data[0]
     names = match_header.find_all("div", class_="wf-title-med")
     images = match_header.find_all("a", class_="match-header-link")
-    match_score: list = [None, None]  # Default to None for both teams - required for upcoming matches
+    match_score: list = [
+        None,
+        None,
+    ]  # Default to None for both teams - required for upcoming matches
     if (match_data := match_header.find_all("div", class_="match-header-vs-score")) and (
         match_data := match_data[0].find_all("div", class_="js-spoiler")
     ):
@@ -297,8 +300,14 @@ async def get_previous_encounters_data(data: element.Tag) -> list[dict]:
             match_obj = {
                 "match_id": match_link["href"].split("/")[1],
                 "teams": [
-                    {"name": team_a, "score": match_link.find("span", class_="rf").get_text().strip()},
-                    {"name": team_b, "score": match_link.find("span", class_="ra").get_text().strip()},
+                    {
+                        "name": team_a,
+                        "score": match_link.find("span", class_="rf").get_text().strip(),
+                    },
+                    {
+                        "name": team_b,
+                        "score": match_link.find("span", class_="ra").get_text().strip(),
+                    },
                 ],
             }
             response.append(match_obj)
@@ -394,8 +403,14 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
         date_string = date + " " + time
 
     return schemas.Match(
-        team1=schemas.MatchTeam(name=clean_string(team_names[0].get_text()), score=await parse_score(team_scores[0])),
-        team2=schemas.MatchTeam(name=clean_string(team_names[1].get_text()), score=await parse_score(team_scores[1])),
+        team1=schemas.MatchTeam(
+            name=clean_string(team_names[0].get_text()),
+            score=await parse_score(team_scores[0]),
+        ),
+        team2=schemas.MatchTeam(
+            name=clean_string(team_names[1].get_text()),
+            score=await parse_score(team_scores[1]),
+        ),
         status=status,
         time=fix_datetime_tz(dateutil.parser.parse(date_string, ignoretz=True)),
         id=match_info.get("href").split("/")[1],

@@ -7,6 +7,4 @@ if [[ -z "$path" ]]; then
 fi
 
 # Format
-autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place ${path} --exclude=__init__.py
-black ${path}
-isort ${path}
+ruff format ${path}

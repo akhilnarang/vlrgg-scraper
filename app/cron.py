@@ -71,7 +71,10 @@ async def fcm_notification_cron(ctx: dict) -> None:
     # Don't bother sending if there's nothing to send
     if messages:
         app_name = ctx.get("job_id", uuid.uuid4())
-        app = initialize_app(name=app_name, credential=credentials.Certificate(settings.GOOGLE_APPLICATION_CREDENTIALS))
+        app = initialize_app(
+            name=app_name,
+            credential=credentials.Certificate(settings.GOOGLE_APPLICATION_CREDENTIALS),
+        )
         messaging.send_each(messages=messages, app=app)
         delete_app(app)
         logging.info("Sent notification")
@@ -86,7 +89,11 @@ async def rankings_cron(ctx: dict) -> None:
     :return: Nothing
     """
     await ctx["redis"].set(
-        "rankings", json.dumps([item.model_dump() for item in await rankings.ranking_list()], default=jsonable_encoder)
+        "rankings",
+        json.dumps(
+            [item.model_dump() for item in await rankings.ranking_list()],
+            default=jsonable_encoder,
+        ),
     )
 
 
@@ -97,7 +104,11 @@ async def matches_cron(ctx: dict) -> None:
     :return: Nothing
     """
     await ctx["redis"].set(
-        "matches", json.dumps([item.model_dump() for item in await matches.match_list()], default=jsonable_encoder)
+        "matches",
+        json.dumps(
+            [item.model_dump() for item in await matches.match_list()],
+            default=jsonable_encoder,
+        ),
     )
 
 
@@ -108,7 +119,11 @@ async def events_cron(ctx: dict) -> None:
     :return: Nothing
     """
     await ctx["redis"].set(
-        "events", json.dumps([item.model_dump() for item in await events.get_events()], default=jsonable_encoder)
+        "events",
+        json.dumps(
+            [item.model_dump() for item in await events.get_events()],
+            default=jsonable_encoder,
+        ),
     )
 
 
@@ -119,7 +134,11 @@ async def news_cron(ctx: dict) -> None:
     :return: Nothing
     """
     await ctx["redis"].set(
-        "news", json.dumps([item.model_dump() for item in await news.news_list()], default=jsonable_encoder)
+        "news",
+        json.dumps(
+            [item.model_dump() for item in await news.news_list()],
+            default=jsonable_encoder,
+        ),
     )
 
 
@@ -131,7 +150,11 @@ class ArqWorker:
     async def start(self, **kwargs: Any) -> None:
         cron_jobs = [
             cron("app.cron.rankings_cron", hour=None, minute={0, 30}),
-            cron("app.cron.matches_cron", hour=None, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
+            cron(
+                "app.cron.matches_cron",
+                hour=None,
+                minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55},
+            ),
             cron("app.cron.events_cron", hour=None, minute={0, 30}),
             cron("app.cron.news_cron", hour=None, minute={0, 30}),
         ]

@@ -16,7 +16,11 @@ async def get_team_data(id: str) -> schemas.Team:
     """
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        response, upcoming_matches_response, completed_matches_response = await asyncio.gather(
+        (
+            response,
+            upcoming_matches_response,
+            completed_matches_response,
+        ) = await asyncio.gather(
             *[
                 client.get(TEAM_URL.format(id)),
                 client.get(TEAM_UPCOMING_MATCHES_URL.format(id)),
@@ -121,7 +125,11 @@ async def parse_match(match_data: element.Tag) -> dict:
         for f in match_data.find("div", class_="m-item-event text-of").get_text().strip().replace("\t", "").split("\n")
         if f
     ]
-    response = {"event": event, "stage": "".join(stage), "id": match_data["href"].split("/")[1]}
+    response = {
+        "event": event,
+        "stage": "".join(stage),
+        "id": match_data["href"].split("/")[1],
+    }
     if eta := match_data.find("span", class_="rm-item-score-eta"):
         response["eta"] = utils.clean_string(eta.get_text())
         response["opponent"] = utils.clean_string(
