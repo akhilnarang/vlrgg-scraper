@@ -19,7 +19,7 @@ lxml = "^4.9.3"
 redis = {extras = ["hiredis"], version = "^5.0.1"}
 arq = "^0.25.0"
 semver = "^3.0.2"
-rich = "^13.6.0"
+rich = "^13.7.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.7.0"
