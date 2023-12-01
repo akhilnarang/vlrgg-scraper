@@ -273,7 +273,7 @@ async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str])
                 "rating": clean_number_string(stats[0].find("span", class_="side mod-side mod-both").get_text()),
                 "acs": clean_number_string(stats[1].find("span", class_="side mod-side mod-both").get_text()),
                 "kills": clean_number_string(stats[2].find("span", class_="side mod-side mod-both").get_text()),
-                "deaths": clean_number_string(stats[3].get_text()),
+                "deaths": clean_number_string(stats[3].find("span", class_="side mod-both").get_text()),
                 "assists": clean_number_string(stats[4].find("span", class_="side mod-both").get_text()),
                 "kast": clean_number_string(stats[6].find("span", class_="side mod-both").get_text()),
                 "adr": clean_number_string(stats[7].find("span", class_="side mod-both").get_text()),
