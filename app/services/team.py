@@ -45,6 +45,8 @@ async def get_team_data(id: str) -> schemas.Team:
 
     for link in soup.find("div", class_="team-header-links").find_all("a"):
         if link := link.get("href"):
+            if not link.startswith("https://"):
+                link = f"https://{link}"
             if "twitter.com" in link:
                 twitter = link
             else:
