@@ -257,18 +257,22 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
 
 async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str]) -> list:
     ret = []
-    for team in data.find_all("tr"):
-        data = team.find_all("td", class_="mod-player")[0]
-        stats = team.find_all("td", class_="mod-stat")
-        team_name_short = clean_string(data.find_all("div", class_="ge-text-light")[0].get_text())
+    for player in data.find_all("tr"):
+        data = player.find_all("td", class_="mod-player")[0]
+        stats = player.find_all("td", class_="mod-stat")
+        team_name_short = clean_string(data.find_all("div", class_="ge-text-light")[-1].get_text())
+        player_id = ""
+        if player_data := data.find("a"):
+            player_id = player_data["href"].split("/")[-2]
+
         ret.append(
             {
-                "id": data.find("a").get("href").split("/")[-2],
+                "id": player_id,
                 "name": clean_string(data.find_all("div", class_="text-of")[0].get_text()),
                 "team": team_name_mapping.get(team_name_short, team_name_short),
                 "agents": [
                     {"title": agent["title"], "img": get_image_url(agent["src"])}
-                    for agent in team.find_all("td", class_="mod-agents")[0].find_all("img")
+                    for agent in player.find_all("td", class_="mod-agents")[0].find_all("img")
                 ],
                 "rating": clean_number_string(stats[0].find("span", class_="side mod-side mod-both").get_text()),
                 "acs": clean_number_string(stats[1].find("span", class_="side mod-side mod-both").get_text()),
