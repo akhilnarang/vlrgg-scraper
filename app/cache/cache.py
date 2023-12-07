@@ -10,7 +10,9 @@ def get_client() -> redis.Redis:
 
     :return: The redis client object
     """
-    return redis.Redis(connection_pool=redis_pool)
+    if redis_pool:
+        return redis.Redis(connection_pool=redis_pool)
+    raise CacheMiss("Redis not setup")
 
 
 async def get(key: str) -> str:

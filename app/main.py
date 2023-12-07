@@ -42,26 +42,28 @@ if settings.SENTRY_DSN:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator:
-    logging.info("Connecting to redis")
-    connections.redis_pool = redis.ConnectionPool(
-        host=settings.REDIS_HOST,
-        password=settings.REDIS_PASSWORD,
-        port=settings.REDIS_PORT,
-    )
-    logging.info("Starting arq worker")
-    await arq_worker.start(
-        handle_signals=False,
-        redis_settings=RedisSettings(
+    if settings.REDIS_HOST:
+        logging.info("Connecting to redis")
+        connections.redis_pool = redis.ConnectionPool(
             host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
             password=settings.REDIS_PASSWORD,
-        ),
-    )
+            port=settings.REDIS_PORT,
+        )
+        logging.info("Starting arq worker")
+        await arq_worker.start(
+            handle_signals=False,
+            redis_settings=RedisSettings(
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                password=settings.REDIS_PASSWORD,
+            ),
+        )
     yield
-    logging.info("Stopping arq worker")
-    await arq_worker.stop()
-    logging.info("Closing redis connection")
-    await connections.redis_pool.disconnect()
+    if connections.redis_pool:
+        logging.info("Stopping arq worker")
+        await arq_worker.stop()
+        logging.info("Closing redis connection")
+        await connections.redis_pool.disconnect()
 
 
 app = FastAPI(
