@@ -148,6 +148,17 @@ async def get_video_data(data: element.Tag) -> dict[str, list]:
         ],
     }
 
+    response["streams"].extend(
+        [
+            {
+                "name": stream.find("span").get_text().strip(),
+                "url": stream.get("href"),
+            }
+            for stream in data.find_all("a", class_="match-streams-btn")
+            if stream.find("span")
+        ]
+    )
+
     return response
 
 
