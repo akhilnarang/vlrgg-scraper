@@ -9,7 +9,7 @@ python = "^3.10"
 fastapi = {extras = ["all"], version = "^0.105.0"}
 httpx = "^0.26.0"
 beautifulsoup4 = "^4.12.2"
-uvicorn = {extras = ["standard"], version = "^0.24.0"}
+uvicorn = {extras = ["standard"], version = "^0.25.0"}
 gunicorn = "^21.2.0"
 python-dateutil = "^2.8.2"
 firebase-admin = "^6.3.0"
