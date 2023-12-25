@@ -11,6 +11,7 @@ from arq import cron
 from arq.worker import Worker, create_worker
 from fastapi.encoders import jsonable_encoder
 from firebase_admin import credentials, delete_app, initialize_app, messaging
+from sentry_sdk import configure_scope
 
 from app.constants import MatchStatus
 from app.core.config import settings
@@ -23,6 +24,9 @@ async def fcm_notification_cron(ctx: dict) -> None:
     :param ctx: Context dict
     :return: Nothing
     """
+    with configure_scope() as scope:
+        scope.set_transaction_name("FCM Notification Cron")
+
     # Get the current time, so that we can filter for matches starting in the next 15 minutes
     current_time = datetime.now(tz=ZoneInfo(settings.TIMEZONE))
     upcoming_matches = [
@@ -88,6 +92,8 @@ async def rankings_cron(ctx: dict) -> None:
     :param ctx: Context dict
     :return: Nothing
     """
+    with configure_scope() as scope:
+        scope.set_transaction_name("Rankings Cron")
     await ctx["redis"].set(
         "rankings",
         json.dumps(
@@ -103,6 +109,8 @@ async def matches_cron(ctx: dict) -> None:
     :param ctx: Context dict
     :return: Nothing
     """
+    with configure_scope() as scope:
+        scope.set_transaction_name("Matches Cron")
     await ctx["redis"].set(
         "matches",
         json.dumps(
@@ -118,6 +126,8 @@ async def events_cron(ctx: dict) -> None:
     :param ctx: Context dict
     :return: Nothing
     """
+    with configure_scope() as scope:
+        scope.set_transaction_name("Events Cron")
     await ctx["redis"].set(
         "events",
         json.dumps(
@@ -133,6 +143,8 @@ async def news_cron(ctx: dict) -> None:
     :param ctx: Context dict
     :return: Nothing
     """
+    with configure_scope() as scope:
+        scope.set_transaction_name("News Cron")
     await ctx["redis"].set(
         "news",
         json.dumps(
