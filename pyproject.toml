@@ -6,7 +6,7 @@ authors = ["Akhil Narang <me@akhilnarang.dev>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = {extras = ["all"], version = "^0.106.0"}
+fastapi = {extras = ["all"], version = "^0.108.0"}
 httpx = "^0.26.0"
 beautifulsoup4 = "^4.12.2"
 uvicorn = {extras = ["standard"], version = "^0.25.0"}
