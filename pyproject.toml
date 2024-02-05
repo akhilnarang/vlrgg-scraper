@@ -6,10 +6,10 @@ authors = ["Akhil Narang <me@akhilnarang.dev>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = {extras = ["all"], version = "^0.109.0"}
+fastapi = {extras = ["all"], version = "^0.109.2"}
 httpx = "^0.26.0"
 beautifulsoup4 = "^4.12.3"
-uvicorn = {extras = ["standard"], version = "^0.27.0"}
+uvicorn = {extras = ["standard"], version = "^0.27.0.post1"}
 gunicorn = "^21.2.0"
 python-dateutil = "^2.8.2"
 firebase-admin = "^6.4.0"
