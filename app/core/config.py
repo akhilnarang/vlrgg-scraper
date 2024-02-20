@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    SECRET_KEY: str | None = None
+    API_KEYS: dict = {}
     SENTRY_DSN: str | None = None
 
     REDIS_HOST: str

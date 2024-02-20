@@ -71,7 +71,9 @@ app = FastAPI(
 )
 app.add_middleware(BrotliMiddleware)
 
-if settings.SECRET_KEY:
+if settings.API_KEYS:
+    print("Got API keys", settings.API_KEYS.keys())
     app.include_router(router, prefix="/api/v1", dependencies=[Depends(deps.verify_token)])
 else:
     app.include_router(router, prefix="/api/v1")
+    sentry_sdk.set_tag("api_key", "Unauthenticated")
