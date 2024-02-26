@@ -112,8 +112,13 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
     else:
         status = None
 
+    if url := event_link.get("href"):
+        match_id = url.split("/")[2]
+    else:
+        match_id = ""
+
     ret = {
-        "id": event_link["href"].split("/")[2],
+        "id": match_id,
         "img": get_image_url(event_link.find("img")["src"]),
         "series": event_link.find_all("div")[0].find_all("div")[0].get_text().strip(),
         "stage": clean_string(event_link.find_all("div", class_="match-header-event-series")[0].get_text()),
@@ -181,8 +186,11 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
 
     # If the above dict is empty (i.e. no vm-stats-gamesnav-item), we know that there is a single map
     if maps == {}:
-        maps = {stats["data-game-id"]: stats.find_all("div", class_="map")[0].find("span").get_text().strip()}
-        map_count = 1
+        if map_data := stats.find_all("div", class_="map"):
+            maps = {stats["data-game-id"]: map_data[0].find("span").get_text().strip()}
+            map_count = 1
+        else:
+            map_count = 0
     else:
         # Set the number of maps actually played (remove disabled ones basically)
         map_count = len(maps) - 1 - len(stats.find_all("div", class_="mod-disabled"))
