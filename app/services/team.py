@@ -139,9 +139,11 @@ async def parse_match(match_data: element.Tag) -> dict:
         )
     elif score := match_data.find("div", class_="m-item-result"):
         response["score"] = utils.clean_string(score.get_text())
-        response["opponent"] = utils.clean_string(
-            score.find_next("div").find_next("div").find_next("div").find_next("div").get_text().strip().split("\n")[0]
-        )
+        opponent_div = score.find_next("div").find_next("div").find_next("div")
+        if "ff" in response["score"].lower():
+            response["opponent"] = utils.clean_string(opponent_div.get_text().strip().split("\n")[0])
+        else:
+            response["opponent"] = utils.clean_string(opponent_div.find_next("div").get_text().strip().split("\n")[0])
 
     response["date"] = utils.fix_datetime_tz(
         dateutil.parser.parse(match_data.find("div", class_="m-item-date").get_text(), ignoretz=True)
