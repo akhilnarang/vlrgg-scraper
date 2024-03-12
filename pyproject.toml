@@ -12,7 +12,7 @@ beautifulsoup4 = "^4.12.3"
 uvicorn = {extras = ["standard"], version = "^0.28.0"}
 gunicorn = "^21.2.0"
 python-dateutil = "^2.9.0"
-firebase-admin = "^6.4.0"
+firebase-admin = "^6.5.0"
 brotli-asgi = "^1.4.0"
 sentry-sdk = {extras = ["arq", "fastapi", "httpx", "starlette"], version = "^1.41.0"}
 lxml = "^5.1.0"
