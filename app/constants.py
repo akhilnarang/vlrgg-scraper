@@ -30,6 +30,8 @@ RANKINGS_URL = f"{PREFIX}/rankings"
 
 RANKING_URL_REGION = f"{PREFIX}{{}}"
 
+SEARCH_URL = f"{PREFIX}/search?q={{}}&type={{}}"
+
 TBD = "tbd"
 
 
@@ -55,3 +57,11 @@ REGION_NAME_MAPPING = {
     "mena": "MENA",
     "asia-pacific": "Asia-Pacific",
 }
+
+
+class SearchCategory(str, Enum):
+    ALL = "all"
+    TEAM = "teams"
+    PLAYER = "players"
+    EVENT = "events"
+    SERIES = "series"
