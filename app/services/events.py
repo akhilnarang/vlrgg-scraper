@@ -201,10 +201,11 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
     for match_data in day_matches.find_all("a", class_="match-item"):
         time = match_data.find_all("div", class_="match-item-time")[0].get_text().strip()
         match_timing: datetime | None = None
+        date = date.lower().replace("yesterday", "").replace("today", "")
         if constants.TBD not in time.lower():
             match_timing = (
                 dateutil.parser.parse(
-                    f"{date.lower().replace('yesterday', '').replace('today', '')} {time}",
+                    f"{date} {time}",
                     ignoretz=True,
                 )
                 .replace(tzinfo=ZoneInfo(settings.TIMEZONE))
