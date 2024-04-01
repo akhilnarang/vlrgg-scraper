@@ -15,7 +15,7 @@ python-dateutil = "^2.9.0"
 firebase-admin = "^6.5.0"
 brotli-asgi = "^1.4.0"
 sentry-sdk = {extras = ["arq", "fastapi", "httpx", "starlette"], version = "^1.44.0"}
-lxml = "^5.1.0"
+lxml = "^5.2.0"
 redis = {extras = ["hiredis"], version = "^5.0.3"}
 arq = "^0.25.0"
 semver = "^3.0.2"
