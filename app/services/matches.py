@@ -20,7 +20,7 @@ async def match_by_id(id: str) -> schemas.MatchWithDetails:
     :return: The parsed match
     """
     async with httpx.AsyncClient() as client:
-        response = await client.get(MATCH_URL_WITH_ID.format(id))
+        response = await client.get(MATCH_URL_WITH_ID.format(id), timeout=10.0)
 
     soup = BeautifulSoup(response.content, "lxml")
 
