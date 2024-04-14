@@ -1,7 +1,9 @@
 import asyncio
+import http
 
 import httpx
 from bs4 import BeautifulSoup, element
+from fastapi import HTTPException
 
 from app import schemas, constants, utils
 
@@ -17,6 +19,8 @@ async def get_data(search_category: constants.SearchCategory, search_term: str) 
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(constants.SEARCH_URL.format(search_term, search_category))
+        if response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
     soup = BeautifulSoup(response.content, "lxml")
     return await asyncio.gather(*[parse_result(result) for result in soup.find_all("a", class_="search-item")])

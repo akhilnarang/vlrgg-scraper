@@ -1,7 +1,9 @@
 import asyncio
+import http
 
 import httpx
 from bs4 import BeautifulSoup, element
+from fastapi import HTTPException
 
 from app import schemas
 from app.constants import PLAYER_URL
@@ -17,6 +19,8 @@ async def get_player_data(id: str) -> schemas.Player:
 
     async with httpx.AsyncClient() as client:
         response = await client.get(PLAYER_URL.format(id))
+        if response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
     soup = BeautifulSoup(response.content, "lxml")
     player_info = soup.find("div", class_="player-header")

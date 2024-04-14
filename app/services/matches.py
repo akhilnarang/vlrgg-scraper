@@ -1,3 +1,4 @@
+import http
 from asyncio import gather
 from datetime import datetime
 from itertools import chain
@@ -7,6 +8,7 @@ import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet
+from fastapi import HTTPException
 
 from app import constants, schemas
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
@@ -21,6 +23,8 @@ async def match_by_id(id: str) -> schemas.MatchWithDetails:
     """
     async with httpx.AsyncClient() as client:
         response = await client.get(MATCH_URL_WITH_ID.format(id), timeout=10.0)
+        if response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -361,6 +365,10 @@ async def get_upcoming_matches() -> list[schemas.Match]:
     """
     async with httpx.AsyncClient(timeout=30.0) as client:
         upcoming_matches_response = await client.get(UPCOMING_MATCHES_URL)
+        if upcoming_matches_response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(
+                status_code=upcoming_matches_response.status_code, detail="VLR.gg server returned an error"
+            )
 
     upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "lxml")
 
@@ -377,6 +385,10 @@ async def get_completed_matches() -> list[schemas.Match]:
     """
     async with httpx.AsyncClient(timeout=30.0) as client:
         previous_matches_response = await client.get(PAST_MATCHES_URL)
+        if previous_matches_response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(
+                status_code=previous_matches_response.status_code, detail="VLR.gg server returned an error"
+            )
 
     previous_matches = BeautifulSoup(previous_matches_response.content, "lxml")
 

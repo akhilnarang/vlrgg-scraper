@@ -1,4 +1,5 @@
 import asyncio
+import http
 import itertools
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -22,6 +23,8 @@ async def get_events() -> list[schemas.Event]:
     """
     async with httpx.AsyncClient() as client:
         response = await client.get(EVENTS_URL)
+        if response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
     soup = BeautifulSoup(response.content, "lxml")
     return list(
@@ -92,6 +95,9 @@ async def parse_events_data(id: str) -> dict:
     """
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(EVENT_URL_WITH_ID.format(id))
+        if response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+
     event: dict[str, str | list] = {"id": id}
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -138,6 +144,8 @@ async def parse_events_data(id: str) -> dict:
 async def parse_match_data(id: str) -> list:
     async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.get(EVENT_URL_WITH_ID_MATCHES.format(id))
+        if response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
     soup = BeautifulSoup(response.content, "lxml")
     return list(

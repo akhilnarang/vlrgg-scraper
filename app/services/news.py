@@ -1,8 +1,10 @@
 import asyncio
+import http
 
 import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
+from fastapi import HTTPException
 
 from app import schemas
 from app.constants import NEWS_URL, PREFIX
@@ -16,6 +18,8 @@ async def news_list() -> list[schemas.NewsItem]:
     """
     async with httpx.AsyncClient() as client:
         response = await client.get(NEWS_URL)
+        if response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
     soup = BeautifulSoup(response.content, "lxml")
 

@@ -1,8 +1,10 @@
 import asyncio
+import http
 
 import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
+from fastapi import HTTPException
 
 from app import schemas, utils
 from app.constants import TEAM_COMPLETED_MATCHES_URL, TEAM_UPCOMING_MATCHES_URL, TEAM_URL
@@ -27,10 +29,22 @@ async def get_team_data(id: str) -> schemas.Team:
                 client.get(TEAM_COMPLETED_MATCHES_URL.format(id)),
             ]
         )
+        if response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+
+        if upcoming_matches_response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(
+                status_code=upcoming_matches_response.status_code, detail="VLR.gg server returned an error"
+            )
+
+        if completed_matches_response.status_code != http.HTTPStatus.OK:
+            raise HTTPException(
+                status_code=completed_matches_response.status_code, detail="VLR.gg server returned an error"
+            )
 
     soup = BeautifulSoup(response.content, "lxml")
-    upcoming_matches = BeautifulSoup(upcoming_matches_response, "lxml")
-    completed_matches = BeautifulSoup(completed_matches_response, "lxml")
+    upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "lxml")
+    completed_matches = BeautifulSoup(completed_matches_response.content, "lxml")
 
     team_info = soup.find("div", class_="team-header")
     name = utils.clean_string(team_info.find("h1").get_text())
