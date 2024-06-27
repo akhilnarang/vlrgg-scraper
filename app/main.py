@@ -36,7 +36,7 @@ if settings.SENTRY_DSN:
             HttpxIntegration(),
             ArqIntegration(),
         ],
-        traces_sample_rate=0.1,
+        traces_sample_rate=0.08,
     )
 
 
