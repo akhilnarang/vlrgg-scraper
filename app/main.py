@@ -18,6 +18,7 @@ from app.api.v1.api import router
 from app.core import connections
 from app.core.config import settings
 from app.cron import arq_worker
+from app.utils import before_send
 
 logging.basicConfig(
     format="[%(levelname)s] (%(asctime)s) %(module)s:%(pathname)s:%(funcName)s:%(lineno)s:: %(message)s",
@@ -37,6 +38,7 @@ if settings.SENTRY_DSN:
             ArqIntegration(),
         ],
         traces_sample_rate=0.08,
+        before_send=before_send,
     )
 
 

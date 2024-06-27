@@ -1,6 +1,9 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from fastapi import HTTPException
+from sentry_sdk.types import Event, Hint
+
 from app.constants import PREFIX, VLR_IMAGE
 from app.core.config import settings
 
@@ -73,3 +76,18 @@ def add_protocol_to_url(url: str) -> str:
     if not url.startswith("http"):
         return f"https://{url}"
     return url
+
+
+def before_send(event: Event, hint: Hint) -> Event | None:
+    """
+    Function to strip out HTTPExceptions from Sentry reports
+
+    :param event: Sentry event
+    :param hint: Sentry event hint
+    :return: The event if we want it to be uploaded, else nothing
+    """
+    if "exc_info" in hint:
+        exc_type, exc_value, tb = hint["exc_info"]
+        if isinstance(exc_value, HTTPException):
+            return None
+    return event
