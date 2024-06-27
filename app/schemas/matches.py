@@ -57,7 +57,7 @@ class Round(BaseModel):
 
 
 class MatchData(BaseModel):
-    map: str
+    map: str = ""
     teams: list[Team]
     members: list[TeamMember]
     rounds: list[Round]
