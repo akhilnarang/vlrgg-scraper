@@ -2143,13 +2143,13 @@ files = [
 
 [[package]]
 name = "sentry-sdk"
-version = "2.7.0"
+version = "2.7.1"
 description = "Python client for Sentry (https://sentry.io)"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "sentry_sdk-2.7.0-py2.py3-none-any.whl", hash = "sha256:db9594c27a4d21c1ebad09908b1f0dc808ef65c2b89c1c8e7e455143262e37c1"},
-    {file = "sentry_sdk-2.7.0.tar.gz", hash = "sha256:d846a211d4a0378b289ced3c434480945f110d0ede00450ba631fc2852e7a0d4"},
+    {file = "sentry_sdk-2.7.1-py2.py3-none-any.whl", hash = "sha256:ef1b3d54eb715825657cd4bb3cb42bb4dc85087bac14c56b0fd8c21abd968c9a"},
+    {file = "sentry_sdk-2.7.1.tar.gz", hash = "sha256:25006c7e68b75aaa5e6b9c6a420ece22e8d7daec4b7a906ffd3a8607b67c037b"},
 ]
 
 [package.dependencies]
@@ -2193,7 +2193,7 @@ sanic = ["sanic (>=0.8)"]
 sqlalchemy = ["sqlalchemy (>=1.2)"]
 starlette = ["starlette (>=0.19.1)"]
 starlite = ["starlite (>=1.48)"]
-tornado = ["tornado (>=5)"]
+tornado = ["tornado (>=6)"]
 
 [[package]]
 name = "shellingham"
@@ -2666,4 +2666,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "7ddaa8b4f2dca91973426fe521bb9ba491fd80ce263a41ff7b87994b15458fea"
+content-hash = "adc3d0734386761e8690424ba3972530ec190fe1ee250fae6be99251bbe4a828"
