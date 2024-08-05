@@ -16,7 +16,7 @@ firebase-admin = "^6.5.0"
 brotli-asgi = "^1.4.0"
 sentry-sdk = {extras = ["arq", "fastapi", "httpx", "starlette"], version = "^2.11.0"}
 lxml = "^5.2.2"
-redis = {extras = ["hiredis"], version = "^5.0.7"}
+redis = {extras = ["hiredis"], version = "^5.0.8"}
 arq = "^0.25.0"
 semver = "^3.0.2"
 rich = "^13.7.1"
