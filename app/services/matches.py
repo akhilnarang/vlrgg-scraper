@@ -22,7 +22,7 @@ async def match_by_id(id: str) -> schemas.MatchWithDetails:
     :return: The parsed match
     """
     async with httpx.AsyncClient() as client:
-        response = await client.get(MATCH_URL_WITH_ID.format(id), timeout=10.0)
+        response = await client.get(MATCH_URL_WITH_ID.format(id), timeout=20.0)
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
