@@ -219,8 +219,8 @@ async def get_map_data(data: ResultSet) -> Tuple[list, int]:
         # TODO: find a better solution, only done to prevent warning at 201 (tuple[int, ...] vs tuple[int, int])
         prev: tuple[int, ...] = (0, 0)
         for round_data in map_data.find_all("div", class_="vlr-rounds-row-col")[1:]:
-            if round_current_score := round_data.find_all("div", class_="rnd-currscore"):
-                round_score = clean_string(round_current_score[0].get_text())
+            if round_current_score := round_data.get("title"):
+                round_score = clean_string(round_current_score)
                 side, round_winner = "", ""
                 if round_score != "":
                     current = tuple(map(int, round_score.split("-")))
