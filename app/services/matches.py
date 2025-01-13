@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet
 from fastapi import HTTPException
 
-from app import constants, schemas
+from app import constants, schemas, cache
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
 from app.utils import clean_number_string, clean_string, fix_datetime_tz, get_image_url
 
@@ -70,16 +70,24 @@ async def get_team_data(data: ResultSet) -> list[dict]:
         match_score = (clean_string(match_data[0].get_text())).split(":")
 
     response = []
+    client = cache.get_client()
+    pipeline = client.pipeline()
     for i, score in enumerate(match_score):
+        name = clean_string(names[i].get_text())
         data = {
-            "name": clean_string(names[i].get_text()),
+            "name": name,
             "img": get_image_url(images[i].find("img")["src"]),
             "score": score,
         }
         if team_url := images[i].get("href"):
             data["id"] = team_url.split("/")[2]
 
+        if name != "TBD":
+            await pipeline.hset("team", data["id"], name.lower().replace(" ", "_"))
         response.append(data)
+
+    await pipeline.execute()
+    await client.close()
     return response
 
 
