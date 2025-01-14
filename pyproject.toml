@@ -27,7 +27,6 @@ dependencies = [
 dev-dependencies = [
     "mypy",
     "types-python-dateutil",
-    "types-redis",
     "ruff",
 ]
 
