@@ -91,3 +91,13 @@ def before_send(event: Event, hint: Hint) -> Event | None:
         if isinstance(exc_value, HTTPException):
             return None
     return event
+
+
+def team_name_key(name: str) -> str:
+    """
+    Function to generate a key for a team name
+
+    :param name: The team name
+    :return: The key
+    """
+    return name.lower().replace(" ", "_")

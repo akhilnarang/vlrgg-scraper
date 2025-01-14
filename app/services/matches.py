@@ -12,7 +12,7 @@ from fastapi import HTTPException
 
 from app import constants, schemas, cache
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
-from app.utils import clean_number_string, clean_string, fix_datetime_tz, get_image_url
+from app.utils import clean_number_string, clean_string, fix_datetime_tz, get_image_url, team_name_key
 
 
 async def match_by_id(id: str) -> schemas.MatchWithDetails:
@@ -82,7 +82,7 @@ async def get_team_data(data: ResultSet) -> list[dict]:
             data["id"] = team_url.split("/")[2]
 
         if name != "TBD":
-            team_mapping[name.lower().replace(" ", "_")] = data["id"]
+            team_mapping[team_name_key(name)] = data["id"]
         response.append(data)
 
     if team_mapping:
