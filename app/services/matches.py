@@ -70,8 +70,7 @@ async def get_team_data(data: ResultSet) -> list[dict]:
         match_score = (clean_string(match_data[0].get_text())).split(":")
 
     response = []
-    client = cache.get_client()
-    pipeline = client.pipeline()
+    team_mapping = {}
     for i, score in enumerate(match_score):
         name = clean_string(names[i].get_text())
         data = {
@@ -83,11 +82,13 @@ async def get_team_data(data: ResultSet) -> list[dict]:
             data["id"] = team_url.split("/")[2]
 
         if name != "TBD":
-            await pipeline.hset("team", data["id"], name.lower().replace(" ", "_"))
+            team_mapping[name.lower().replace(" ", "_")] = data["id"]
         response.append(data)
 
-    await pipeline.execute()
-    await client.close()
+    if team_mapping:
+        client = cache.get_client()
+        await client.hset("team", mapping=team_mapping)
+        await client.close()
     return response
 
 
