@@ -11,6 +11,7 @@ from bs4.element import ResultSet
 from fastapi import HTTPException
 
 from app import constants, schemas, cache
+from app.cache import get_client
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
 from app.utils import clean_number_string, clean_string, fix_datetime_tz, get_image_url, team_name_key
 
@@ -446,13 +447,19 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
     else:
         date_string = date + " " + time
 
+    team1_name = clean_string(team_names[0].get_text())
+    team2_name = clean_string(team_names[1].get_text())
+    team1_id, team2_id = await get_client().hmget("team", [team_name_key(team1_name), team_name_key(team2_name)])
+
     return schemas.Match(
         team1=schemas.MatchTeam(
-            name=clean_string(team_names[0].get_text()),
+            name=team1_name,
+            id=team1_id,
             score=await parse_score(team_scores[0]),
         ),
         team2=schemas.MatchTeam(
-            name=clean_string(team_names[1].get_text()),
+            name=team2_name,
+            id=team2_id,
             score=await parse_score(team_scores[1]),
         ),
         status=status,

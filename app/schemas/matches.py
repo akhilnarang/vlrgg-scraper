@@ -91,6 +91,7 @@ class MatchWithDetails(BaseModel):
 
 class MatchTeam(BaseModel):
     name: str
+    id: str | None = None
     score: int | None = None
 
 
