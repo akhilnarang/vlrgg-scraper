@@ -1,8 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from app.api.deps import verify_internal_token
 from app.api.v1.endpoints.events import router as events_router
-from app.api.v1.endpoints.internal import router as internal_router
 from app.api.v1.endpoints.matches import router as matches_router
 from app.api.v1.endpoints.news import router as news_router
 from app.api.v1.endpoints.player import router as player_router
@@ -21,6 +19,3 @@ router.include_router(player_router, prefix="/player", tags=["Player"])
 router.include_router(rankings_router, prefix="/rankings", tags=["Rankings"])
 router.include_router(version_router, prefix="/version", tags=["Version"])
 router.include_router(search_router, prefix="/search", tags=["Search"])
-router.include_router(
-    internal_router, prefix="/internal", tags=["Internal"], dependencies=[Depends(verify_internal_token)]
-)

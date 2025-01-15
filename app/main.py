@@ -16,6 +16,7 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 
 from app.api import deps
 from app.api.v1.api import router
+from app.api.v1.endpoints.internal import router as internal_router
 from app.core import connections
 from app.core.config import settings
 from app.cron import arq_worker
@@ -88,3 +89,5 @@ if settings.API_KEYS:
 else:
     app.include_router(router, prefix="/api/v1")
     sentry_sdk.set_tag("api_key", "Unauthenticated")
+
+app.include_router(internal_router, prefix="/api/v1/internal", dependencies=[Depends(deps.verify_internal_token)])
