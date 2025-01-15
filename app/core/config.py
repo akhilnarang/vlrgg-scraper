@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     API_KEYS: dict = {}
+    INTERNAL_API_KEY: str
+
     SENTRY_DSN: str | None = None
 
     REDIS_HOST: str
