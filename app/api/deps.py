@@ -1,3 +1,5 @@
+from typing import AsyncGenerator
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -26,7 +28,7 @@ def verify_token(
     raise HTTPException(detail="Invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
 
 
-async def get_redis_client():
+async def get_redis_client() -> AsyncGenerator:
     """
     Function to get a redis client
     :return: The redis client object
