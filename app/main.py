@@ -1,12 +1,13 @@
 import logging
+import socket
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import AsyncIterator, Callable
 
 import redis.asyncio as redis
 import sentry_sdk
 from arq.connections import RedisSettings
 from brotli_asgi import BrotliMiddleware
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Response, Request
 from rich.logging import RichHandler
 from sentry_sdk.integrations.arq import ArqIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -72,6 +73,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.add_middleware(BrotliMiddleware)
+
+
+@app.middleware("http")
+async def add_server_name_header(request: Request, call_next: Callable) -> Response:
+    response = await call_next(request)
+    response.headers["X-Server"] = socket.gethostname()
+    return response
+
 
 if settings.API_KEYS:
     print("Got API keys", settings.API_KEYS.keys())
