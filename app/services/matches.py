@@ -437,6 +437,7 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
     :param match_info: The match to parse
     :return: The parsed match
     """
+    match_id = match_info.get("href").split("/")[1]
     team_names = match_info.find_all("div", class_="text-of")
     team_scores = match_info.find_all("div", class_="match-item-vs-team-score")
     status = match_info.find("div", class_="ml-status").get_text().strip().lower()
@@ -449,7 +450,12 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
 
     team1_name = clean_string(team_names[0].get_text())
     team2_name = clean_string(team_names[1].get_text())
-    team1_id, team2_id = await get_client().hmget("team", [team_name_key(team1_name), team_name_key(team2_name)])
+    team_ids = await get_client().hmget("team", [team_name_key(team1_name), team_name_key(team2_name)])
+    if not all(team_ids) and "TBD" not in (team1_name, team2_name):
+        match_data = await match_by_id(match_id)
+        team_ids = [team.id for team in match_data.teams]
+
+    team1_id, team2_id = team_ids
 
     return schemas.Match(
         team1=schemas.MatchTeam(
@@ -464,7 +470,7 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
         ),
         status=status,
         time=fix_datetime_tz(dateutil.parser.parse(date_string, ignoretz=True)),
-        id=match_info.get("href").split("/")[1],
+        id=match_id,
         event=clean_string(match_info.find("div", class_="match-item-event").get_text().split("\n")[-1]),
         series=clean_string(match_info.find("div", class_="match-item-event-series").get_text()),
     )
