@@ -66,6 +66,24 @@ async def hset(name: str, mapping: dict, client: redis.Redis | None = None) -> i
             await client.aclose()
 
 
+async def hget(name: str, key: str, client: redis.Redis | None = None) -> str:
+    """
+    Function to get a value from the cache
+
+    :param name: The hash name
+    :param key: The key to retrieve
+    :param client: A pre-existing redis client
+    :return: The value from redis
+    """
+    if need_client := client is None:
+        client = get_client()
+    try:
+        return await client.hget(name, key)
+    finally:
+        if need_client:
+            await client.aclose()
+
+
 async def hmget(name: str, keys: list[str], client: redis.Redis | None = None) -> list:
     """
     Function to get a value from the cache

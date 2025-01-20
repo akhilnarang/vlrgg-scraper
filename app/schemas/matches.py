@@ -104,3 +104,4 @@ class Match(BaseModel):
     time: datetime
     event: str
     series: str
+    event_id: str | None = None

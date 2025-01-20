@@ -472,6 +472,9 @@ async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis)
 
     team1_id, team2_id = team_ids
 
+    event_name = clean_string(match_info.find("div", class_="match-item-event").get_text().split("\n")[-1])
+    event_id = await cache.hget("event", simplify_name(event_name), client=client)
+
     return schemas.Match(
         team1=schemas.MatchTeam(
             name=team1_name,
@@ -486,8 +489,9 @@ async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis)
         status=status,
         time=fix_datetime_tz(dateutil.parser.parse(date_string, ignoretz=True)),
         id=match_id,
-        event=clean_string(match_info.find("div", class_="match-item-event").get_text().split("\n")[-1]),
+        event=event_name,
         series=clean_string(match_info.find("div", class_="match-item-event-series").get_text()),
+        event_id=event_id,
     )
 
 
