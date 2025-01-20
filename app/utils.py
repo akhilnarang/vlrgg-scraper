@@ -93,11 +93,11 @@ def before_send(event: Event, hint: Hint) -> Event | None:
     return event
 
 
-def team_name_key(name: str) -> str:
+def simplify_name(name: str) -> str:
     """
-    Function to generate a key for a team name
+    Function to generate a key for a name, like a simple hash
 
-    :param name: The team name
+    :param name: The name
     :return: The key
     """
     return name.lower().replace(" ", "_")

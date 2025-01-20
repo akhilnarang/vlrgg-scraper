@@ -13,7 +13,7 @@ from fastapi import HTTPException
 from app import constants, schemas, cache
 from app.cache import get_client
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
-from app.utils import clean_number_string, clean_string, fix_datetime_tz, get_image_url, team_name_key
+from app.utils import clean_number_string, clean_string, fix_datetime_tz, get_image_url, simplify_name
 
 
 async def match_by_id(id: str) -> schemas.MatchWithDetails:
@@ -83,7 +83,7 @@ async def get_team_data(data: ResultSet) -> list[dict]:
             data["id"] = team_url.split("/")[2]
 
         if name != "TBD":
-            team_mapping[team_name_key(name)] = data["id"]
+            team_mapping[simplify_name(name)] = data["id"]
         response.append(data)
 
     if team_mapping:
@@ -450,7 +450,7 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
 
     team1_name = clean_string(team_names[0].get_text())
     team2_name = clean_string(team_names[1].get_text())
-    team_ids = await get_client().hmget("team", [team_name_key(team1_name), team_name_key(team2_name)])
+    team_ids = await get_client().hmget("team", [simplify_name(team1_name), simplify_name(team2_name)])
     if not all(team_ids) and "TBD" not in (team1_name, team2_name):
         match_data = await match_by_id(match_id)
         team_ids = [team.id for team in match_data.teams]
