@@ -1,19 +1,20 @@
 import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from redis.asyncio import Redis
 
-from app import cache, schemas
+from app import schemas, cache
+from app.api import deps
 from app.services import events
 
 router = APIRouter()
 
 
 @router.get("/")
-async def list_events() -> list[schemas.Event]:
-    try:
-        return [schemas.Event.model_validate(event) for event in json.loads(await cache.get("events"))]
-    except cache.CacheMiss:
-        return await events.get_events()
+async def list_events(client: Redis = Depends(deps.get_redis_client)) -> list[schemas.Event]:
+    if data := await cache.get("events", client=client):
+        return [schemas.Event.model_validate(event) for event in json.loads(data)]
+    return await events.get_events(client)
 
 
 @router.get("/{id}")

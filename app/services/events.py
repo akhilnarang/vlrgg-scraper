@@ -8,17 +8,20 @@ import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
 from fastapi import HTTPException
+from redis.asyncio import Redis
 from starlette import status
 
-from app import constants, schemas
+from app import constants, schemas, cache
 from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL, EventStatus, MatchStatus
 from app.core.config import settings
-from app.utils import clean_number_string, clean_string, get_image_url
+from app.utils import clean_number_string, clean_string, get_image_url, simplify_name
 
 
-async def get_events() -> list[schemas.Event]:
+async def get_events(cache_client: Redis) -> list[schemas.Event]:
     """
     Fetch a list of events from VLR, and return the parsed response
+
+    :param cache_client: A redis client instance
     :return: Parsed list of events
     """
     async with httpx.AsyncClient() as client:
@@ -31,25 +34,32 @@ async def get_events() -> list[schemas.Event]:
         itertools.chain(
             *(
                 await asyncio.gather(
-                    *[convert_to_list(data) for data in soup.find_all("div", class_="events-container-col")]
+                    *[
+                        convert_to_list(data, cache_client)
+                        for data in soup.find_all("div", class_="events-container-col")
+                    ]
                 )
             )
         )
     )
 
 
-async def convert_to_list(events: element.Tag) -> list[schemas.Event]:
+async def convert_to_list(events: element.Tag, client: Redis) -> list[schemas.Event]:
     """
     Parse a list of events
-    :param events: The events
+
+    :param client: A redis client instance
+     :param events: The events
     :return: The list of parsed events
     """
-    return list(await asyncio.gather(*[parse_event(event) for event in events.find_all("a", class_="wf-card")]))
+    return list(await asyncio.gather(*[parse_event(event, client) for event in events.find_all("a", class_="wf-card")]))
 
 
-async def parse_event(event: element.Tag) -> schemas.Event:
+async def parse_event(event: element.Tag, client: Redis) -> schemas.Event:
     """
     Parse an event
+
+    :param client: A redis client instance
     :param event: The HTML
     :return: The event parsed
     """
@@ -65,6 +75,7 @@ async def parse_event(event: element.Tag) -> schemas.Event:
         .replace("mod-", "")
     )
     img = get_image_url(event.find_all("div", class_="event-item-thumb")[0].find("img")["src"])
+    await cache.hset("event", {simplify_name(title): event_id}, client)
     return schemas.Event(
         id=event_id,
         title=title,

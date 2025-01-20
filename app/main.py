@@ -64,8 +64,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
     yield
     logging.info("Stopping arq worker")
     await arq_worker.stop()
-    logging.info("Closing redis connection")
-    await connections.redis_pool.disconnect()
+    logging.info("Closing redis connection pool")
+    await connections.redis_pool.aclose()
 
 
 app = FastAPI(

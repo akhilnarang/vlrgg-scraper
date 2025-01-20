@@ -9,17 +9,19 @@ import httpx
 from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet
 from fastapi import HTTPException
+from redis.asyncio import Redis
 
 from app import constants, schemas, cache
-from app.cache import get_client
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
 from app.utils import clean_number_string, clean_string, fix_datetime_tz, get_image_url, simplify_name
 
 
-async def match_by_id(id: str) -> schemas.MatchWithDetails:
+async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
     """
     Function to fetch a match from VLR, and return the parsed response
+
     :param id: The match ID
+    :param redis_client: A redis instance
     :return: The parsed match
     """
     async with httpx.AsyncClient() as client:
@@ -30,7 +32,7 @@ async def match_by_id(id: str) -> schemas.MatchWithDetails:
     soup = BeautifulSoup(response.content, "lxml")
 
     teams, bans, event, video_data, map_ret, h2h_matches = await gather(
-        get_team_data(soup.find_all("div", class_="match-header-vs")),
+        get_team_data(soup.find_all("div", class_="match-header-vs"), client=redis_client),
         get_ban_data(soup.find_all("div", class_="match-header-note")),
         get_event_data(soup),
         get_video_data(soup.find("div", class_="match-streams-bets-container")),
@@ -48,10 +50,11 @@ async def match_by_id(id: str) -> schemas.MatchWithDetails:
     )
 
 
-async def get_team_data(data: ResultSet) -> list[dict]:
+async def get_team_data(data: ResultSet, client: Redis) -> list[dict]:
     """
     Function to parse team data
     :param data: The data
+    :param client: A redis instance
     :return: The parsed team data
     """
     # Ensure that we have team data to parse
@@ -87,9 +90,7 @@ async def get_team_data(data: ResultSet) -> list[dict]:
         response.append(data)
 
     if team_mapping:
-        client = cache.get_client()
-        await client.hset("team", mapping=team_mapping)
-        await client.close()
+        await cache.hset("team", mapping=team_mapping, client=client)
     return response
 
 
@@ -351,26 +352,30 @@ async def get_previous_encounters_data(data: element.Tag) -> list[dict]:
     return response
 
 
-async def match_list() -> list[schemas.Match]:
+async def match_list(redis_client: Redis) -> list[schemas.Match]:
     """
     Function to parse a list of matches from the VLR.gg homepage
+
+    :param redis_client: A redis instance
     :return: The parsed matches
     """
     return list(
         chain(
             *(
                 await gather(
-                    get_upcoming_matches(),
-                    get_completed_matches(),
+                    get_upcoming_matches(redis_client),
+                    get_completed_matches(redis_client),
                 )
             )
         )
     )
 
 
-async def get_upcoming_matches() -> list[schemas.Match]:
+async def get_upcoming_matches(redis_client: Redis) -> list[schemas.Match]:
     """
     Function get a list of upcoming matches from VLR
+
+    :param redis_client: A redis instance
     :return: The list of matches
     """
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -385,12 +390,15 @@ async def get_upcoming_matches() -> list[schemas.Match]:
     return await parse_matches(
         upcoming_matches.find_all("div", class_="wf-label"),
         upcoming_matches.find_all("div", class_="wf-card"),
+        redis_client,
     )
 
 
-async def get_completed_matches() -> list[schemas.Match]:
+async def get_completed_matches(redis_client: Redis) -> list[schemas.Match]:
     """
     Function get a list of completed matches from VLR
+
+    :param redis_client: A redis instance
     :return: The list of matches
     """
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -405,21 +413,24 @@ async def get_completed_matches() -> list[schemas.Match]:
     return await parse_matches(
         previous_matches.find_all("div", class_="wf-label"),
         previous_matches.find_all("div", class_="wf-card"),
+        redis_client,
     )
 
 
-async def parse_matches(dates: ResultSet, match_data: ResultSet) -> list[schemas.Match]:
+async def parse_matches(dates: ResultSet, match_data: ResultSet, client: Redis) -> list[schemas.Match]:
     """
     Function to parse a list of matches
+
     :param dates: The dates on which the matches were/will be held
     :param match_data: The matches
+    :param client: A redis instance
     :return: The parsed matches
     """
 
     return list(
         await gather(
             *[
-                parse_match(date, match_info)
+                parse_match(date, match_info, client)
                 for date, match_info in [
                     (date, match)
                     for date, matches in zip(dates, match_data[1:])
@@ -430,7 +441,7 @@ async def parse_matches(dates: ResultSet, match_data: ResultSet) -> list[schemas
     )
 
 
-async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Match:
+async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis) -> schemas.Match:
     """
     Function to parse a given match
     :param date: The match's date
@@ -450,9 +461,9 @@ async def parse_match(date: element.Tag, match_info: element.Tag) -> schemas.Mat
 
     team1_name = clean_string(team_names[0].get_text())
     team2_name = clean_string(team_names[1].get_text())
-    team_ids = await get_client().hmget("team", [simplify_name(team1_name), simplify_name(team2_name)])
+    team_ids = await cache.hmget("team", [simplify_name(team1_name), simplify_name(team2_name)], client=client)
     if not all(team_ids) and "TBD" not in (team1_name, team2_name):
-        match_data = await match_by_id(match_id)
+        match_data = await match_by_id(match_id, client)
         team_ids = [team.id for team in match_data.teams]
 
     team1_id, team2_id = team_ids

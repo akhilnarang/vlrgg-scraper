@@ -1,7 +1,6 @@
 import redis.asyncio as redis
 
 from ..core.connections import redis_pool
-from .exceptions import CacheMiss
 
 
 def get_client() -> redis.Redis:
@@ -13,33 +12,73 @@ def get_client() -> redis.Redis:
     return redis.Redis(connection_pool=redis_pool)
 
 
-async def get(key: str) -> str:
+async def get(key: str, client: redis.Redis | None = None) -> str:
     """
     Function to get a value from the cache
 
     :param key: The key to retrieve
+    :param client: A pre-existing redis client
     :return: The value from redis
     """
-    client = get_client()
+    if need_client := client is None:
+        client = get_client()
     try:
-        if data := await client.get(key):
-            return data
-        raise CacheMiss(f"`{key}` not found")
+        return await client.get(key)
     finally:
-        await client.close()
+        if need_client:
+            await client.aclose()
 
 
-async def set(key: str, value: str, ttl: int = 60) -> None:
+async def set(key: str, value: str, ttl: int = 60, client: redis.Redis | None = None) -> None:
     """
     Function to set a value in the cache
 
     :param key: The key to set in redis
     :param value: The value to set in redis
     :param ttl: The number of seconds before the item should expire
+    :param client: A pre-existing redis client
     :return: Nothing
     """
-    client = get_client()
+    if need_client := client is None:
+        client = get_client()
     try:
-        await client.set(key, value, ttl)
+        return await client.set(key, value, ttl)
     finally:
-        await client.close()
+        if need_client:
+            await client.aclose()
+
+
+async def hset(name: str, mapping: dict, client: redis.Redis | None = None) -> int:
+    """
+    Function to set a value in the cache
+
+    :param name: The hash name
+    :param mapping: The mapping to set in redis
+    :param client: A pre-existing redis client
+    :return: Nothing
+    """
+    if need_client := client is None:
+        client = get_client()
+    try:
+        return await client.hset(name, mapping=mapping)
+    finally:
+        if need_client:
+            await client.aclose()
+
+
+async def hmget(name: str, keys: list[str], client: redis.Redis | None = None) -> list:
+    """
+    Function to get a value from the cache
+
+    :param name: The hash name
+    :param keys: The keys to retrieve
+    :param client: A pre-existing redis client
+    :return: The value from redis
+    """
+    if need_client := client is None:
+        client = get_client()
+    try:
+        return await client.hmget(name, keys)
+    finally:
+        if need_client:
+            await client.aclose()

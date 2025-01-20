@@ -25,12 +25,13 @@ async def fcm_notification_cron(ctx: dict) -> None:
     :return: Nothing
     """
     get_current_scope().set_transaction_name("FCM Notification Cron")
+    client = ctx["redis"]
 
     # Get the current time, so that we can filter for matches starting in the next 15 minutes
     current_time = datetime.now(tz=ZoneInfo(settings.TIMEZONE))
     upcoming_matches = [
         match
-        for match in await matches.get_upcoming_matches()
+        for match in await matches.get_upcoming_matches(redis_client=client)
         if match.status == MatchStatus.UPCOMING and 0 < (match.time - current_time).total_seconds() < 900
     ]
 
@@ -41,7 +42,7 @@ async def fcm_notification_cron(ctx: dict) -> None:
     for match in upcoming_matches:
         logging.info(f"Sending notification for {match=}")
 
-        match_details = await matches.match_by_id(match.id)
+        match_details = await matches.match_by_id(match.id, redis_client=client)
 
         # Retrieve team IDs by querying the match information
         team1_id, team2_id = (team.id for team in match_details.teams)
@@ -109,11 +110,12 @@ async def matches_cron(ctx: dict) -> None:
     :return: Nothing
     """
     get_current_scope().set_transaction_name("Matches Cron")
+    client = ctx["redis"]
 
-    await ctx["redis"].set(
+    await client.set(
         "matches",
         json.dumps(
-            [item.model_dump() for item in await matches.match_list()],
+            [item.model_dump() for item in await matches.match_list(redis_client=client)],
             default=jsonable_encoder,
         ),
     )
@@ -126,11 +128,12 @@ async def events_cron(ctx: dict) -> None:
     :return: Nothing
     """
     get_current_scope().set_transaction_name("Events Cron")
+    client = ctx["redis"]
 
-    await ctx["redis"].set(
+    await client.set(
         "events",
         json.dumps(
-            [item.model_dump() for item in await events.get_events()],
+            [item.model_dump() for item in await events.get_events(cache_client=client)],
             default=jsonable_encoder,
         ),
     )

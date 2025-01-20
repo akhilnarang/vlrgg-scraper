@@ -37,7 +37,7 @@ async def get_redis_client() -> AsyncGenerator:
     try:
         yield client
     finally:
-        await client.close()
+        await client.aclose()
 
 
 def verify_internal_token(
