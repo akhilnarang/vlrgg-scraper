@@ -6,6 +6,7 @@ from typing import Tuple
 
 import dateutil.parser
 import httpx
+import re
 from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet
 from fastapi import HTTPException
@@ -87,6 +88,9 @@ async def get_team_data(data: ResultSet, client: Redis) -> list[dict]:
 
         if name != "TBD":
             team_mapping[simplify_name(name)] = data["id"]
+            # `JD Mall JDG Esports\n(JDG Esports)` == `JDG Esports`, apparently
+            if "(" in name and ")" in name:
+                team_mapping[simplify_name(re.search(r"\((.*?)\)", name).group(1))] = data["id"]
         response.append(data)
 
     if team_mapping:
