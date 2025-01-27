@@ -1,4 +1,5 @@
 import http
+import re
 from asyncio import gather
 from datetime import datetime
 from itertools import chain
@@ -6,7 +7,6 @@ from typing import Tuple
 
 import dateutil.parser
 import httpx
-import re
 from bs4 import BeautifulSoup, element
 from bs4.element import ResultSet
 from fastapi import HTTPException
@@ -14,6 +14,7 @@ from redis.asyncio import Redis
 
 from app import constants, schemas, cache
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
+from app.core.config import settings
 from app.utils import clean_number_string, clean_string, fix_datetime_tz, get_image_url, simplify_name
 
 
@@ -93,7 +94,7 @@ async def get_team_data(data: ResultSet, client: Redis) -> list[dict]:
                 team_mapping[simplify_name(re.search(r"\((.*?)\)", name).group(1))] = data["id"]
         response.append(data)
 
-    if team_mapping:
+    if team_mapping and settings.ENABLE_ID_MAP_DB:
         await cache.hset("team", mapping=team_mapping, client=client)
     return response
 
@@ -465,15 +466,18 @@ async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis)
 
     team1_name = clean_string(team_names[0].get_text())
     team2_name = clean_string(team_names[1].get_text())
-    team_ids = await cache.hmget("team", [simplify_name(team1_name), simplify_name(team2_name)], client=client)
-    if not all(team_ids) and "TBD" not in (team1_name, team2_name):
-        match_data = await match_by_id(match_id, client)
-        team_ids = [team.id for team in match_data.teams]
-
-    team1_id, team2_id = team_ids
-
     event_name = clean_string(match_info.find("div", class_="match-item-event").get_text().split("\n")[-1])
-    event_id = await cache.hget("event", simplify_name(event_name), client=client)
+    team1_id = team2_id = event_id = None
+    if settings.ENABLE_ID_MAP_DB:
+        team_ids = await cache.hmget("team", [simplify_name(team1_name), simplify_name(team2_name)], client=client)
+        if team_ids and not all(team_ids) and "TBD" not in (team1_name, team2_name):
+            match_data = await match_by_id(match_id, client)
+            team_ids = [team.id for team in match_data.teams]
+
+        if team_ids:
+            team1_id, team2_id = team_ids
+
+        event_id = await cache.hget("event", simplify_name(event_name), client=client)
 
     return schemas.Match(
         team1=schemas.MatchTeam(

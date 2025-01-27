@@ -75,7 +75,8 @@ async def parse_event(event: element.Tag, client: Redis) -> schemas.Event:
         .replace("mod-", "")
     )
     img = get_image_url(event.find_all("div", class_="event-item-thumb")[0].find("img")["src"])
-    await cache.hset("event", {simplify_name(title): event_id}, client)
+    if settings.ENABLE_ID_MAP_DB:
+        await cache.hset("event", {simplify_name(title): event_id}, client)
     return schemas.Event(
         id=event_id,
         title=title,

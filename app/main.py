@@ -68,10 +68,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
     await connections.redis_pool.aclose()
 
 
+app_lifespan = None
+if settings.ENABLE_CACHE:
+    app_lifespan = lifespan
+
 app = FastAPI(
     title="Scraper",
     description="Scraper for VLR.gg that exposes a REST API for some data available there",
-    lifespan=lifespan,
+    lifespan=None,
 )
 app.add_middleware(BrotliMiddleware)
 
@@ -90,4 +94,5 @@ else:
     app.include_router(router, prefix="/api/v1")
     sentry_sdk.set_tag("api_key", "Unauthenticated")
 
-app.include_router(internal_router, prefix="/api/v1/internal", dependencies=[Depends(deps.verify_internal_token)])
+if settings.ENABLE_CACHE and settings.ENABLE_ID_MAP_DB:
+    app.include_router(internal_router, prefix="/api/v1/internal", dependencies=[Depends(deps.verify_internal_token)])

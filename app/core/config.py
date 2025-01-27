@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str
 
+    ENABLE_CACHE: bool = False
+    ENABLE_ID_MAP_DB: bool = False
+
     GOOGLE_APPLICATION_CREDENTIALS: str | None = None
 
     TIMEZONE: str

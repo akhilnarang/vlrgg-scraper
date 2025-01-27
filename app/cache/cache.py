@@ -1,5 +1,6 @@
 import redis.asyncio as redis
 
+from ..core.config import settings
 from ..core.connections import redis_pool
 
 
@@ -12,7 +13,7 @@ def get_client() -> redis.Redis:
     return redis.Redis(connection_pool=redis_pool)
 
 
-async def get(key: str, client: redis.Redis | None = None) -> str:
+async def get(key: str, client: redis.Redis | None = None) -> str | None:
     """
     Function to get a value from the cache
 
@@ -20,6 +21,9 @@ async def get(key: str, client: redis.Redis | None = None) -> str:
     :param client: A pre-existing redis client
     :return: The value from redis
     """
+    if not settings.ENABLE_CACHE:
+        return None
+
     if need_client := client is None:
         client = get_client()
     try:
@@ -39,6 +43,9 @@ async def set(key: str, value: str, ttl: int = 60, client: redis.Redis | None = 
     :param client: A pre-existing redis client
     :return: Nothing
     """
+    if not settings.ENABLE_CACHE:
+        return None
+
     if need_client := client is None:
         client = get_client()
     try:
@@ -48,7 +55,7 @@ async def set(key: str, value: str, ttl: int = 60, client: redis.Redis | None = 
             await client.aclose()
 
 
-async def hset(name: str, mapping: dict, client: redis.Redis | None = None) -> int:
+async def hset(name: str, mapping: dict, client: redis.Redis | None = None) -> int | None:
     """
     Function to set a value in the cache
 
@@ -57,6 +64,9 @@ async def hset(name: str, mapping: dict, client: redis.Redis | None = None) -> i
     :param client: A pre-existing redis client
     :return: Nothing
     """
+    if not settings.ENABLE_CACHE:
+        return None
+
     if need_client := client is None:
         client = get_client()
     try:
@@ -66,7 +76,7 @@ async def hset(name: str, mapping: dict, client: redis.Redis | None = None) -> i
             await client.aclose()
 
 
-async def hget(name: str, key: str, client: redis.Redis | None = None) -> str:
+async def hget(name: str, key: str, client: redis.Redis | None = None) -> str | None:
     """
     Function to get a value from the cache
 
@@ -75,6 +85,9 @@ async def hget(name: str, key: str, client: redis.Redis | None = None) -> str:
     :param client: A pre-existing redis client
     :return: The value from redis
     """
+    if not settings.ENABLE_CACHE:
+        return None
+
     if need_client := client is None:
         client = get_client()
     try:
@@ -84,7 +97,7 @@ async def hget(name: str, key: str, client: redis.Redis | None = None) -> str:
             await client.aclose()
 
 
-async def hmget(name: str, keys: list[str], client: redis.Redis | None = None) -> list:
+async def hmget(name: str, keys: list[str], client: redis.Redis | None = None) -> list | None:
     """
     Function to get a value from the cache
 
@@ -93,6 +106,9 @@ async def hmget(name: str, keys: list[str], client: redis.Redis | None = None) -
     :param client: A pre-existing redis client
     :return: The value from redis
     """
+    if not settings.ENABLE_CACHE:
+        return None
+
     if need_client := client is None:
         client = get_client()
     try:
