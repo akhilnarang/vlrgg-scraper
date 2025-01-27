@@ -6,7 +6,6 @@ from typing import AsyncIterator, Callable
 import redis.asyncio as redis
 import sentry_sdk
 from arq.connections import RedisSettings
-from brotli_asgi import BrotliMiddleware
 from fastapi import Depends, FastAPI, Response, Request
 from rich.logging import RichHandler
 from sentry_sdk.integrations.arq import ArqIntegration
@@ -77,7 +76,6 @@ app = FastAPI(
     description="Scraper for VLR.gg that exposes a REST API for some data available there",
     lifespan=None,
 )
-app.add_middleware(BrotliMiddleware)
 
 
 @app.middleware("http")
