@@ -75,7 +75,7 @@ if settings.ENABLE_CACHE:
 app = FastAPI(
     title="Scraper",
     description="Scraper for VLR.gg that exposes a REST API for some data available there",
-    lifespan=None,
+    lifespan=app_lifespan,
 )
 app.add_middleware(GZipMiddleware)
 
