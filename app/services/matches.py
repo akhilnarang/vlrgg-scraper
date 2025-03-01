@@ -15,7 +15,13 @@ from redis.asyncio import Redis
 from app import constants, schemas, cache
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
 from app.core.config import settings
-from app.utils import clean_number_string, clean_string, fix_datetime_tz, get_image_url, simplify_name
+from app.utils import (
+    clean_number_string,
+    clean_string,
+    fix_datetime_tz,
+    get_image_url,
+    simplify_name,
+)
 
 
 async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
@@ -29,7 +35,10 @@ async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
     async with httpx.AsyncClient() as client:
         response = await client.get(MATCH_URL_WITH_ID.format(id), timeout=20.0)
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+            raise HTTPException(
+                status_code=response.status_code,
+                detail="VLR.gg server returned an error",
+            )
 
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -79,19 +88,19 @@ async def get_team_data(data: ResultSet, client: Redis) -> list[dict]:
     team_mapping = {}
     for i, score in enumerate(match_score):
         name = clean_string(names[i].get_text())
-        data = {
+        team_data = {
             "name": name,
             "img": get_image_url(images[i].find("img")["src"]),
             "score": score,
         }
         if team_url := images[i].get("href"):
-            data["id"] = team_url.split("/")[2]
+            team_data["id"] = team_url.split("/")[2]
 
-        if name != "TBD":
-            team_mapping[simplify_name(name)] = data["id"]
-            # `JD Mall JDG Esports\n(JDG Esports)` == `JDG Esports`, apparently
-            if "(" in name and ")" in name:
-                team_mapping[simplify_name(re.search(r"\((.*?)\)", name).group(1))] = data["id"]
+            if name != "TBD":
+                team_mapping[simplify_name(name)] = team_data["id"]
+                # `JD Mall JDG Esports\n(JDG Esports)` == `JDG Esports`, apparently
+                if "(" in name and ")" in name:
+                    team_mapping[simplify_name(re.search(r"\((.*?)\)", name).group(1))] = team_data["id"]
         response.append(data)
 
     if team_mapping and settings.ENABLE_ID_MAP_DB:
@@ -387,7 +396,8 @@ async def get_upcoming_matches(redis_client: Redis) -> list[schemas.Match]:
         upcoming_matches_response = await client.get(UPCOMING_MATCHES_URL)
         if upcoming_matches_response.status_code != http.HTTPStatus.OK:
             raise HTTPException(
-                status_code=upcoming_matches_response.status_code, detail="VLR.gg server returned an error"
+                status_code=upcoming_matches_response.status_code,
+                detail="VLR.gg server returned an error",
             )
 
     upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "lxml")
@@ -410,7 +420,8 @@ async def get_completed_matches(redis_client: Redis) -> list[schemas.Match]:
         previous_matches_response = await client.get(PAST_MATCHES_URL)
         if previous_matches_response.status_code != http.HTTPStatus.OK:
             raise HTTPException(
-                status_code=previous_matches_response.status_code, detail="VLR.gg server returned an error"
+                status_code=previous_matches_response.status_code,
+                detail="VLR.gg server returned an error",
             )
 
     previous_matches = BeautifulSoup(previous_matches_response.content, "lxml")
@@ -469,7 +480,11 @@ async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis)
     event_name = clean_string(match_info.find("div", class_="match-item-event").get_text().split("\n")[-1])
     team1_id = team2_id = event_id = None
     if settings.ENABLE_ID_MAP_DB:
-        team_ids = await cache.hmget("team", [simplify_name(team1_name), simplify_name(team2_name)], client=client)
+        team_ids = await cache.hmget(
+            "team",
+            [simplify_name(team1_name), simplify_name(team2_name)],
+            client=client,
+        )
         if team_ids and not all(team_ids) and "TBD" not in (team1_name, team2_name):
             match_data = await match_by_id(match_id, client)
             team_ids = [team.id for team in match_data.teams]
