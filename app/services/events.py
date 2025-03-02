@@ -341,7 +341,11 @@ def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
             columns = row.find_all("td")
             if len(columns) < 7:
                 img = columns[0].find("img").get("src")
-                team, country = (clean_string(s) for s in columns[0].get_text().split("\n") if s)
+                team, country = (
+                    clean_string(s)
+                    for s in columns[0].find("div", class_="event-group-team-name text-of").get_text().split("\n")
+                    if s
+                )
                 wins, losses = map(int, clean_string(columns[1].get_text()).split("–"))
                 ties = 0  # TODO: figure out if there's anything for this
                 map_difference = clean_number_string(columns[2].get_text())
@@ -349,7 +353,11 @@ def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
                 round_delta = clean_number_string(columns[4].get_text())
             else:
                 img = columns[0].find("img").get("src")
-                team, country = (clean_string(s) for s in columns[0].get_text().split("\n") if s)
+                team, country = (
+                    clean_string(s)
+                    for s in columns[0].find("div", class_="event-group-team-name text-of").get_text().split("\n")
+                    if s
+                )
                 wins = clean_number_string(columns[1].get_text())
                 losses = clean_number_string(columns[2].get_text())
                 ties = clean_number_string(columns[3].get_text())
