@@ -305,13 +305,9 @@ def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
                 columns = row.find_all("td")
                 img = columns[0].find("img").get("src")
                 team, country = (
-                    s
-                    for s in columns[0]
-                    .find("div", class_="event-group-team-name text-of")
-                    .get_text()
-                    .split("\n")
-                    .strip()
-                    if s
+                    s.strip()
+                    for s in columns[0].find("div", class_="event-group-team-name text-of").get_text().split("\n")
+                    if s.strip()
                 )
                 if len(columns) > 5:
                     wins = clean_number_string(columns[1].get_text())
