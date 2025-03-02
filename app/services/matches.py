@@ -101,7 +101,7 @@ async def get_team_data(data: ResultSet, client: Redis) -> list[dict]:
                 # `JD Mall JDG Esports\n(JDG Esports)` == `JDG Esports`, apparently
                 if "(" in name and ")" in name:
                     team_mapping[simplify_name(re.search(r"\((.*?)\)", name).group(1))] = team_data["id"]
-        response.append(data)
+        response.append(team_data)
 
     if team_mapping and settings.ENABLE_ID_MAP_DB:
         await cache.hset("team", mapping=team_mapping, client=client)
