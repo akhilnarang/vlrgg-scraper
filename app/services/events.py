@@ -304,12 +304,15 @@ def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
             for row in table.find("tbody").find_all("tr"):
                 columns = row.find_all("td")
                 img = columns[0].find("img").get("src")
-                team, country = (
-                    s.strip()
-                    for s in columns[0].find("div", class_="event-group-team-name text-of").get_text().split("\n")
-                    if s.strip()
-                )
-                if len(columns) > 5:
+                ties = 0  # TODO: figure out if there's anything for this for the "smaller" tables
+                if len(columns) == 6:
+                    team_data = columns[1].find("div", class_="event-group-team-name text-of")
+                    wins, losses = map(int, clean_string(columns[2].get_text()).split("–"))
+                    map_difference = clean_number_string(columns[3].get_text())
+                    round_difference = clean_number_string(columns[4].get_text())
+                    round_delta = clean_number_string(columns[5].get_text())
+                elif len(columns) > 5:
+                    team_data = columns[0].find("div", class_="event-group-team-name text-of")
                     wins = clean_number_string(columns[1].get_text())
                     losses = clean_number_string(columns[2].get_text())
                     ties = clean_number_string(columns[3].get_text())
@@ -317,11 +320,12 @@ def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
                     round_difference = clean_number_string(columns[5].get_text())
                     round_delta = clean_number_string(columns[6].get_text())
                 else:
+                    team_data = columns[0].find("div", class_="event-group-team-name text-of")
                     wins, losses = map(int, clean_string(columns[1].get_text()).split("–"))
-                    ties = 0  # TODO: figure out if there's anything for this
                     map_difference = clean_number_string(columns[2].get_text())
                     round_difference = clean_number_string(columns[3].get_text())
                     round_delta = clean_number_string(columns[4].get_text())
+                team, country = (s.strip() for s in team_data.get_text().split("\n") if s.strip())
                 event_standings.append(
                     {
                         "group": group,
