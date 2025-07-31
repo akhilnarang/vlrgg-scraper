@@ -443,21 +443,20 @@ async def parse_matches(dates: ResultSet, match_data: ResultSet, client: Redis) 
     :return: The parsed matches
     """
 
-    return list(
-        await gather(
-            *[
+    return [
+        match
+        for match in await gather(
+            *(
                 parse_match(date, match_info, client)
-                for date, match_info in [
-                    (date, match)
-                    for date, matches in zip(dates, match_data[1:])
-                    for match in matches.find_all("a", class_="wf-module-item")
-                ]
-            ]
+                for date, matches in zip(dates, match_data[1:])
+                for match_info in matches.find_all("a", class_="wf-module-item")
+            )
         )
-    )
+        if match is not None
+    ]
 
 
-async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis) -> schemas.Match:
+async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis) -> schemas.Match | None:
     """
     Function to parse a given match
     :param date: The match's date
@@ -493,6 +492,9 @@ async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis)
             team1_id, team2_id = team_ids
 
         event_id = await cache.hget("event", simplify_name(event_name), client=client)
+
+        if event_id is None:
+            return None  # Skip this match if event_id is missing
 
     return schemas.Match(
         team1=schemas.MatchTeam(
