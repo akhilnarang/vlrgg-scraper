@@ -66,13 +66,15 @@ def clean_number_string(value: str | None) -> int | float:
     return 0
 
 
-def add_protocol_to_url(url: str) -> str:
+def add_protocol_to_url(url: str | None) -> str:
     """
     Function to add a protocol to a URL if it does not already have one
 
     :param url: The URL to check
     :return: The URL with a protocol
     """
+    if not url:
+        return "https://example.com"  # Fallback URL for None/empty cases
     if not url.startswith("http"):
         return f"https://{url}"
     return url

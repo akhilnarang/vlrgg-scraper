@@ -16,6 +16,7 @@ from app import constants, schemas, cache
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
 from app.core.config import settings
 from app.utils import (
+    add_protocol_to_url,
     clean_number_string,
     clean_string,
     fix_datetime_tz,
@@ -171,13 +172,13 @@ async def get_video_data(data: element.Tag) -> dict[str, list]:
         "streams": [
             {
                 "name": name.get_text().strip(),
-                "url": url.get("href"),
+                "url": add_protocol_to_url(url.get("href")),
             }
             for stream in data.find("div", class_="match-streams").find_all("div", class_="wf-card")
             if (name := stream.find("span")) and (url := stream.find("a", class_="match-streams-btn-external"))
         ],
         "vods": [
-            {"name": vod.get_text().strip(), "url": vod.get("href")}
+            {"name": vod.get_text().strip(), "url": add_protocol_to_url(vod.get("href"))}
             for vod in data.find("div", class_="match-vods").find_all("a", class_="wf-card")
         ],
     }
@@ -186,7 +187,7 @@ async def get_video_data(data: element.Tag) -> dict[str, list]:
         [
             {
                 "name": stream.find("span").get_text().strip(),
-                "url": stream.get("href"),
+                "url": add_protocol_to_url(stream.get("href")),
             }
             for stream in data.find_all("a", class_="match-streams-btn")
             if stream.find("span")
