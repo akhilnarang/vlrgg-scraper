@@ -175,7 +175,7 @@ async def get_video_data(data: element.Tag) -> dict[str, list]:
                 "url": normalized_url,
             }
             for stream in data.find("div", class_="match-streams").find_all("div", class_="wf-card")
-            if (name := stream.find("span")) 
+            if (name := stream.find("span"))
             and (url := stream.find("a", class_="match-streams-btn-external"))
             and (normalized_url := add_protocol_to_url(url.get("href"))) is not None
         ],
@@ -193,8 +193,7 @@ async def get_video_data(data: element.Tag) -> dict[str, list]:
                 "url": normalized_url,
             }
             for stream in data.find_all("a", class_="match-streams-btn")
-            if stream.find("span") 
-            and (normalized_url := add_protocol_to_url(stream.get("href"))) is not None
+            if stream.find("span") and (normalized_url := add_protocol_to_url(stream.get("href"))) is not None
         ]
     )
 
