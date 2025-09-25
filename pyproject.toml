@@ -22,8 +22,8 @@ dependencies = [
     "rich",
 ]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "mypy",
     "types-python-dateutil",
     "ruff",
