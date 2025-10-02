@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from pydantic import HttpUrl
 
 from app import schemas, utils
-from app.constants import STANDINGS_URL
+import app.constants as constants
 
 
 async def standings_list(year: int) -> schemas.Standings:
@@ -15,8 +15,8 @@ async def standings_list(year: int) -> schemas.Standings:
     :param year: The VCT year
     :return: The parsed standings
     """
-    async with httpx.AsyncClient() as client:
-        response = await client.get(STANDINGS_URL.format(year))
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+        response = await client.get(constants.STANDINGS_URL.format(year))
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 

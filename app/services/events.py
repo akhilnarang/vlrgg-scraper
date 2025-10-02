@@ -7,13 +7,13 @@ from zoneinfo import ZoneInfo
 
 import dateutil.parser
 import httpx
-from bs4 import BeautifulSoup, element
+from bs4 import BeautifulSoup, Tag
 from fastapi import HTTPException, status
 from pydantic import HttpUrl
 from redis.asyncio import Redis
 
-from app import constants, schemas, cache
-from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL, EventStatus, MatchStatus
+from app import schemas, cache
+import app.constants as constants
 from app.core.config import settings
 from app.utils import clean_number_string, clean_string, get_image_url, simplify_name
 
@@ -25,7 +25,7 @@ class ParsedEventData(TypedDict):
     dates: str
     prize: str
     location: str
-    status: EventStatus
+    status: constants.EventStatus
     img: HttpUrl
     prizes: list
     teams: list
@@ -40,8 +40,8 @@ async def get_events(cache_client: Redis) -> list[schemas.Event]:
     :param cache_client: A redis client instance
     :return: Parsed list of events
     """
-    async with httpx.AsyncClient() as client:
-        response = await client.get(EVENTS_URL)
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+        response = await client.get(constants.EVENTS_URL)
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
@@ -60,7 +60,7 @@ async def get_events(cache_client: Redis) -> list[schemas.Event]:
     )
 
 
-async def convert_to_list(events: element.Tag, client: Redis) -> list[schemas.Event]:
+async def convert_to_list(events: Tag, client: Redis) -> list[schemas.Event]:
     """
     Parse a list of events
 
@@ -71,7 +71,7 @@ async def convert_to_list(events: element.Tag, client: Redis) -> list[schemas.Ev
     return list(await asyncio.gather(*[parse_event(event, client) for event in events.find_all("a", class_="wf-card")]))
 
 
-async def parse_event(event: element.Tag, client: Redis) -> schemas.Event:
+async def parse_event(event: Tag, client: Redis) -> schemas.Event:
     """
     Parse an event
 
@@ -134,8 +134,8 @@ async def parse_events_data(id: str) -> ParsedEventData:
     :param id: The ID of the event
     :ret: Dict of the parsed data
     """
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(EVENT_URL_WITH_ID.format(id))
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+        response = await client.get(constants.EVENT_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
@@ -169,14 +169,14 @@ async def parse_events_data(id: str) -> ParsedEventData:
 
     match len(match_data):
         case 2:
-            event["status"] = EventStatus.ONGOING
+            event["status"] = constants.EventStatus.ONGOING
         case 1:
             if clean_string(match_data[0].get_text()).split(" ")[0].lower() == "upcoming":
-                event["status"] = EventStatus.UPCOMING
+                event["status"] = constants.EventStatus.UPCOMING
             else:
-                event["status"] = EventStatus.COMPLETED
+                event["status"] = constants.EventStatus.COMPLETED
         case _:
-            event["status"] = EventStatus.UNKNOWN
+            event["status"] = constants.EventStatus.UNKNOWN
 
     event["standings"] = parse_event_standings(soup.find("div", class_="event-container"))
     return cast(ParsedEventData, event)
@@ -184,7 +184,7 @@ async def parse_events_data(id: str) -> ParsedEventData:
 
 async def parse_match_data(id: str) -> list:
     async with httpx.AsyncClient(timeout=15.0) as client:
-        response = await client.get(EVENT_URL_WITH_ID_MATCHES.format(id))
+        response = await client.get(constants.EVENT_URL_WITH_ID_MATCHES.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
@@ -207,7 +207,7 @@ async def parse_match_data(id: str) -> list:
 
 
 async def prizes_parser(
-    prizes_table: element.Tag,
+    prizes_table: Tag,
 ) -> list[dict[str, str | dict[str, str]]]:
     """
     Parse prize data
@@ -239,7 +239,7 @@ async def prizes_parser(
     return prizes
 
 
-async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, str | list[str]]]:
+async def match_parser(day_matches: Tag, date: str) -> list[dict[str, str | list[str]]]:
     """
     Parse match data
     :param day_matches: The HTML
@@ -282,7 +282,7 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
                 data["score"] = int(score_data)
             team_data.append(data)
         match["teams"] = team_data
-        if match["status"] not in (MatchStatus.LIVE, MatchStatus.TBD):
+        if match["status"] not in (constants.MatchStatus.LIVE, constants.MatchStatus.TBD):
             match["eta"] = clean_string(match_data.find_all("div", class_="ml-eta")[0].get_text())
 
         match_item_event = (
@@ -294,7 +294,7 @@ async def match_parser(day_matches: element.Tag, date: str) -> list[dict[str, st
     return matches
 
 
-async def parse_team_data(team_data: element.Tag) -> list[dict[str, str]]:
+async def parse_team_data(team_data: Tag) -> list[dict[str, str]]:
     """
     Function to parse team data
     :param team_data: The HTML
@@ -325,7 +325,7 @@ async def parse_team_data(team_data: element.Tag) -> list[dict[str, str]]:
     return participants
 
 
-def parse_event_standings(data: element.Tag) -> list[dict[str, str | int]]:
+def parse_event_standings(data: Tag) -> list[dict[str, str | int]]:
     event_standings = []
     if event_groups := data.find("div", class_="event-groups-container"):
         for table in event_groups.find_all("table", class_="wf-table mod-simple mod-group"):

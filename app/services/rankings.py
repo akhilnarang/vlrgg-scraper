@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from fastapi import HTTPException
 
 from app import schemas, utils
-from app.constants import RANKING_URL_REGION, RANKINGS_URL, REGION_NAME_MAPPING
+import app.constants as constants
 
 
 async def ranking_list() -> list[schemas.Ranking]:
@@ -15,8 +15,8 @@ async def ranking_list() -> list[schemas.Ranking]:
 
     :return: The parsed ranks
     """
-    async with httpx.AsyncClient() as client:
-        response = await client.get(RANKINGS_URL)
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+        response = await client.get(constants.RANKINGS_URL)
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
@@ -41,15 +41,15 @@ async def parse_rankings(path: str) -> schemas.Ranking:
     :param path: The path to the region's page on VLR
     :return: The parsed data
     """
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(RANKING_URL_REGION.format(path))
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+        response = await client.get(constants.RANKING_URL_REGION.format(path))
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
     soup = BeautifulSoup(response.content, "lxml")
 
     region_name = path.split("/")[-1]
-    region_name = REGION_NAME_MAPPING.get(region_name.lower()) or " ".join(region_name.split("-")).title()
+    region_name = constants.REGION_NAME_MAPPING.get(region_name.lower()) or " ".join(region_name.split("-")).title()
 
     return schemas.Ranking(
         region=region_name,
