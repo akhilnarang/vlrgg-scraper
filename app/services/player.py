@@ -4,7 +4,7 @@ import http
 import httpx
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet
-from fastapi import HTTPException
+from app.exceptions import ScrapingError
 
 from app import schemas
 import app.constants as constants
@@ -21,7 +21,7 @@ async def get_player_data(id: str) -> schemas.Player:
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.PLAYER_URL.format(id))
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+            raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
     player_info = soup.find("div", class_="player-header")

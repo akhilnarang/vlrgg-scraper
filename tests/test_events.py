@@ -4,6 +4,7 @@ from pathlib import Path
 
 from app.services import events
 from app.constants import EventStatus
+from app.exceptions import ScrapingError
 
 
 @pytest.mark.asyncio
@@ -67,3 +68,21 @@ async def test_get_event_by_id():
     assert result.location == "Accor Arena, Paris"
     assert str(result.img) == "https://owcdn.net/img/63067806d167d.png"
     assert isinstance(result.matches, list)
+
+
+@pytest.mark.asyncio
+async def test_get_events_scraping_error():
+    """Test that ScrapingError is raised when VLR.gg returns a bad response."""
+    # Mock the HTTP response with bad status
+    mock_response = AsyncMock()
+    mock_response.status_code = 500
+
+    # Mock Redis client
+    mock_redis = AsyncMock()
+
+    with patch("httpx.AsyncClient.get", return_value=mock_response):
+        with pytest.raises(ScrapingError) as exc_info:
+            await events.get_events(mock_redis)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.detail == "VLR.gg server returned an error"

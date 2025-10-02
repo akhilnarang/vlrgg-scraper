@@ -1,7 +1,7 @@
 import http
 import httpx
 from bs4 import BeautifulSoup
-from fastapi import HTTPException
+from app.exceptions import ScrapingError
 from pydantic import HttpUrl
 
 from app import schemas, utils
@@ -18,7 +18,7 @@ async def standings_list(year: int) -> schemas.Standings:
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.STANDINGS_URL.format(year))
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+            raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
 

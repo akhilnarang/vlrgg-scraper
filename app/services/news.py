@@ -5,7 +5,7 @@ import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString
-from fastapi import HTTPException
+from app.exceptions import ScrapingError
 
 from app import schemas
 import app.constants as constants
@@ -56,7 +56,7 @@ async def news_list() -> list[schemas.NewsItem]:
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.NEWS_URL)
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+            raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -84,7 +84,7 @@ async def news_by_id(id: str) -> schemas.NewsArticle:
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.NEWS_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+            raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
 
