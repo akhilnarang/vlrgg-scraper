@@ -7,9 +7,9 @@ from app.constants import EventStatus, MatchStatus
 
 # Response for `GET /api/v1/events`
 class Event(BaseModel):
-    id: int
+    id: str
     title: str
-    status: str
+    status: EventStatus
     prize: str
     dates: str
     location: str

@@ -34,3 +34,6 @@ dev = [
 [tool.ruff]
 line-length = 120
 exclude = ["__init__.py"]
+
+[tool.pytest.ini_options]
+pythonpath = "."
