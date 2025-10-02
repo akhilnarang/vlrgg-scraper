@@ -27,6 +27,8 @@ dev = [
     "mypy",
     "types-python-dateutil",
     "ruff",
+    "pytest",
+    "pytest-asyncio",
 ]
 
 [tool.ruff]

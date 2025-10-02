@@ -32,6 +32,8 @@ RANKING_URL_REGION = f"{PREFIX}{{}}"
 
 SEARCH_URL = f"{PREFIX}/search?q={{}}&type={{}}"
 
+STANDINGS_URL = f"{PREFIX}/vct-{{}}/standings"
+
 TBD = "tbd"
 
 

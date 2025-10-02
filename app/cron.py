@@ -15,7 +15,7 @@ from sentry_sdk import get_current_scope
 
 from app.constants import MatchStatus
 from app.core.config import settings
-from app.services import events, matches, news, rankings
+from app.services import events, matches, news, rankings, standings
 
 
 async def fcm_notification_cron(ctx: dict) -> None:
@@ -156,6 +156,24 @@ async def news_cron(ctx: dict) -> None:
     )
 
 
+async def standings_cron(ctx: dict) -> None:
+    """
+    Function to fetch standings from VLR and update the cache
+    :param ctx: Context dict
+    :return: Nothing
+    """
+    get_current_scope().set_transaction_name("Standings Cron")
+    client = ctx["redis"]
+    current_year = datetime.now().year
+
+    result = await standings.standings_list(current_year)
+    await client.set(
+        f"standings_{current_year}",
+        result.model_dump_json(),
+        ex=3600,  # 1 hour TTL
+    )
+
+
 class ArqWorker:
     def __init__(self) -> None:
         self.worker: Worker | None = None
@@ -171,6 +189,7 @@ class ArqWorker:
             ),
             cron("app.cron.events_cron", hour=None, minute={0, 30}),
             cron("app.cron.news_cron", hour=None, minute={0, 30}),
+            cron("app.cron.standings_cron", hour=0, minute=0),
         ]
 
         # Only try to run the FCM cron if we have a service account JSON

@@ -4,6 +4,7 @@ from .news import NewsItem
 from .player import Player
 from .rankings import Ranking, TeamRanking
 from .search import SearchResult
+from .standings import *
 from .team import Team
 from .version import VersionResponse
 from .internal import TeamCache
