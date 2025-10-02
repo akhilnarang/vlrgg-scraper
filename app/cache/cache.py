@@ -27,7 +27,7 @@ async def get(key: str, client: redis.Redis | None = None) -> str | None:
     if need_client := client is None:
         client = get_client()
     try:
-        return await client.get(key)
+        return await client.get(key)  # type: ignore
     finally:
         if need_client:
             await client.aclose()
@@ -49,7 +49,7 @@ async def set(key: str, value: str, ttl: int = 60, client: redis.Redis | None = 
     if need_client := client is None:
         client = get_client()
     try:
-        return await client.set(key, value, ttl)
+        return await client.set(key, value, ttl)  # type: ignore
     finally:
         if need_client:
             await client.aclose()
@@ -70,7 +70,7 @@ async def hset(name: str, mapping: dict, client: redis.Redis | None = None) -> i
     if need_client := client is None:
         client = get_client()
     try:
-        return await client.hset(name, mapping=mapping)
+        return await client.hset(name, mapping=mapping)  # type: ignore
     finally:
         if need_client:
             await client.aclose()
@@ -91,7 +91,7 @@ async def hget(name: str, key: str, client: redis.Redis | None = None) -> str | 
     if need_client := client is None:
         client = get_client()
     try:
-        return await client.hget(name, key)
+        return await client.hget(name, key)  # type: ignore
     finally:
         if need_client:
             await client.aclose()
@@ -112,7 +112,7 @@ async def hmget(name: str, keys: list[str], client: redis.Redis | None = None) -
     if need_client := client is None:
         client = get_client()
     try:
-        return await client.hmget(name, keys)
+        return await client.hmget(name, keys)  # type: ignore
     finally:
         if need_client:
             await client.aclose()

@@ -58,8 +58,8 @@ Scheduled background jobs using arq:
 - Run with verbose output: `uv run pytest -v`
 
 ## Linting and Type Checking
-- Lint code: `./scripts/lint.sh` (runs mypy and ruff check)
-- Type check only: `uv run mypy app/`
+- Lint code: `./scripts/lint.sh` (runs ty and ruff check)
+- Type check only: `ty check app/`
 - Lint only: `uv run ruff check app/`
 
 ## Formatting
@@ -91,7 +91,7 @@ Scheduled background jobs using arq:
 ## Development Workflow
 1. Local development: `uv run fastapi dev` with auto-reload
 2. Testing: `uv run pytest` with coverage
-3. Linting: `./scripts/lint.sh` and `uv run mypy`
+3. Linting: `./scripts/lint.sh` and `ty check`
 4. Formatting: `./scripts/format.sh`
 5. Documentation: Auto-generated OpenAPI docs at `/docs`
 

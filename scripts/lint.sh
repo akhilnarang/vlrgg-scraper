@@ -8,5 +8,5 @@ if [[ -z "$path" ]]; then
 fi
 
 # Lint
-uv run mypy $path --explicit-package-bases
+ty check $path
 uv run ruff check $path

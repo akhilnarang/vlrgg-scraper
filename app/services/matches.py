@@ -100,7 +100,9 @@ async def get_team_data(data: ResultSet, client: Redis) -> list[dict]:
                 team_mapping[simplify_name(name)] = team_data["id"]
                 # `JD Mall JDG Esports\n(JDG Esports)` == `JDG Esports`, apparently
                 if "(" in name and ")" in name:
-                    team_mapping[simplify_name(re.search(r"\((.*?)\)", name).group(1))] = team_data["id"]
+                    match = re.search(r"\((.*?)\)", name)
+                    if match:
+                        team_mapping[simplify_name(match.group(1))] = team_data["id"]
         response.append(team_data)
 
     if team_mapping and settings.ENABLE_ID_MAP_DB:
@@ -466,16 +468,17 @@ async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis)
     :param match_info: The match to parse
     :return: The parsed match
     """
-    match_id = match_info.get("href").split("/")[1]
+    href = match_info.get("href")
+    match_id = href.split("/")[1] if href else ""
     team_names = match_info.find_all("div", class_="text-of")
     team_scores = match_info.find_all("div", class_="match-item-vs-team-score")
     status = match_info.find("div", class_="ml-status").get_text().strip().lower()
-    date = clean_string(date.get_text().split("\n")[1])
+    parsed_date = clean_string(date.get_text().split("\n")[1])
     time = clean_string(match_info.find("div", class_="match-item-time").get_text())
     if time.lower() == constants.TBD:
-        date_string = date
+        date_string = parsed_date
     else:
-        date_string = date + " " + time
+        date_string = parsed_date + " " + time
 
     team1_name = clean_string(team_names[0].get_text())
     team2_name = clean_string(team_names[1].get_text())
@@ -511,7 +514,7 @@ async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis)
             score=await parse_score(team_scores[1]),
         ),
         status=status,
-        time=fix_datetime_tz(dateutil.parser.parse(date_string, ignoretz=True)),
+        time=fix_datetime_tz(dateutil.parser.parse(date_string, ignoretz=True)),  # type: ignore
         id=match_id,
         event=event_name,
         series=clean_string(match_info.find("div", class_="match-item-event-series").get_text()),

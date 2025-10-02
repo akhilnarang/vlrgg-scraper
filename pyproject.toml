@@ -24,11 +24,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "mypy",
-    "types-python-dateutil",
     "ruff",
     "pytest",
     "pytest-asyncio",
+    "ty",
 ]
 
 [tool.ruff]
