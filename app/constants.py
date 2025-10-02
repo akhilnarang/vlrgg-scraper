@@ -69,3 +69,12 @@ class SearchCategory(str, Enum):
     PLAYER = "players"
     EVENT = "events"
     SERIES = "series"
+
+
+# Timeouts and TTLs (in seconds)
+REQUEST_TIMEOUT = 30.0
+CACHE_TTL_RANKINGS = 3600  # 1 hour
+CACHE_TTL_MATCHES = 300  # 5 minutes
+CACHE_TTL_EVENTS = 1800  # 30 minutes
+CACHE_TTL_NEWS = 1800  # 30 minutes
+CACHE_TTL_STANDINGS = 3600  # 1 hour

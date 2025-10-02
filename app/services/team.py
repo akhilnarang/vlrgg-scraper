@@ -3,11 +3,11 @@ import http
 
 import dateutil.parser
 import httpx
-from bs4 import BeautifulSoup, element
+from bs4 import BeautifulSoup, Tag
 from fastapi import HTTPException
 
 from app import schemas, utils
-from app.constants import TEAM_COMPLETED_MATCHES_URL, TEAM_UPCOMING_MATCHES_URL, TEAM_URL
+import app.constants as constants
 
 
 async def get_team_data(id: str) -> schemas.Team:
@@ -17,11 +17,11 @@ async def get_team_data(id: str) -> schemas.Team:
     :return: The parsed data
     """
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response, upcoming_matches_response, completed_matches_response = await asyncio.gather(
-            client.get(TEAM_URL.format(id)),
-            client.get(TEAM_UPCOMING_MATCHES_URL.format(id)),
-            client.get(TEAM_COMPLETED_MATCHES_URL.format(id)),
+            client.get(constants.TEAM_URL.format(id)),
+            client.get(constants.TEAM_UPCOMING_MATCHES_URL.format(id)),
+            client.get(constants.TEAM_COMPLETED_MATCHES_URL.format(id)),
         )
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
@@ -101,7 +101,7 @@ async def get_team_data(id: str) -> schemas.Team:
     )
 
 
-async def parse_player(player_data: element.Tag) -> dict:
+async def parse_player(player_data: Tag) -> dict:
     """
     Function to parse a player's data from VLR
     :param player_data: The HTML data
@@ -122,7 +122,7 @@ async def parse_player(player_data: element.Tag) -> dict:
     return response
 
 
-async def parse_match(match_data: element.Tag) -> dict:
+async def parse_match(match_data: Tag) -> dict:
     """
     Function to parse a match's data from VLR
     :param match_data: The HTML data

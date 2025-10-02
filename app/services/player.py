@@ -2,11 +2,12 @@ import asyncio
 import http
 
 import httpx
-from bs4 import BeautifulSoup, element
+from bs4 import BeautifulSoup
+from bs4.element import ResultSet
 from fastapi import HTTPException
 
 from app import schemas
-from app.constants import PLAYER_URL
+import app.constants as constants
 from app.utils import clean_number_string, expand_url, get_image_url
 
 
@@ -17,8 +18,8 @@ async def get_player_data(id: str) -> schemas.Player:
     :return: The parsed data
     """
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(PLAYER_URL.format(id))
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+        response = await client.get(constants.PLAYER_URL.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
@@ -73,7 +74,7 @@ async def get_player_data(id: str) -> schemas.Player:
     return schemas.Player.model_validate(player_data)
 
 
-async def parse_agent_data(agent_data: element.ResultSet) -> dict:
+async def parse_agent_data(agent_data: ResultSet) -> dict:
     """
     Function to parse agent data from a player's page on VLR
     :param agent_data: An agent table row

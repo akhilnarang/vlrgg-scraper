@@ -3,12 +3,12 @@ import http
 
 import dateutil.parser
 import httpx
-from bs4 import BeautifulSoup, element, Tag
+from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString
 from fastapi import HTTPException
 
 from app import schemas
-from app.constants import NEWS_URL, NEWS_URL_WITH_ID, PREFIX
+import app.constants as constants
 from app.utils import expand_url, fix_datetime_tz, get_image_url
 
 
@@ -53,8 +53,8 @@ async def news_list() -> list[schemas.NewsItem]:
     Function to parse a list of matches from the VLR.gg homepage
     :return: The parsed matches
     """
-    async with httpx.AsyncClient() as client:
-        response = await client.get(NEWS_URL)
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+        response = await client.get(constants.NEWS_URL)
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
@@ -63,11 +63,11 @@ async def news_list() -> list[schemas.NewsItem]:
     return list(await asyncio.gather(*[parse_news(news) for news in soup.find_all("a", class_="wf-module-item")]))
 
 
-async def parse_news(data: element.Tag) -> schemas.NewsItem:
+async def parse_news(data: Tag) -> schemas.NewsItem:
     title, description, metadata = [item.get_text().strip() for item in data.find_all("div")[0].find_all("div")]
     metadata = metadata.split("•")
     return schemas.NewsItem(
-        url=f"{PREFIX}{data['href']}",
+        url=f"{constants.PREFIX}{data['href']}",
         title=title,
         description=description,
         author=metadata[-1].replace("by", "").strip(),
@@ -81,8 +81,8 @@ async def news_by_id(id: str) -> schemas.NewsArticle:
     :param id: The news article ID
     :return: The parsed news article
     """
-    async with httpx.AsyncClient() as client:
-        response = await client.get(NEWS_URL_WITH_ID.format(id))
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+        response = await client.get(constants.NEWS_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 

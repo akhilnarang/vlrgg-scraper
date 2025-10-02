@@ -6,13 +6,13 @@ from itertools import chain
 
 import dateutil.parser
 import httpx
-from bs4 import BeautifulSoup, element
+from bs4 import BeautifulSoup, Tag
 from bs4.element import ResultSet
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app import constants, schemas, cache
-from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
+from app import schemas, cache
+import app.constants as constants
 from app.core.config import settings
 from app.utils import (
     clean_number_string,
@@ -32,8 +32,8 @@ async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
     :param redis_client: A redis instance
     :return: The parsed match
     """
-    async with httpx.AsyncClient() as client:
-        response = await client.get(MATCH_URL_WITH_ID.format(id), timeout=20.0)
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+        response = await client.get(constants.MATCH_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(
                 status_code=response.status_code,
@@ -163,7 +163,7 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
     return ret
 
 
-async def get_video_data(data: element.Tag) -> dict[str, list]:
+async def get_video_data(data: Tag) -> dict[str, list]:
     """
     Function to extract information about stream/VOD links from a match page on VLR
     :param data: The data about the videos
@@ -308,7 +308,7 @@ async def get_map_data(data: ResultSet) -> tuple[list, int]:
     return map_ret, map_count
 
 
-async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str]) -> list:
+async def parse_scoreboard(data: Tag, team_name_mapping: dict[str, str]) -> list:
     ret = []
     for player in data.find_all("tr"):
         data = player.find_all("td", class_="mod-player")[0]
@@ -343,7 +343,7 @@ async def parse_scoreboard(data: element.Tag, team_name_mapping: dict[str, str])
     return ret
 
 
-async def get_previous_encounters_data(data: element.Tag) -> list[dict]:
+async def get_previous_encounters_data(data: Tag) -> list[dict]:
     """
     :param data: Previous encounters data
     :return: List of match IDs
@@ -397,8 +397,8 @@ async def get_upcoming_matches(redis_client: Redis) -> list[schemas.Match]:
     :param redis_client: A redis instance
     :return: The list of matches
     """
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        upcoming_matches_response = await client.get(UPCOMING_MATCHES_URL)
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+        upcoming_matches_response = await client.get(constants.UPCOMING_MATCHES_URL)
         if upcoming_matches_response.status_code != http.HTTPStatus.OK:
             raise HTTPException(
                 status_code=upcoming_matches_response.status_code,
@@ -421,8 +421,8 @@ async def get_completed_matches(redis_client: Redis) -> list[schemas.Match]:
     :param redis_client: A redis instance
     :return: The list of matches
     """
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        previous_matches_response = await client.get(PAST_MATCHES_URL)
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+        previous_matches_response = await client.get(constants.PAST_MATCHES_URL)
         if previous_matches_response.status_code != http.HTTPStatus.OK:
             raise HTTPException(
                 status_code=previous_matches_response.status_code,
@@ -461,7 +461,7 @@ async def parse_matches(dates: ResultSet, match_data: ResultSet, client: Redis) 
     ]
 
 
-async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis) -> schemas.Match | None:
+async def parse_match(date: Tag, match_info: Tag, client: Redis) -> schemas.Match | None:
     """
     Function to parse a given match
     :param date: The match's date
@@ -522,7 +522,7 @@ async def parse_match(date: element.Tag, match_info: element.Tag, client: Redis)
     )
 
 
-async def parse_score(data: element.Tag) -> int | None:
+async def parse_score(data: Tag) -> int | None:
     """
     Function that takes in a tag to parse the score
     :param data: The tag

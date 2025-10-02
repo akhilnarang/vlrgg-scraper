@@ -2,10 +2,11 @@ import asyncio
 import http
 
 import httpx
-from bs4 import BeautifulSoup, element
+from bs4 import BeautifulSoup, Tag
 from fastapi import HTTPException
 
-from app import schemas, constants, utils
+from app import schemas, utils
+import app.constants as constants
 
 
 async def get_data(search_category: constants.SearchCategory, search_term: str) -> list[schemas.SearchResult]:
@@ -17,7 +18,7 @@ async def get_data(search_category: constants.SearchCategory, search_term: str) 
     :return: The parsed data
     """
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.SEARCH_URL.format(search_term, search_category))
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
@@ -26,7 +27,7 @@ async def get_data(search_category: constants.SearchCategory, search_term: str) 
     return list(await asyncio.gather(*[parse_result(result) for result in soup.find_all("a", class_="search-item")]))
 
 
-async def parse_result(result_data: element.Tag) -> schemas.SearchResult:
+async def parse_result(result_data: Tag) -> schemas.SearchResult:
     """
     Function to parse the search result data
 
