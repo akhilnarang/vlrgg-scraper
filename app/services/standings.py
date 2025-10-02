@@ -2,6 +2,7 @@ import http
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import HTTPException
+from pydantic import HttpUrl
 
 from app import schemas, utils
 from app.constants import STANDINGS_URL
@@ -34,7 +35,7 @@ async def standings_list(year: int) -> schemas.Standings:
                 href = a["href"]
                 id = int(href.split("/")[2])
                 img = a.find("img")
-                logo = utils.get_image_url(img["src"])
+                logo = HttpUrl(utils.get_image_url(img["src"]))
                 name_div = a.find("div", class_="text-of")
                 name = name_div.find("div", recursive=False).get_text().strip()
                 country = name_div.find_all("div")[1].get_text().strip()

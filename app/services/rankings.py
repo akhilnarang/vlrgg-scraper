@@ -57,9 +57,9 @@ async def parse_rankings(path: str) -> schemas.Ranking:
             schemas.TeamRanking(
                 name=team.find("a")["data-sort-value"].strip(),
                 id=team.find("a")["href"].split("/")[2],
-                logo=utils.get_image_url(team.find("img")["src"]),
-                rank=utils.clean_string(team.find("div", class_="rank-item-rank").get_text()),
-                points=utils.clean_string(team.find("div", class_="rank-item-rating").get_text()),
+                logo=utils.get_image_url(team.find("img")["src"]),  # type: ignore
+                rank=int(utils.clean_number_string(team.find("div", class_="rank-item-rank").get_text())),
+                points=int(utils.clean_number_string(team.find("div", class_="rank-item-rating").get_text())),
                 country=utils.clean_string(team.find("div", class_="rank-item-team-country").get_text()),
             )
             for team in soup.find_all("div", class_="rank-item wf-card fc-flex")[:25]

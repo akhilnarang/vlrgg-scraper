@@ -1,6 +1,5 @@
 import asyncio
 import http
-from typing import Any
 
 import dateutil.parser
 import httpx
@@ -157,7 +156,7 @@ async def news_by_id(id: str) -> schemas.NewsArticle:
                 if date_elem.get("title"):
                     try:
                         date = fix_datetime_tz(dateutil.parser.parse(str(date_elem["title"]), ignoretz=True))
-                    except:
+                    except Exception:
                         pass
 
     # Fallback for title
@@ -208,7 +207,7 @@ async def news_by_id(id: str) -> schemas.NewsArticle:
             if date_elem:
                 try:
                     date = fix_datetime_tz(dateutil.parser.parse(str(date_elem.get_text().strip()), ignoretz=True))
-                except:
+                except Exception:
                     pass
 
     # If still no title, try page title

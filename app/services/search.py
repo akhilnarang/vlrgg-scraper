@@ -23,7 +23,7 @@ async def get_data(search_category: constants.SearchCategory, search_term: str) 
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
 
     soup = BeautifulSoup(response.content, "lxml")
-    return await asyncio.gather(*[parse_result(result) for result in soup.find_all("a", class_="search-item")])
+    return list(await asyncio.gather(*[parse_result(result) for result in soup.find_all("a", class_="search-item")]))
 
 
 async def parse_result(result_data: element.Tag) -> schemas.SearchResult:

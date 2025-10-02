@@ -2,19 +2,35 @@ import asyncio
 import http
 import itertools
 from datetime import datetime
+from typing import NotRequired, TypedDict, cast
 from zoneinfo import ZoneInfo
 
 import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, element
-from fastapi import HTTPException
+from fastapi import HTTPException, status
+from pydantic import HttpUrl
 from redis.asyncio import Redis
-from starlette import status
 
 from app import constants, schemas, cache
 from app.constants import EVENT_URL_WITH_ID, EVENT_URL_WITH_ID_MATCHES, EVENTS_URL, EventStatus, MatchStatus
 from app.core.config import settings
 from app.utils import clean_number_string, clean_string, get_image_url, simplify_name
+
+
+class ParsedEventData(TypedDict):
+    id: str
+    title: str
+    subtitle: str
+    dates: str
+    prize: str
+    location: str
+    status: EventStatus
+    img: HttpUrl
+    prizes: list
+    teams: list
+    standings: list
+    matches: NotRequired[list]
 
 
 async def get_events(cache_client: Redis) -> list[schemas.Event]:
@@ -74,13 +90,13 @@ async def parse_event(event: element.Tag, client: Redis) -> schemas.Event:
         .get("class")[1]
         .replace("mod-", "")
     )
-    img = get_image_url(event.find_all("div", class_="event-item-thumb")[0].find("img")["src"])
+    img = HttpUrl(get_image_url(event.find_all("div", class_="event-item-thumb")[0].find("img")["src"]))
     if settings.ENABLE_ID_MAP_DB:
         await cache.hset("event", {simplify_name(title): event_id}, client)
     return schemas.Event(
         id=event_id,
         title=title,
-        status=status,
+        status=status,  # type: ignore
         prize=prize,
         dates=dates,
         location=location,
@@ -96,10 +112,23 @@ async def get_event_by_id(id: str) -> schemas.EventWithDetails:
     """
     events, matches = await asyncio.gather(parse_events_data(id), parse_match_data(id))
     events["matches"] = matches
-    return schemas.EventWithDetails(**events)
+    return schemas.EventWithDetails(
+        id=events["id"],
+        title=events["title"],
+        subtitle=events["subtitle"],
+        dates=events["dates"],
+        prize=events["prize"],
+        location=events["location"],
+        status=events["status"],
+        img=events["img"],
+        matches=events["matches"],
+        prizes=events.get("prizes", []),
+        teams=events.get("teams", []),
+        standings=events.get("standings", []),
+    )
 
 
-async def parse_events_data(id: str) -> dict:
+async def parse_events_data(id: str) -> ParsedEventData:
     """
     Function to fetch and parse the data for a given event
     :param id: The ID of the event
@@ -150,7 +179,7 @@ async def parse_events_data(id: str) -> dict:
             event["status"] = EventStatus.UNKNOWN
 
     event["standings"] = parse_event_standings(soup.find("div", class_="event-container"))
-    return event
+    return cast(ParsedEventData, event)
 
 
 async def parse_match_data(id: str) -> list:

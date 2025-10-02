@@ -18,16 +18,10 @@ async def get_team_data(id: str) -> schemas.Team:
     """
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        (
-            response,
-            upcoming_matches_response,
-            completed_matches_response,
-        ) = await asyncio.gather(
-            *[
-                client.get(TEAM_URL.format(id)),
-                client.get(TEAM_UPCOMING_MATCHES_URL.format(id)),
-                client.get(TEAM_COMPLETED_MATCHES_URL.format(id)),
-            ]
+        response, upcoming_matches_response, completed_matches_response = await asyncio.gather(
+            client.get(TEAM_URL.format(id)),
+            client.get(TEAM_UPCOMING_MATCHES_URL.format(id)),
+            client.get(TEAM_COMPLETED_MATCHES_URL.format(id)),
         )
         if response.status_code != http.HTTPStatus.OK:
             raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
@@ -60,7 +54,7 @@ async def get_team_data(id: str) -> schemas.Team:
     for link in soup.find("div", class_="team-header-links").find_all("a"):
         if link := link.get("href"):
             link = utils.expand_url(link)
-            if "twitter.com" in link:
+            if link and "twitter.com" in link:
                 twitter = link
             else:
                 website = link
@@ -80,17 +74,16 @@ async def get_team_data(id: str) -> schemas.Team:
     else:
         region = ""
 
-    roster, upcoming_matches, completed_matches = await asyncio.gather(
-        *[
-            asyncio.gather(*[parse_player(player) for player in team_data.find_all("div", class_="team-roster-item")]),
-            asyncio.gather(
-                *[parse_match(match) for match in upcoming_matches.find_all("a", class_="wf-card fc-flex m-item")]
-            ),
-            asyncio.gather(
-                *[parse_match(match) for match in completed_matches.find_all("a", class_="wf-card fc-flex m-item")]
-            ),
-        ]
+    results = await asyncio.gather(
+        asyncio.gather(*[parse_player(player) for player in team_data.find_all("div", class_="team-roster-item")]),
+        asyncio.gather(
+            *[parse_match(match) for match in upcoming_matches.find_all("a", class_="wf-card fc-flex m-item")]
+        ),
+        asyncio.gather(
+            *[parse_match(match) for match in completed_matches.find_all("a", class_="wf-card fc-flex m-item")]
+        ),
     )
+    roster, upcoming_match_list, completed_match_list = results
     return schemas.Team.model_validate(
         {
             "name": name,
@@ -102,8 +95,8 @@ async def get_team_data(id: str) -> schemas.Team:
             "rank": rank,
             "region": region,
             "roster": roster,
-            "upcoming": upcoming_matches,
-            "completed": completed_matches,
+            "upcoming": upcoming_match_list,
+            "completed": completed_match_list,
         }
     )
 
