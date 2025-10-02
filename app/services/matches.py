@@ -3,7 +3,6 @@ import re
 from asyncio import gather
 from datetime import datetime
 from itertools import chain
-from typing import Tuple
 
 import dateutil.parser
 import httpx
@@ -16,9 +15,9 @@ from app import constants, schemas, cache
 from app.constants import MATCH_URL_WITH_ID, PAST_MATCHES_URL, UPCOMING_MATCHES_URL
 from app.core.config import settings
 from app.utils import (
-    add_protocol_to_url,
     clean_number_string,
     clean_string,
+    expand_url,
     fix_datetime_tz,
     get_image_url,
     simplify_name,
@@ -177,12 +176,12 @@ async def get_video_data(data: element.Tag) -> dict[str, list]:
             for stream in data.find("div", class_="match-streams").find_all("div", class_="wf-card")
             if (name := stream.find("span"))
             and (url := stream.find("a", class_="match-streams-btn-external"))
-            and (normalized_url := add_protocol_to_url(url.get("href"))) is not None
+            and (normalized_url := expand_url(url.get("href"))) is not None
         ],
         "vods": [
             {"name": vod.get_text().strip(), "url": normalized_url}
             for vod in data.find("div", class_="match-vods").find_all("a", class_="wf-card")
-            if (normalized_url := add_protocol_to_url(vod.get("href"))) is not None
+            if (normalized_url := expand_url(vod.get("href"))) is not None
         ],
     }
 
@@ -193,14 +192,14 @@ async def get_video_data(data: element.Tag) -> dict[str, list]:
                 "url": normalized_url,
             }
             for stream in data.find_all("a", class_="match-streams-btn")
-            if stream.find("span") and (normalized_url := add_protocol_to_url(stream.get("href"))) is not None
+            if stream.find("span") and (normalized_url := expand_url(stream.get("href"))) is not None
         ]
     )
 
     return response
 
 
-async def get_map_data(data: ResultSet) -> Tuple[list, int]:
+async def get_map_data(data: ResultSet) -> tuple[list, int]:
     """
     Function to extract information about a map from a match page on VLR
     :param data: The data about the maps

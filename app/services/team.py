@@ -59,7 +59,7 @@ async def get_team_data(id: str) -> schemas.Team:
 
     for link in soup.find("div", class_="team-header-links").find_all("a"):
         if link := link.get("href"):
-            link = utils.add_protocol_to_url(link)
+            link = utils.expand_url(link)
             if "twitter.com" in link:
                 twitter = link
             else:

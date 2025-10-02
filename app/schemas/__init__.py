@@ -1,6 +1,6 @@
 from .events import Event, EventWithDetails
 from .matches import Match, MatchTeam, MatchWithDetails
-from .news import NewsItem
+from .news import NewsItem, NewsArticle
 from .player import Player
 from .rankings import Ranking, TeamRanking
 from .search import SearchResult

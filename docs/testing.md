@@ -43,9 +43,10 @@ with patch("httpx.AsyncClient.get", side_effect=[response1, response2]):
 ## Service Test Examples
 
 ### News Tests
-- `test_news_list()`: Tests fetching and parsing news list
-- Uses fixture `news.html` with multiple news items
-- Asserts correct parsing of title, description, URL, author
+- `test_news_list()`: Tests fetching and parsing news list from `/news`
+- `test_news_by_id()`: Tests fetching and parsing individual news article from `/{id}`
+- Uses fixtures `news.html` and `news_562952.html`
+- Asserts correct parsing of title, description/content, URL, author, tags
 
 ### Events Tests
 - `test_get_events()`: Tests fetching events list

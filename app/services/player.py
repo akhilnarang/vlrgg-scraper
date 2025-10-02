@@ -7,7 +7,7 @@ from fastapi import HTTPException
 
 from app import schemas
 from app.constants import PLAYER_URL
-from app.utils import clean_number_string, get_image_url, add_protocol_to_url
+from app.utils import clean_number_string, expand_url, get_image_url
 
 
 async def get_player_data(id: str) -> schemas.Player:
@@ -67,9 +67,9 @@ async def get_player_data(id: str) -> schemas.Player:
 
     for link in player_info.find_all("a"):
         if "twitter.com" in link["href"]:
-            player_data["twitter"] = add_protocol_to_url(link.get_text().strip())
+            player_data["twitter"] = expand_url(link.get_text().strip())
         elif "twitch.tv" in link["href"]:
-            player_data["twitch"] = add_protocol_to_url(link["href"])
+            player_data["twitch"] = expand_url(link["href"])
     return schemas.Player.model_validate(player_data)
 
 

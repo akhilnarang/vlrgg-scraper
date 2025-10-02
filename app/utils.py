@@ -14,7 +14,9 @@ def get_image_url(img: str) -> str:
     :param img: The src string of the image
     :return: The full URL
     """
-    if img.startswith(VLR_IMAGE):
+    if img.startswith("http"):
+        return img
+    elif img.startswith(VLR_IMAGE):
         return f"{PREFIX}{img}"
     else:
         return f"https:{img}"
@@ -66,18 +68,21 @@ def clean_number_string(value: str | None) -> int | float:
     return 0
 
 
-def add_protocol_to_url(url: str | None) -> str | None:
+def expand_url(url: str | None) -> str | None:
     """
-    Function to add a protocol to a URL if it does not already have one
+    Function to expand a URL to full form
 
-    :param url: The URL to check
-    :return: The URL with a protocol, or None if the input is invalid
+    :param url: The URL to expand
+    :return: The full URL, or None if invalid
     """
     if not url or not url.strip():
         return None
-    if not url.startswith("http"):
+    if url.startswith("http"):
+        return url
+    elif url.startswith("/"):
+        return f"{PREFIX}{url}"
+    else:
         return f"https://{url}"
-    return url
 
 
 def before_send(event: Event, hint: Hint) -> Event | None:

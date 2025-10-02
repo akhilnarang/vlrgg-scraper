@@ -18,6 +18,8 @@ PAST_MATCHES_URL = f"{PREFIX}/matches/results"
 
 NEWS_URL = f"{PREFIX}/news"
 
+NEWS_URL_WITH_ID = f"{PREFIX}/{{}}"
+
 TEAM_URL = f"{PREFIX}/team/{{}}"
 
 TEAM_UPCOMING_MATCHES_URL = f"{PREFIX}/team/matches/{{}}/?group=upcoming"
