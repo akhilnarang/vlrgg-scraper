@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, Tag
-from fastapi import HTTPException, status
+from app.exceptions import ScrapingError, BadRequestError
 from pydantic import HttpUrl
 from redis.asyncio import Redis
 
@@ -43,7 +43,7 @@ async def get_events(cache_client: Redis) -> list[schemas.Event]:
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.EVENTS_URL)
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+            raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
     return list(
@@ -137,16 +137,13 @@ async def parse_events_data(id: str) -> ParsedEventData:
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.EVENT_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+            raise ScrapingError()
 
     event: dict[str, str | list] = {"id": id}
     soup = BeautifulSoup(response.content, "lxml")
 
     if (event_header := soup.find_all("div", class_="event-header")) is None:
-        raise HTTPException(
-            detail="Event header was missing, please retry",
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
+        raise BadRequestError(detail="Event header was missing, please retry")
 
     header = event_header[0]
     event["title"] = clean_string(header.find_all("h1", class_="wf-title")[0].get_text())
@@ -186,7 +183,7 @@ async def parse_match_data(id: str) -> list:
     async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.get(constants.EVENT_URL_WITH_ID_MATCHES.format(id))
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+            raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
     return list(

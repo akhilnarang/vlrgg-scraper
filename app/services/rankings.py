@@ -3,7 +3,7 @@ import http
 
 import httpx
 from bs4 import BeautifulSoup
-from fastapi import HTTPException
+from app.exceptions import ScrapingError
 
 from app import schemas, utils
 import app.constants as constants
@@ -18,7 +18,7 @@ async def ranking_list() -> list[schemas.Ranking]:
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.RANKINGS_URL)
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+            raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -44,7 +44,7 @@ async def parse_rankings(path: str) -> schemas.Ranking:
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.RANKING_URL_REGION.format(path))
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+            raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
 

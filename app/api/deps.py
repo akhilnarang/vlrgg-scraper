@@ -1,6 +1,7 @@
 from typing import AsyncGenerator
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
+from app.exceptions import UnauthorizedError
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.cache import get_client
@@ -25,7 +26,7 @@ def verify_token(
 
                 sentry_sdk.set_tag("api_key", api_key_source)
             return
-    raise HTTPException(detail="Invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
+    raise UnauthorizedError(detail="Invalid token")
 
 
 async def get_redis_client() -> AsyncGenerator:
@@ -51,4 +52,4 @@ def verify_internal_token(
     """
 
     if token_data.credentials != settings.INTERNAL_API_KEY:
-        raise HTTPException(detail="Invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
+        raise UnauthorizedError(detail="Invalid token")

@@ -4,7 +4,7 @@ import http
 import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, Tag
-from fastapi import HTTPException
+from app.exceptions import ScrapingError
 
 from app import schemas, utils
 import app.constants as constants
@@ -24,17 +24,13 @@ async def get_team_data(id: str) -> schemas.Team:
             client.get(constants.TEAM_COMPLETED_MATCHES_URL.format(id)),
         )
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(status_code=response.status_code, detail="VLR.gg server returned an error")
+            raise ScrapingError()
 
         if upcoming_matches_response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(
-                status_code=upcoming_matches_response.status_code, detail="VLR.gg server returned an error"
-            )
+            raise ScrapingError()
 
         if completed_matches_response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(
-                status_code=completed_matches_response.status_code, detail="VLR.gg server returned an error"
-            )
+            raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
     upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "lxml")

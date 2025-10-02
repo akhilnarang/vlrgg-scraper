@@ -8,7 +8,7 @@ import dateutil.parser
 import httpx
 from bs4 import BeautifulSoup, Tag
 from bs4.element import ResultSet
-from fastapi import HTTPException
+from app.exceptions import ScrapingError
 from redis.asyncio import Redis
 
 from app import schemas, cache
@@ -35,10 +35,7 @@ async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.MATCH_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail="VLR.gg server returned an error",
-            )
+            raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -400,10 +397,7 @@ async def get_upcoming_matches(redis_client: Redis) -> list[schemas.Match]:
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         upcoming_matches_response = await client.get(constants.UPCOMING_MATCHES_URL)
         if upcoming_matches_response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(
-                status_code=upcoming_matches_response.status_code,
-                detail="VLR.gg server returned an error",
-            )
+            raise ScrapingError()
 
     upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "lxml")
 
@@ -424,10 +418,7 @@ async def get_completed_matches(redis_client: Redis) -> list[schemas.Match]:
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         previous_matches_response = await client.get(constants.PAST_MATCHES_URL)
         if previous_matches_response.status_code != http.HTTPStatus.OK:
-            raise HTTPException(
-                status_code=previous_matches_response.status_code,
-                detail="VLR.gg server returned an error",
-            )
+            raise ScrapingError()
 
     previous_matches = BeautifulSoup(previous_matches_response.content, "lxml")
 
