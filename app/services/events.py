@@ -15,8 +15,9 @@ from redis.asyncio import Redis
 from app import schemas, cache
 import app.constants as constants
 from app.core.config import settings
-from app.core.connections import vlr_request_semaphore
-from app.utils import clean_number_string, clean_string, get_image_url, simplify_name
+from app.core.connections import vlr_request_semaphore, async_session
+from app.models import Team, Event, Match
+from app.utils import clean_number_string, clean_string, get_image_url, normalize_name, simplify_name
 
 
 class ParsedEventData(TypedDict):
@@ -113,6 +114,10 @@ async def get_event_by_id(id: str) -> schemas.EventWithDetails:
     """
     events, matches = await asyncio.gather(parse_events_data(id), parse_match_data(id))
     events["matches"] = matches
+
+    # Upsert to database
+    await upsert_event_data(events, matches, id)
+
     return schemas.EventWithDetails(
         id=events["id"],
         title=events["title"],
@@ -409,3 +414,53 @@ def parse_event_standings(data: Tag) -> list[dict[str, str | int]]:
                 }
             )
     return event_standings
+
+
+async def upsert_event_data(event_data: dict, matches: list, id: str):
+    """Upsert event, teams, and matches into the database.
+
+    Args:
+        event_data: Dictionary containing parsed event data.
+        matches: List of match data dicts.
+        id: The event's unique identifier.
+    """
+    async with async_session() as session:
+        # Upsert teams
+        for team_data in event_data.get("teams", []):
+            normalized_name = normalize_name(team_data["name"])
+            team = Team(
+                id=team_data["id"], name=team_data["name"], normalized_name=normalized_name, img=team_data["img"]
+            )
+            await session.merge(team)
+
+        # Upsert event
+        event = Event(
+            id=id,
+            title=event_data["title"],
+            status=event_data["status"].value if hasattr(event_data["status"], "value") else str(event_data["status"]),
+            prize=event_data["prize"],
+            dates=event_data["dates"],
+            location=event_data["location"],
+            img=event_data["img"],
+        )
+        await session.merge(event)
+
+        # Upsert matches
+        for match_data in matches:
+            match = Match(
+                id=match_data["id"],
+                team_a_id=match_data["teams"][0].get("id")
+                if len(match_data["teams"]) > 0 and "id" in match_data["teams"][0]
+                else None,
+                team_b_id=match_data["teams"][1].get("id")
+                if len(match_data["teams"]) > 1 and "id" in match_data["teams"][1]
+                else None,
+                event_id=id,
+                status=match_data["status"],
+                time=match_data.get("date"),
+                series=match_data.get("round", ""),
+                event_name=event_data["title"],
+            )
+            await session.merge(match)
+
+        await session.commit()

@@ -75,6 +75,12 @@ Scheduled background jobs using arq:
 - Add a dependency: `uv add <package>`
 - Remove a dependency: `uv remove <package>`
 
+## Database Migrations
+- Create new migration: `uv run alembic revision --autogenerate -m "Description"`
+- Apply migrations: `uv run alembic upgrade head`
+- View migration status: `uv run alembic current`
+- Downgrade: `uv run alembic downgrade <revision>`
+
 ## Docker
 - Build Docker image: `docker build -t vlrgg-scraper .`
 - Run with Docker: `docker run -p 8000:8000 vlrgg-scraper`

@@ -1,10 +1,16 @@
 import asyncio
 from contextvars import ContextVar
 from redis.asyncio import ConnectionPool, Redis
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 
 redis_pool: ConnectionPool | None = None
+
+# SQLAlchemy
+engine = create_async_engine(settings.DATABASE_URL, echo=False)
+async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 # Context variable for per-request Redis client
 redis_client_var: ContextVar[Redis | None] = ContextVar("redis_client")  # type: ignore

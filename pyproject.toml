@@ -20,6 +20,9 @@ dependencies = [
     "arq",
     "semver",
     "rich",
+    "sqlalchemy[asyncio]>=2.0.43",
+    "alembic>=1.16.5",
+    "aiosqlite>=0.21.0",
 ]
 
 [dependency-groups]

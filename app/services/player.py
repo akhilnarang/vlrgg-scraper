@@ -8,8 +8,9 @@ from app.exceptions import ScrapingError
 
 from app import schemas
 import app.constants as constants
-from app.core.connections import vlr_request_semaphore
-from app.utils import clean_number_string, expand_url, get_image_url
+from app.core.connections import vlr_request_semaphore, async_session
+from app.models import Player, Team
+from app.utils import clean_number_string, expand_url, get_image_url, normalize_name
 
 
 async def get_player_data(id: str) -> schemas.Player:
@@ -72,6 +73,10 @@ async def get_player_data(id: str) -> schemas.Player:
             player_data["twitter"] = expand_url(link.get_text().strip())
         elif "twitch.tv" in link["href"]:
             player_data["twitch"] = expand_url(link["href"])
+
+    # Upsert to database
+    await upsert_player_data(player_data, id)
+
     return schemas.Player.model_validate(player_data)
 
 
@@ -106,3 +111,39 @@ async def parse_agent_data(agent_data: ResultSet) -> dict:
     }
 
     return response
+
+
+async def upsert_player_data(player_data: dict, id: str):
+    """Upsert player and their current team into the database.
+
+    Args:
+        player_data: Dictionary containing parsed player data from VLR.
+        id: The player's unique identifier.
+    """
+    async with async_session() as session:
+        # Upsert current_team if exists
+        if "current_team" in player_data and player_data["current_team"]:
+            team_data = player_data["current_team"]
+            normalized_name = normalize_name(team_data["name"])
+            team = Team(
+                id=team_data["id"], name=team_data["name"], normalized_name=normalized_name, img=team_data["img"]
+            )
+            await session.merge(team)
+
+        # Upsert player
+        player = Player(
+            id=id,
+            name=player_data.get("name"),
+            alias=player_data["alias"],
+            img=player_data["img"],
+            country=player_data["country"],
+            twitch=player_data.get("twitch"),
+            twitter=player_data.get("twitter"),
+            total_winnings=float(player_data.get("total_winnings", 0)),
+            player_type="player",
+            team_id=player_data["current_team"]["id"]
+            if "current_team" in player_data and player_data["current_team"]
+            else None,
+        )
+        await session.merge(player)
+        await session.commit()

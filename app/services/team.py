@@ -8,7 +8,9 @@ from app.exceptions import ScrapingError
 
 from app import schemas, utils
 import app.constants as constants
-from app.core.connections import vlr_request_semaphore
+from app.core.connections import vlr_request_semaphore, async_session
+from app.models import Player, Team
+from app.utils import normalize_name
 
 
 async def get_team_data(id: str) -> schemas.Team:
@@ -83,21 +85,25 @@ async def get_team_data(id: str) -> schemas.Team:
         ),
     )
     roster, upcoming_match_list, completed_match_list = results
-    return schemas.Team.model_validate(
-        {
-            "name": name,
-            "tag": tag,
-            "img": img,
-            "website": website,
-            "twitter": twitter,
-            "country": country,
-            "rank": rank,
-            "region": region,
-            "roster": roster,
-            "upcoming": upcoming_match_list,
-            "completed": completed_match_list,
-        }
-    )
+
+    team_dict = {
+        "name": name,
+        "tag": tag,
+        "img": img,
+        "website": website,
+        "twitter": twitter,
+        "country": country,
+        "rank": rank,
+        "region": region,
+        "roster": roster,
+        "upcoming": upcoming_match_list,
+        "completed": completed_match_list,
+    }
+
+    # Upsert to database
+    await upsert_team_data(team_dict, id)
+
+    return schemas.Team.model_validate(team_dict)
 
 
 async def parse_player(player_data: Tag) -> dict:
@@ -154,3 +160,52 @@ async def parse_match(match_data: Tag) -> dict:
         dateutil.parser.parse(match_data.find("div", class_="m-item-date").get_text(), ignoretz=True)
     )
     return response
+
+
+async def upsert_team_data(team_data: dict, id: str):
+    """Upsert team and its roster players into the database.
+
+    Args:
+        team_data: Dictionary containing parsed team data from VLR.
+        id: The team's unique identifier.
+    """
+    async with async_session() as session:
+        normalized_name = normalize_name(team_data["name"])
+        team = Team(
+            id=id,
+            name=team_data["name"],
+            normalized_name=normalized_name,
+            tag=team_data["tag"],
+            img=team_data["img"],
+            website=team_data["website"],
+            twitter=team_data["twitter"],
+            country=team_data["country"],
+            rank=team_data["rank"],
+            region=team_data["region"],
+        )
+        await session.merge(team)
+
+        # Upsert players
+        for player_data in team_data["roster"]:
+            role = player_data.get("role")
+            player_type = "player"
+            if role:
+                role_lower = role.lower()
+                if "coach" in role_lower:
+                    player_type = "coach"
+                elif "manager" in role_lower:
+                    player_type = "manager"
+                elif "captain" in role_lower or "igl" in role_lower:
+                    player_type = "igl"
+            player = Player(
+                id=player_data["id"],
+                name=player_data.get("name"),
+                alias=player_data["alias"],
+                role=role,
+                player_type=player_type,
+                img=player_data["img"],
+                team_id=id,
+            )
+            await session.merge(player)
+
+        await session.commit()

@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     TIMEZONE: str
     MAX_CONCURRENT_VLR_REQUESTS: int = 20
+    DATABASE_URL: str = "sqlite+aiosqlite:///./sqlite.db"
     model_config = SettingsConfigDict(env_file=".env")
 
 

@@ -45,6 +45,15 @@ def clean_string(value: str) -> str:
     return value.strip().replace("\n", "").replace("\t", "")
 
 
+def normalize_name(name: str) -> str:
+    """
+    Normalize team name for unique key
+    :param name: The team name
+    :return: Normalized name
+    """
+    return name.lower().replace(" ", "").replace("-", "").replace(".", "").replace("'", "")
+
+
 def clean_number_string(value: str | None) -> int | float:
     """
     Function to clean a number string

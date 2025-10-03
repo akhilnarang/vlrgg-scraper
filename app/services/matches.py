@@ -1,4 +1,5 @@
 import http
+import logging
 import re
 from asyncio import gather
 from datetime import datetime
@@ -11,16 +12,19 @@ from bs4.element import ResultSet
 from app.exceptions import ScrapingError
 from redis.asyncio import Redis
 
+
 from app import schemas, cache
 import app.constants as constants
 from app.core.config import settings
-from app.core.connections import vlr_request_semaphore
+from app.core.connections import vlr_request_semaphore, async_session
+from app.models import Team, Event, Match
 from app.utils import (
     clean_number_string,
     clean_string,
     expand_url,
     fix_datetime_tz,
     get_image_url,
+    normalize_name,
     simplify_name,
 )
 
@@ -48,6 +52,10 @@ async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
         get_map_data(soup.find_all("div", class_="vm-stats")),
         get_previous_encounters_data(soup.find("div", class_="wf-card match-h2h")),
     )
+
+    # Upsert to database
+    await upsert_match_data(teams, event, map_ret[0], id)
+
     return schemas.MatchWithDetails(
         teams=teams,
         bans=bans,
@@ -523,3 +531,65 @@ async def parse_score(data: Tag) -> int | None:
     if (score := data.get_text().strip()).isdigit():
         return int(score)
     return None
+
+
+async def upsert_match_data(teams: list[dict], event: dict, data: list[dict], id: str):
+    """Upsert match, teams, event, and collect player IDs into the database.
+
+    Args:
+        teams: List of team data dicts.
+        event: Event data dict.
+        data: List of map data dicts containing player info.
+        id: The match's unique identifier.
+    """
+    try:
+        async with async_session() as session:
+            # Upsert teams
+            for team_data in teams:
+                if "id" in team_data:
+                    normalized_name = normalize_name(team_data["name"])
+                    team = Team(
+                        id=team_data["id"],
+                        name=team_data["name"],
+                        normalized_name=normalized_name,
+                        img=team_data["img"],
+                    )
+                    await session.merge(team)
+
+            # Upsert event
+            if event.get("id"):
+                event_obj = Event(
+                    id=event["id"], title=event.get("series", ""), status=event.get("status"), img=event.get("img", "")
+                )
+                await session.merge(event_obj)
+
+            # Collect unique player IDs
+            player_ids = set()
+            for map_data in data:
+                for member in map_data["members"]:
+                    if member.get("id"):
+                        player_ids.add(member["id"])
+
+            # Split into team players (assuming 5v5)
+            player_list = list(player_ids)
+            team_a_players = player_list[:5] if len(player_list) >= 5 else player_list
+            team_b_players = player_list[5:10] if len(player_list) >= 10 else player_list[5:]
+
+            # Upsert match
+            match = Match(
+                id=id,
+                team_a_id=teams[0].get("id") if len(teams) > 0 else None,
+                team_b_id=teams[1].get("id") if len(teams) > 1 else None,
+                event_id=event.get("id"),
+                status=event.get("status"),
+                time=event.get("date"),
+                series=event.get("stage", ""),
+                event_name=event.get("series", ""),
+                team_a_players=team_a_players,
+                team_b_players=team_b_players,
+            )
+            await session.merge(match)
+            await session.commit()
+    except Exception as e:
+        logging.error(f"Error upserting match data for id {id}: {e}")
+        # Note: session rollback is automatic on exception in async context
