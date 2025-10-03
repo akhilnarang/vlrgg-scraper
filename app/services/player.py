@@ -1,14 +1,13 @@
 import asyncio
 import http
 
-import httpx
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet
 from app.exceptions import ScrapingError
 
 from app import schemas
 import app.constants as constants
-from app.core.connections import vlr_request_semaphore, async_session
+from app.core.connections import vlr_request_semaphore, get_vlr_client, async_session
 from app.models import Player, Team
 from app.utils import clean_number_string, expand_url, get_image_url, normalize_name
 
@@ -20,10 +19,11 @@ async def get_player_data(id: str) -> schemas.Player:
     :return: The parsed data
     """
 
-    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
-        response = await client.get(constants.PLAYER_URL.format(id))
-        if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+    async with vlr_request_semaphore:
+        async with get_vlr_client() as client:
+            response = await client.get(constants.PLAYER_URL.format(id))
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
     player_info = soup.find("div", class_="player-header")

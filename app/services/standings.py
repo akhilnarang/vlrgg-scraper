@@ -1,12 +1,11 @@
 import http
-import httpx
 from bs4 import BeautifulSoup
 from app.exceptions import ScrapingError
 from pydantic import HttpUrl
 
 from app import schemas, utils
 import app.constants as constants
-from app.core.connections import vlr_request_semaphore
+from app.core.connections import vlr_request_semaphore, get_vlr_client
 
 
 async def standings_list(year: int) -> schemas.Standings:
@@ -16,10 +15,11 @@ async def standings_list(year: int) -> schemas.Standings:
     :param year: The VCT year
     :return: The parsed standings
     """
-    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
-        response = await client.get(constants.STANDINGS_URL.format(year))
-        if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+    async with vlr_request_semaphore:
+        async with get_vlr_client() as client:
+            response = await client.get(constants.STANDINGS_URL.format(year))
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
 

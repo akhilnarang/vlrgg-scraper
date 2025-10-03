@@ -15,7 +15,7 @@ from redis.asyncio import Redis
 from app import schemas, cache
 import app.constants as constants
 from app.core.config import settings
-from app.core.connections import vlr_request_semaphore, async_session
+from app.core.connections import vlr_request_semaphore, async_session, get_vlr_client
 from app.models import Team, Event, Match
 from app.utils import clean_number_string, clean_string, get_image_url, normalize_name, simplify_name
 
@@ -42,10 +42,11 @@ async def get_events(cache_client: Redis) -> list[schemas.Event]:
     :param cache_client: A redis client instance
     :return: Parsed list of events
     """
-    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
-        response = await client.get(constants.EVENTS_URL)
-        if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+    async with vlr_request_semaphore:
+        async with get_vlr_client() as client:
+            response = await client.get(constants.EVENTS_URL)
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
     return list(
@@ -140,10 +141,11 @@ async def parse_events_data(id: str) -> ParsedEventData:
     :param id: The ID of the event
     :ret: Dict of the parsed data
     """
-    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
-        response = await client.get(constants.EVENT_URL_WITH_ID.format(id))
-        if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+    async with vlr_request_semaphore:
+        async with get_vlr_client() as client:
+            response = await client.get(constants.EVENT_URL_WITH_ID.format(id))
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
     event: dict[str, str | list] = {"id": id}
     soup = BeautifulSoup(response.content, "lxml")

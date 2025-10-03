@@ -1,13 +1,12 @@
 import asyncio
 import http
 
-import httpx
 from bs4 import BeautifulSoup
 from app.exceptions import ScrapingError
 
 from app import schemas, utils
 import app.constants as constants
-from app.core.connections import vlr_request_semaphore
+from app.core.connections import vlr_request_semaphore, get_vlr_client
 
 
 async def ranking_list() -> list[schemas.Ranking]:
@@ -16,10 +15,11 @@ async def ranking_list() -> list[schemas.Ranking]:
 
     :return: The parsed ranks
     """
-    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
-        response = await client.get(constants.RANKINGS_URL)
-        if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+    async with vlr_request_semaphore:
+        async with get_vlr_client() as client:
+            response = await client.get(constants.RANKINGS_URL)
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -42,10 +42,11 @@ async def parse_rankings(path: str) -> schemas.Ranking:
     :param path: The path to the region's page on VLR
     :return: The parsed data
     """
-    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
-        response = await client.get(constants.RANKING_URL_REGION.format(path))
-        if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+    async with vlr_request_semaphore:
+        async with get_vlr_client() as client:
+            response = await client.get(constants.RANKING_URL_REGION.format(path))
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
 

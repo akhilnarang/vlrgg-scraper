@@ -2,14 +2,13 @@ import asyncio
 import http
 
 import dateutil.parser
-import httpx
 from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString
 from app.exceptions import ScrapingError
 
 from app import schemas
 import app.constants as constants
-from app.core.connections import vlr_request_semaphore
+from app.core.connections import vlr_request_semaphore, get_vlr_client
 from app.utils import expand_url, fix_datetime_tz, get_image_url
 
 
@@ -54,10 +53,11 @@ async def news_list() -> list[schemas.NewsItem]:
     Function to parse a list of matches from the VLR.gg homepage
     :return: The parsed matches
     """
-    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
-        response = await client.get(constants.NEWS_URL)
-        if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+    async with vlr_request_semaphore:
+        async with get_vlr_client() as client:
+            response = await client.get(constants.NEWS_URL)
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -82,10 +82,11 @@ async def news_by_id(id: str) -> schemas.NewsArticle:
     :param id: The news article ID
     :return: The parsed news article
     """
-    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
-        response = await client.get(constants.NEWS_URL_WITH_ID.format(id))
-        if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+    async with vlr_request_semaphore:
+        async with get_vlr_client() as client:
+            response = await client.get(constants.NEWS_URL_WITH_ID.format(id))
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
 

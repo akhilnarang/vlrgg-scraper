@@ -2,13 +2,12 @@ import asyncio
 import http
 
 import dateutil.parser
-import httpx
 from bs4 import BeautifulSoup, Tag
 from app.exceptions import ScrapingError
 
 from app import schemas, utils
 import app.constants as constants
-from app.core.connections import vlr_request_semaphore, async_session
+from app.core.connections import vlr_request_semaphore, async_session, get_vlr_client
 from app.models import Player, Team
 from app.utils import normalize_name
 
@@ -20,22 +19,19 @@ async def get_team_data(id: str) -> schemas.Team:
     :return: The parsed data
     """
 
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
-        async with vlr_request_semaphore:
+    async with vlr_request_semaphore:
+        async with get_vlr_client() as client:
             response = await client.get(constants.TEAM_URL.format(id))
-        if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
-        async with vlr_request_semaphore:
             upcoming_matches_response = await client.get(constants.TEAM_UPCOMING_MATCHES_URL.format(id))
-        if upcoming_matches_response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            if upcoming_matches_response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
-        async with vlr_request_semaphore:
             completed_matches_response = await client.get(constants.TEAM_COMPLETED_MATCHES_URL.format(id))
-
-        if completed_matches_response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            if completed_matches_response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
     upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "lxml")

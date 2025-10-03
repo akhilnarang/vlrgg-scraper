@@ -3,6 +3,7 @@ from contextvars import ContextVar
 from redis.asyncio import ConnectionPool, Redis
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+import httpx
 
 from app.core.config import settings
 
@@ -72,3 +73,13 @@ class RedisSemaphore:
 vlr_request_semaphore = RedisSemaphore(
     key="vlr_request_semaphore", limit=settings.MAX_CONCURRENT_VLR_REQUESTS, client_var=redis_client_var
 )
+
+
+def get_vlr_client() -> httpx.AsyncClient:
+    """Get httpx client configured for VLR.gg requests with gzip compression and connection pooling."""
+    return httpx.AsyncClient(
+        timeout=30.0,
+        headers={"Accept-Encoding": "gzip", "User-Agent": "vlrgg-scraper/1.0"},
+        follow_redirects=True,
+        limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
+    )

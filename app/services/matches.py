@@ -16,7 +16,7 @@ from redis.asyncio import Redis
 from app import schemas, cache
 import app.constants as constants
 from app.core.config import settings
-from app.core.connections import vlr_request_semaphore, async_session
+from app.core.connections import vlr_request_semaphore, async_session, get_vlr_client
 from app.models import Team, Event, Match
 from app.utils import (
     clean_number_string,
@@ -37,12 +37,13 @@ async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
     :param redis_client: A redis instance
     :return: The parsed match
     """
-    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
-        response = await client.get(constants.MATCH_URL_WITH_ID.format(id))
-        if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+    async with vlr_request_semaphore:
+        async with get_vlr_client() as client:
+            response = await client.get(constants.MATCH_URL_WITH_ID.format(id))
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError()
 
-    soup = BeautifulSoup(response.content, "lxml")
+        soup = BeautifulSoup(response.content, "lxml")
 
     teams, bans, event, video_data, map_ret, h2h_matches = await gather(
         get_team_data(soup.find_all("div", class_="match-header-vs"), client=redis_client),

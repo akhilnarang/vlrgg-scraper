@@ -100,6 +100,7 @@ async def rankings_cron(ctx: dict) -> None:
             [item.model_dump() for item in await rankings.ranking_list()],
             default=jsonable_encoder,
         ),
+        ex=3600,
     )
 
 
@@ -118,6 +119,7 @@ async def matches_cron(ctx: dict) -> None:
             [item.model_dump() for item in await matches.match_list(redis_client=client)],
             default=jsonable_encoder,
         ),
+        ex=300,
     )
 
 
@@ -136,6 +138,7 @@ async def events_cron(ctx: dict) -> None:
             [item.model_dump() for item in await events.get_events(cache_client=client)],
             default=jsonable_encoder,
         ),
+        ex=1800,
     )
 
 
@@ -153,6 +156,7 @@ async def news_cron(ctx: dict) -> None:
             [item.model_dump() for item in await news.news_list()],
             default=jsonable_encoder,
         ),
+        ex=1800,
     )
 
 
