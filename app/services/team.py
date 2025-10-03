@@ -12,6 +12,11 @@ from app.models import Player, Team
 from app.utils import normalize_name
 
 
+async def fetch_with_semaphore(client, url):
+    async with vlr_request_semaphore:
+        return await client.get(url)
+
+
 async def get_team_data(id: str) -> schemas.Team:
     """
     Function get a team's data from VLR and return a parsed version
@@ -19,11 +24,18 @@ async def get_team_data(id: str) -> schemas.Team:
     :return: The parsed data
     """
 
-    async with vlr_request_semaphore:
-        async with get_vlr_client() as client:
-            response = await client.get(constants.TEAM_URL.format(id))
-            if response.status_code != http.HTTPStatus.OK:
-                raise ScrapingError()
+    async with get_vlr_client() as client:
+        response, upcoming_matches_response, completed_matches_response = await asyncio.gather(
+            fetch_with_semaphore(client, constants.TEAM_URL.format(id)),
+            fetch_with_semaphore(client, constants.TEAM_UPCOMING_MATCHES_URL.format(id)),
+            fetch_with_semaphore(client, constants.TEAM_COMPLETED_MATCHES_URL.format(id)),
+        )
+        if response.status_code != http.HTTPStatus.OK:
+            raise ScrapingError()
+        if upcoming_matches_response.status_code != http.HTTPStatus.OK:
+            raise ScrapingError()
+        if completed_matches_response.status_code != http.HTTPStatus.OK:
+            raise ScrapingError()
 
             upcoming_matches_response = await client.get(constants.TEAM_UPCOMING_MATCHES_URL.format(id))
             if upcoming_matches_response.status_code != http.HTTPStatus.OK:
