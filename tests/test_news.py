@@ -1,3 +1,4 @@
+import time
 import pytest
 from unittest.mock import AsyncMock, patch
 from pathlib import Path
@@ -101,3 +102,45 @@ async def test_news_by_id_562934():
     assert isinstance(result.videos, list)
     assert len(result.videos) == 0
     assert result.author == "raezeri"
+
+
+@pytest.mark.asyncio
+async def test_news_list_current():
+    # Load the current fixture HTML
+    fixture_path = Path(__file__).parent / "fixtures" / "news_current.html"
+    with open(fixture_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    # Mock the HTTP response
+    mock_response = AsyncMock()
+    mock_response.status_code = 200
+    mock_response.content = html_content.encode("utf-8")
+
+    with patch("httpx.AsyncClient.get", return_value=mock_response):
+        start = time.time()
+        result = await news.news_list()
+        parse_time = time.time() - start
+        print(f"Parsing time: {parse_time:.4f} seconds")
+
+    # Assertions based on parsed data
+    assert len(result) == 30
+
+    # Check first news item
+    first_news = result[0]
+    assert first_news.title == "NRG sweeps FNATIC, earns grand final spot in Paris"
+    assert (
+        first_news.description
+        == "NRG swept FNATIC 2-0 in the upper bracket final of Valorant Champions 2025, defeating an old teammate and earning their organization's first international finals appearance."
+    )
+    assert first_news.url == "https://www.vlr.gg/564283/nrg-sweeps-fnatic-earns-grand-final-spot-in-paris"
+    assert first_news.author == "weivy"
+
+    # Check last news item
+    last_news = result[-1]
+    assert last_news.title == "GIANTX continues miracle run to Champs playoffs, defeats XLG"
+    assert (
+        last_news.description
+        == "GIANTX swept Xi Lai Gaming 2-0 in the decider match for Group A at Valorant Champions 2025, qualifying for the playoff stage in their first international in 2025."
+    )
+    assert last_news.url == "https://www.vlr.gg/554251/giantx-continues-miracle-run-to-champs-playoffs-defeats-xlg"
+    assert last_news.author == "weivy"
