@@ -14,6 +14,7 @@ from redis.asyncio import Redis
 from app import schemas, cache
 import app.constants as constants
 from app.core.config import settings
+from app.core.connections import vlr_request_semaphore
 from app.utils import (
     clean_number_string,
     clean_string,
@@ -32,7 +33,7 @@ async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
     :param redis_client: A redis instance
     :return: The parsed match
     """
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.MATCH_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()
@@ -394,7 +395,7 @@ async def get_upcoming_matches(redis_client: Redis) -> list[schemas.Match]:
     :param redis_client: A redis instance
     :return: The list of matches
     """
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         upcoming_matches_response = await client.get(constants.UPCOMING_MATCHES_URL)
         if upcoming_matches_response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()
@@ -415,7 +416,7 @@ async def get_completed_matches(redis_client: Redis) -> list[schemas.Match]:
     :param redis_client: A redis instance
     :return: The list of matches
     """
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         previous_matches_response = await client.get(constants.PAST_MATCHES_URL)
         if previous_matches_response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()

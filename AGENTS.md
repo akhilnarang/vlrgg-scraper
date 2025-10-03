@@ -13,11 +13,11 @@ vlrgg-scraper is a web scraper for VLR.gg, a Valorant esports website. It provid
 ## Architecture
 
 - **API Layer**: FastAPI routers with Pydantic validation and OpenAPI docs.
-- **Service Layer**: Scraping logic with httpx and BeautifulSoup parsing.
+- **Service Layer**: Scraping logic with httpx and BeautifulSoup parsing, using Redis semaphore for rate limiting.
 - **Schema Layer**: Pydantic models for type-safe data structures.
-- **Cache Layer**: Redis for in-memory caching with TTL.
+- **Cache Layer**: Redis for in-memory caching with TTL and per-request client optimization.
 - **Cron Layer**: arq for background job scheduling (data updates).
-- **Core**: Configuration, connections, and utilities.
+- **Core**: Configuration, connections, semaphore, and utilities.
 
 ## Caching
 

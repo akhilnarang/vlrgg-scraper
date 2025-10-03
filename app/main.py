@@ -18,6 +18,7 @@ from app.api import deps
 from app.api.v1.api import router
 from app.api.v1.endpoints.internal import router as internal_router
 from app.core import connections
+from app.core.connections import redis_client_var
 from app.core.config import settings
 from app.cron import arq_worker
 from app.utils import before_send
@@ -46,26 +47,38 @@ if settings.SENTRY_DSN:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator:
-    logging.info("Connecting to redis")
-    connections.redis_pool = redis.ConnectionPool(
-        host=settings.REDIS_HOST,
-        password=settings.REDIS_PASSWORD,
-        port=settings.REDIS_PORT,
-    )
-    logging.info("Starting arq worker")
-    await arq_worker.start(
-        handle_signals=False,
-        redis_settings=RedisSettings(
+    if settings.ENABLE_CACHE:
+        logging.info("Connecting to redis")
+        connections.redis_pool = redis.ConnectionPool(
             host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
             password=settings.REDIS_PASSWORD,
-        ),
-    )
-    yield
-    logging.info("Stopping arq worker")
-    await arq_worker.stop()
-    logging.info("Closing redis connection pool")
-    await connections.redis_pool.aclose()
+            port=settings.REDIS_PORT,
+        )
+        # Reset the semaphore counter on startup
+        async with redis.Redis(connection_pool=connections.redis_pool) as client:
+            await client.ping()
+            await client.set("vlr_request_semaphore", 0)
+            logging.info("Reset vlr_request_semaphore to 0 on startup")
+        logging.info("Starting arq worker")
+        await arq_worker.start(
+            handle_signals=False,
+            redis_settings=RedisSettings(
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                password=settings.REDIS_PASSWORD,
+            ),
+        )
+        # Reset again after arq starts (in case cron jobs ran)
+        async with redis.Redis(connection_pool=connections.redis_pool) as client:
+            await client.set("vlr_request_semaphore", 0)
+            logging.info("Reset vlr_request_semaphore to 0 after arq start")
+        yield
+        logging.info("Stopping arq worker")
+        await arq_worker.stop()
+        logging.info("Closing redis connection pool")
+        await connections.redis_pool.aclose()
+    else:
+        yield
 
 
 app_lifespan = None
@@ -78,6 +91,20 @@ app = FastAPI(
     lifespan=app_lifespan,
 )
 app.add_middleware(GZipMiddleware)
+
+
+@app.middleware("http")
+async def redis_client_middleware(request: Request, call_next: Callable) -> Response:
+    # Create Redis client for this request
+    client = redis.Redis(connection_pool=connections.redis_pool)
+    token = redis_client_var.set(client)
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        # Clean up
+        redis_client_var.reset(token)
+        await client.aclose()
 
 
 @app.middleware("http")

@@ -8,6 +8,7 @@ from app.exceptions import ScrapingError
 
 from app import schemas, utils
 import app.constants as constants
+from app.core.connections import vlr_request_semaphore
 
 
 async def get_team_data(id: str) -> schemas.Team:
@@ -18,16 +19,18 @@ async def get_team_data(id: str) -> schemas.Team:
     """
 
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
-        response, upcoming_matches_response, completed_matches_response = await asyncio.gather(
-            client.get(constants.TEAM_URL.format(id)),
-            client.get(constants.TEAM_UPCOMING_MATCHES_URL.format(id)),
-            client.get(constants.TEAM_COMPLETED_MATCHES_URL.format(id)),
-        )
+        async with vlr_request_semaphore:
+            response = await client.get(constants.TEAM_URL.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()
 
+        async with vlr_request_semaphore:
+            upcoming_matches_response = await client.get(constants.TEAM_UPCOMING_MATCHES_URL.format(id))
         if upcoming_matches_response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()
+
+        async with vlr_request_semaphore:
+            completed_matches_response = await client.get(constants.TEAM_COMPLETED_MATCHES_URL.format(id))
 
         if completed_matches_response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()

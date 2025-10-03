@@ -1,15 +1,18 @@
 import redis.asyncio as redis
 
 from ..core.config import settings
-from ..core.connections import redis_pool
+from ..core.connections import redis_pool, redis_client_var
 
 
 def get_client() -> redis.Redis:
     """
-    Function to get a redis client
+    Function to get a redis client, preferring per-request client if available
 
     :return: The redis client object
     """
+    client = redis_client_var.get()
+    if client is not None:
+        return client
     return redis.Redis(connection_pool=redis_pool)
 
 

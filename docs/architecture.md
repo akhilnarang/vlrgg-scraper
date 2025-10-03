@@ -30,7 +30,7 @@ The VLR.gg scraper is built as a FastAPI application that provides a REST API fo
 
 ### Core (`app/core/`)
 - **Configuration**: Environment-based settings management
-- **Connections**: Database and external service connections
+- **Connections**: Database, Redis, and semaphore for rate limiting
 - **Utilities**: Helper functions for common operations
 
 ### Cron (`app/cron/`)
@@ -82,6 +82,7 @@ Dynamic model creation and configuration.
 - **Caching**: Redis reduces load on vlr.gg and improves response times
 - **Background Updates**: Cron jobs prevent cache stampedes
 - **Connection Pooling**: httpx client reuse for efficient HTTP requests
+- **Rate Limiting**: Redis-based distributed semaphore limits concurrent requests to vlr.gg across all processes
 
 ## Scalability
 

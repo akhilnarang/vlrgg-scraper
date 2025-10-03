@@ -6,6 +6,7 @@ from pydantic import HttpUrl
 
 from app import schemas, utils
 import app.constants as constants
+from app.core.connections import vlr_request_semaphore
 
 
 async def standings_list(year: int) -> schemas.Standings:
@@ -15,7 +16,7 @@ async def standings_list(year: int) -> schemas.Standings:
     :param year: The VCT year
     :return: The parsed standings
     """
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.STANDINGS_URL.format(year))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()

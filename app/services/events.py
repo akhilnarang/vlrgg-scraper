@@ -15,6 +15,7 @@ from redis.asyncio import Redis
 from app import schemas, cache
 import app.constants as constants
 from app.core.config import settings
+from app.core.connections import vlr_request_semaphore
 from app.utils import clean_number_string, clean_string, get_image_url, simplify_name
 
 
@@ -40,7 +41,7 @@ async def get_events(cache_client: Redis) -> list[schemas.Event]:
     :param cache_client: A redis client instance
     :return: Parsed list of events
     """
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.EVENTS_URL)
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()
@@ -134,7 +135,7 @@ async def parse_events_data(id: str) -> ParsedEventData:
     :param id: The ID of the event
     :ret: Dict of the parsed data
     """
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.EVENT_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()
@@ -180,7 +181,7 @@ async def parse_events_data(id: str) -> ParsedEventData:
 
 
 async def parse_match_data(id: str) -> list:
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with vlr_request_semaphore, httpx.AsyncClient(timeout=15.0) as client:
         response = await client.get(constants.EVENT_URL_WITH_ID_MATCHES.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()

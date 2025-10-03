@@ -7,6 +7,7 @@ from app.exceptions import ScrapingError
 
 from app import schemas, utils
 import app.constants as constants
+from app.core.connections import vlr_request_semaphore
 
 
 async def get_data(search_category: constants.SearchCategory, search_term: str) -> list[schemas.SearchResult]:
@@ -18,7 +19,7 @@ async def get_data(search_category: constants.SearchCategory, search_term: str) 
     :return: The parsed data
     """
 
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with vlr_request_semaphore, httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.SEARCH_URL.format(search_term, search_category))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()

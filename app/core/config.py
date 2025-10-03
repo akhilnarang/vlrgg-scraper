@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     GOOGLE_APPLICATION_CREDENTIALS: str | None = None
 
     TIMEZONE: str
+    MAX_CONCURRENT_VLR_REQUESTS: int = 20
     model_config = SettingsConfigDict(env_file=".env")
 
 
