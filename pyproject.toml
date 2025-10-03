@@ -31,6 +31,7 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "ty",
+    "pre-commit",
 ]
 
 [tool.ruff]
