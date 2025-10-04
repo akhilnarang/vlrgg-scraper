@@ -15,6 +15,7 @@ from sentry_sdk import get_current_scope
 
 from app.constants import MatchStatus
 from app.core.config import settings
+from app.core.connections import redis_client_var
 from app.services import events, matches, news, rankings, standings
 
 
@@ -26,6 +27,7 @@ async def fcm_notification_cron(ctx: dict) -> None:
     """
     get_current_scope().set_transaction_name("FCM Notification Cron")
     client = ctx["redis"]
+    redis_client_var.set(client)
 
     # Get the current time, so that we can filter for matches starting in the next 15 minutes
     current_time = datetime.now(tz=ZoneInfo(settings.TIMEZONE))
@@ -93,8 +95,10 @@ async def rankings_cron(ctx: dict) -> None:
     :return: Nothing
     """
     get_current_scope().set_transaction_name("Rankings Cron")
+    client = ctx["redis"]
+    redis_client_var.set(client)
 
-    await ctx["redis"].set(
+    await client.set(
         "rankings",
         json.dumps(
             [item.model_dump() for item in await rankings.ranking_list()],
@@ -112,6 +116,7 @@ async def matches_cron(ctx: dict) -> None:
     """
     get_current_scope().set_transaction_name("Matches Cron")
     client = ctx["redis"]
+    redis_client_var.set(client)
 
     await client.set(
         "matches",
@@ -131,6 +136,7 @@ async def events_cron(ctx: dict) -> None:
     """
     get_current_scope().set_transaction_name("Events Cron")
     client = ctx["redis"]
+    redis_client_var.set(client)
 
     await client.set(
         "events",
@@ -149,8 +155,10 @@ async def news_cron(ctx: dict) -> None:
     :return: Nothing
     """
     get_current_scope().set_transaction_name("News Cron")
+    client = ctx["redis"]
+    redis_client_var.set(client)
 
-    await ctx["redis"].set(
+    await client.set(
         "news",
         json.dumps(
             [item.model_dump() for item in await news.news_list()],
@@ -168,6 +176,7 @@ async def standings_cron(ctx: dict) -> None:
     """
     get_current_scope().set_transaction_name("Standings Cron")
     client = ctx["redis"]
+    redis_client_var.set(client)
     current_year = datetime.now().year
 
     result = await standings.standings_list(current_year)
