@@ -56,6 +56,7 @@ Scheduled background jobs using arq:
 - Run specific test file: `uv run pytest tests/test_news.py`
 - Run specific test: `uv run pytest tests/test_news.py::test_news_list`
 - Run with verbose output: `uv run pytest -v`
+- Test APIs with `curl -s http://localhost:8000/api/v1/<endpoint>` (always assume that development server is running)
 
 ## Linting and Type Checking
 - Lint code: `./scripts/lint.sh` (runs ty and ruff check)
