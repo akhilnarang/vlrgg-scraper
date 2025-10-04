@@ -11,12 +11,13 @@ from bs4 import BeautifulSoup, Tag
 from app.exceptions import ScrapingError, BadRequestError
 from pydantic import HttpUrl
 from redis.asyncio import Redis
+from sqlalchemy.dialects.sqlite import insert
 
 from app import schemas, cache
 import app.constants as constants
 from app.core.config import settings
 from app.core.connections import vlr_request_semaphore, async_session, get_vlr_client
-from app.models import Team, Event, Match
+from app.models import Team, Event, Match, event_teams
 from app.utils import clean_number_string, clean_string, get_image_url, normalize_name, simplify_name
 
 
@@ -113,7 +114,8 @@ async def get_event_by_id(id: str) -> schemas.EventWithDetails:
     :param id: The event ID
     :return: The parsed event
     """
-    events, matches = await asyncio.gather(parse_events_data(id), parse_match_data(id))
+    matches = await parse_match_data(id)
+    events = await parse_events_data(id, matches)
     events["matches"] = matches
 
     # Upsert to database
@@ -135,12 +137,24 @@ async def get_event_by_id(id: str) -> schemas.EventWithDetails:
     )
 
 
-async def parse_events_data(id: str) -> ParsedEventData:
+async def parse_events_data(id: str, matches: list) -> ParsedEventData:
     """
     Function to fetch and parse the data for a given event
     :param id: The ID of the event
     :ret: Dict of the parsed data
     """
+
+    async def fetch_stage_teams(url: str) -> list[dict[str, str]]:
+        async with vlr_request_semaphore:
+            async with get_vlr_client() as client:
+                response = await client.get(url)
+                if response.status_code != http.HTTPStatus.OK:
+                    raise ScrapingError()
+        soup = BeautifulSoup(response.content, "lxml")
+        if teams_container := soup.find_all("div", class_="event-teams-container"):
+            return await parse_team_data(teams_container[0])
+        return []
+
     async with vlr_request_semaphore:
         async with get_vlr_client() as client:
             response = await client.get(constants.EVENT_URL_WITH_ID.format(id))
@@ -167,8 +181,48 @@ async def parse_events_data(id: str) -> ParsedEventData:
     if prizes_data := soup.find_all("table", class_="wf-table"):
         event["prizes"] = await prizes_parser(prizes_data[-1])
 
-    if teams_container := soup.find_all("div", class_="event-teams-container"):
-        event["teams"] = await parse_team_data(teams_container[0])
+    # Get stages from matches
+    matches_stages = {m.get("stage") for m in matches if m.get("stage")}
+
+    # Parse teams from stages that have matches
+    stage_urls = []
+    if subnav := soup.find("div", class_="wf-subnav"):
+        for a in subnav.find_all("a", class_="wf-subnav-item"):
+            href = a["href"]
+            stage_name = clean_string(a.find("div", class_="wf-subnav-item-title").get_text())
+            if stage_name in matches_stages:
+                stage_urls.append("https://www.vlr.gg" + href)
+    else:
+        # No stages, parse from current page
+        if teams_container := soup.find_all("div", class_="event-teams-container"):
+            event["teams"] = await parse_team_data(teams_container[0])
+        else:
+            event["teams"] = []
+        match_data = soup.find("div", class_="event-sidebar-matches").find_all("h2", class_="wf-label mod-large")
+
+        match len(match_data):
+            case 2:
+                event["status"] = constants.EventStatus.ONGOING
+            case 1:
+                if clean_string(match_data[0].get_text()).split(" ")[0].lower() == "upcoming":
+                    event["status"] = constants.EventStatus.UPCOMING
+                else:
+                    event["status"] = constants.EventStatus.COMPLETED
+            case _:
+                event["status"] = constants.EventStatus.UNKNOWN
+
+        event["standings"] = parse_event_standings(soup.find("div", class_="event-container"))
+        return cast(ParsedEventData, event)
+
+    # Fetch teams from matching stages
+    stage_teams = await asyncio.gather(*[fetch_stage_teams(url) for url in stage_urls])
+
+    # Aggregate unique teams
+    all_teams = {}
+    for teams in stage_teams:
+        for team in teams:
+            all_teams[team["id"]] = team
+    event["teams"] = list(all_teams.values())
 
     match_data = soup.find("div", class_="event-sidebar-matches").find_all("h2", class_="wf-label mod-large")
 
@@ -428,12 +482,14 @@ async def upsert_event_data(event_data: dict, matches: list, id: str):
     """
     async with async_session() as session:
         # Upsert teams
+        teams = []
         for team_data in event_data.get("teams", []):
             normalized_name = normalize_name(team_data["name"])
             team = Team(
                 id=team_data["id"], name=team_data["name"], normalized_name=normalized_name, img=team_data["img"]
             )
-            await session.merge(team)
+            merged_team = await session.merge(team)
+            teams.append(merged_team)
 
         # Upsert event
         event = Event(
@@ -445,7 +501,14 @@ async def upsert_event_data(event_data: dict, matches: list, id: str):
             location=event_data["location"],
             img=event_data["img"],
         )
+
         await session.merge(event)
+
+        # Bulk insert into event_teams to avoid lazy loading issues
+        if teams:
+            values = [{"event_id": id, "team_id": team.id} for team in teams]
+            stmt = insert(event_teams).values(values).on_conflict_do_nothing()
+            await session.execute(stmt)
 
         # Upsert matches
         for match_data in matches:

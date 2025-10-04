@@ -1,10 +1,12 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 from pathlib import Path
+from sqlalchemy import text
 
 from app.services import events
 from app.constants import EventStatus
 from app.exceptions import ScrapingError
+from app.core.connections import async_session
 
 
 @pytest.mark.asyncio
@@ -51,12 +53,20 @@ async def test_get_event_by_id():
     mock_response_event.status_code = 200
     mock_response_event.content = html_content.encode("utf-8")
 
-    # For matches, use a simple mock since we don't have a fixture
+    # Load the fixture HTML for matches
+    fixture_path_matches = Path(__file__).parent / "fixtures" / "event_2283_matches.html"
+    with open(fixture_path_matches, "r", encoding="utf-8") as f:
+        matches_html_content = f.read()
+
+    # Mock the matches response
     mock_response_matches = AsyncMock()
     mock_response_matches.status_code = 200
-    mock_response_matches.content = b"<html><body></body></html>"
+    mock_response_matches.content = matches_html_content.encode("utf-8")
 
-    with patch("httpx.AsyncClient.get", side_effect=[mock_response_event, mock_response_matches]):
+    with patch(
+        "httpx.AsyncClient.get",
+        side_effect=[mock_response_matches, mock_response_event, mock_response_event, mock_response_event],
+    ):
         result = await events.get_event_by_id("2283")
 
     # Assertions
@@ -68,6 +78,22 @@ async def test_get_event_by_id():
     assert result.location == "Accor Arena, Paris"
     assert str(result.img) == "https://owcdn.net/img/63067806d167d.png"
     assert isinstance(result.matches, list)
+
+    # DB assertions
+    async with async_session() as session:
+        # Event inserted
+        event_result = await session.execute(text("SELECT * FROM events WHERE id = '2283'"))
+        event_row = event_result.fetchone()
+        assert event_row is not None
+        assert event_row.title == "Valorant Champions 2025"
+
+        # Teams inserted from matches stages
+        teams_count = await session.execute(text("SELECT count(*) FROM teams"))
+        assert teams_count.scalar() > 0
+
+        # Event-teams inserted
+        event_teams_count = await session.execute(text("SELECT count(*) FROM event_teams WHERE event_id = '2283'"))
+        assert event_teams_count.scalar() > 0
 
 
 @pytest.mark.asyncio
