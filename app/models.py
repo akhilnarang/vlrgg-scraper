@@ -102,8 +102,6 @@ class Match(Base):
         time: Scheduled or actual time of the match.
         series: Series information (e.g., best-of-3).
         event_name: Name of the event.
-        team_a_players: JSON list of player IDs for team A.
-        team_b_players: JSON list of player IDs for team B.
         team_a: Relationship to Team model for team A.
         team_b: Relationship to Team model for team B.
         event: Relationship to Event model.
@@ -119,8 +117,6 @@ class Match(Base):
     time = Column(DateTime)
     series = Column(String)
     event_name = Column(String)
-    team_a_players = Column(JSON)  # List of player IDs for team A
-    team_b_players = Column(JSON)  # List of player IDs for team B
 
     # Relationships
     team_a = relationship("Team", foreign_keys=[team_a_id])
@@ -158,6 +154,48 @@ class Event(Base):
     teams = relationship("Team", secondary=event_teams, back_populates="events")
 
 
+class MatchPlayer(Base):
+    """Model representing player statistics for a specific match and map.
+
+    Attributes:
+        match_id: Foreign key to the match (part of composite primary key).
+        player_id: Foreign key to the player (part of composite primary key).
+        team_id: Foreign key to the team.
+        map: The map on which the stats were recorded (part of composite primary key).
+        agents: JSON list of agents used by the player.
+        rating: Player rating for the match.
+        acs: Average combat score.
+        kills: Number of kills.
+        deaths: Number of deaths.
+        assists: Number of assists.
+        kast: Kill/Assist/Survive/Traded percentage.
+        adr: Average damage per round.
+        headshot_percent: Headshot percentage.
+        first_kills: Number of first kills.
+        first_deaths: Number of first deaths.
+        first_kills_diff: Difference in first kills vs first deaths.
+    """
+
+    __tablename__ = "match_players"
+
+    match_id = Column(String, ForeignKey("matches.id"), primary_key=True, nullable=False)
+    player_id = Column(String, ForeignKey("players.id"), primary_key=True, nullable=False)
+    team_id = Column(String, ForeignKey("teams.id"), nullable=False)
+    map = Column(String, primary_key=True, nullable=False)
+    agents = Column(JSON)
+    rating = Column(Float)
+    acs = Column(Integer)
+    kills = Column(Integer)
+    deaths = Column(Integer)
+    assists = Column(Integer)
+    kast = Column(Integer)
+    adr = Column(Integer)
+    headshot_percent = Column(Integer)
+    first_kills = Column(Integer)
+    first_deaths = Column(Integer)
+    first_kills_diff = Column(Integer)
+
+
 # Indexes for performance
 Index("idx_team_normalized_name", Team.normalized_name)
 Index("idx_player_alias", Player.alias)
@@ -167,3 +205,6 @@ Index("idx_match_event_id", Match.event_id)
 Index("idx_match_team_a_id", Match.team_a_id)
 Index("idx_match_team_b_id", Match.team_b_id)
 Index("idx_event_title", Event.title)
+Index("idx_match_player_match_id", MatchPlayer.match_id)
+Index("idx_match_player_player_id", MatchPlayer.player_id)
+Index("idx_match_player_team_id", MatchPlayer.team_id)
