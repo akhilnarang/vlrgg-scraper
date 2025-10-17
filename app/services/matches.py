@@ -1,5 +1,4 @@
 import http
-import logging
 import re
 from asyncio import gather
 from datetime import datetime
@@ -543,10 +542,11 @@ async def upsert_match_data(teams: list[dict], event: dict, data: list[dict], id
         data: List of map data dicts containing player info.
         id: The match's unique identifier.
     """
-    try:
-        async with async_session() as session:
-            # Prepare upserts for teams and event
-            upsert_tasks = []
+    upsert_tasks = []
+    async with async_session() as session:
+        with session.no_autoflush:
+            # Upsert teams
+            team_objs = []
             for team_data in teams:
                 if "id" in team_data:
                     normalized_name = normalize_name(team_data["name"])
@@ -557,6 +557,7 @@ async def upsert_match_data(teams: list[dict], event: dict, data: list[dict], id
                         img=team_data["img"],
                     )
                     upsert_tasks.append(session.merge(team))
+                    team_objs.append(team)
 
             if event.get("id"):
                 event_obj = Event(
@@ -568,53 +569,42 @@ async def upsert_match_data(teams: list[dict], event: dict, data: list[dict], id
             await gather(*upsert_tasks)
 
             # Upsert match
-            match = Match(
+            match_obj = Match(
                 id=id,
-                team_a_id=teams[0].get("id") if len(teams) > 0 else None,
-                team_b_id=teams[1].get("id") if len(teams) > 1 else None,
+                team_a_id=team_objs[0].id if team_objs else None,
+                team_b_id=team_objs[1].id if len(team_objs) > 1 else None,
                 event_id=event.get("id"),
-                status=event.get("status"),
-                time=event.get("date"),
-                series=event.get("stage", ""),
+                status=None,
+                time=None,
+                series=None,
                 event_name=event.get("series", ""),
             )
-            await session.merge(match)
+            await session.merge(match_obj)
 
-            # Create team name to ID mapping for match_players
-            team_name_to_id = {team["name"]: team.get("id") for team in teams}
-
-            # Create MatchPlayer objects synchronously (small data set, max 10 players)
-            match_players = []
+            # Upsert match players
+            match_player_merges = []
             for map_data in data:
-                for member in map_data["members"]:
-                    if not member.get("id"):
-                        continue
-                    team_id = team_name_to_id.get(member["team"])
+                for player_data in map_data.get("players", []):
                     match_player = MatchPlayer(
                         match_id=id,
-                        player_id=member["id"],
-                        team_id=team_id,
+                        player_id=player_data["id"],
+                        team_id=player_data["team_id"],
                         map=map_data["map"],
-                        agents=member["agents"],  # JSON list of agent dicts
-                        rating=member["rating"],
-                        acs=member["acs"],
-                        kills=member["kills"],
-                        deaths=member["deaths"],
-                        assists=member["assists"],
-                        kast=member["kast"],
-                        adr=member["adr"],
-                        headshot_percent=member["headshot_percent"],
-                        first_kills=member["first_kills"],
-                        first_deaths=member["first_deaths"],
-                        first_kills_diff=member["first_kills_diff"],
+                        agents=player_data.get("agents"),
+                        rating=player_data.get("rating"),
+                        acs=player_data.get("acs"),
+                        kills=player_data.get("kills"),
+                        deaths=player_data.get("deaths"),
+                        assists=player_data.get("assists"),
+                        kast=player_data.get("kast"),
+                        adr=player_data.get("adr"),
+                        headshot_percent=player_data.get("headshot_percent"),
+                        first_kills=player_data.get("first_kills"),
+                        first_deaths=player_data.get("first_deaths"),
+                        first_kills_diff=player_data.get("first_kills_diff"),
                     )
-                    match_players.append(match_player)
+                    match_player_merges.append(session.merge(match_player))
 
-            # Execute match_players upserts concurrently
-            match_player_merges = [session.merge(mp) for mp in match_players]
             await gather(*match_player_merges)
 
             await session.commit()
-    except Exception as e:
-        logging.error(f"Error upserting match data for id {id}: {e}")
-        # Note: session rollback is automatic on exception in async context

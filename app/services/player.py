@@ -121,14 +121,15 @@ async def upsert_player_data(player_data: dict, id: str):
         id: The player's unique identifier.
     """
     async with async_session() as session:
-        # Upsert current_team if exists
-        if "current_team" in player_data and player_data["current_team"]:
-            team_data = player_data["current_team"]
-            normalized_name = normalize_name(team_data["name"])
-            team = Team(
-                id=team_data["id"], name=team_data["name"], normalized_name=normalized_name, img=team_data["img"]
-            )
-            await session.merge(team)
+        with session.no_autoflush:
+            # Upsert current_team if exists
+            if "current_team" in player_data and player_data["current_team"]:
+                team_data = player_data["current_team"]
+                normalized_name = normalize_name(team_data["name"])
+                team = Team(
+                    id=team_data["id"], name=team_data["name"], normalized_name=normalized_name, img=team_data["img"]
+                )
+                await session.merge(team)
 
         # Upsert player
         player = Player(

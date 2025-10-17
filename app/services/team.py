@@ -178,42 +178,43 @@ async def upsert_team_data(team_data: dict, id: str):
         id: The team's unique identifier.
     """
     async with async_session() as session:
-        normalized_name = normalize_name(team_data["name"])
-        team = Team(
-            id=id,
-            name=team_data["name"],
-            normalized_name=normalized_name,
-            tag=team_data["tag"],
-            img=team_data["img"],
-            website=team_data["website"],
-            twitter=team_data["twitter"],
-            country=team_data["country"],
-            rank=team_data["rank"],
-            region=team_data["region"],
-        )
-        await session.merge(team)
-
-        # Upsert players
-        for player_data in team_data["roster"]:
-            role = player_data.get("role")
-            player_type = "player"
-            if role:
-                role_lower = role.lower()
-                if "coach" in role_lower:
-                    player_type = "coach"
-                elif "manager" in role_lower:
-                    player_type = "manager"
-                elif "captain" in role_lower or "igl" in role_lower:
-                    player_type = "igl"
-            player = Player(
-                id=player_data["id"],
-                name=player_data.get("name"),
-                alias=player_data["alias"],
-                role=role,
-                player_type=player_type,
-                img=player_data["img"],
-                team_id=id,
+        with session.no_autoflush:
+            normalized_name = normalize_name(team_data["name"])
+            team = Team(
+                id=id,
+                name=team_data["name"],
+                normalized_name=normalized_name,
+                tag=team_data["tag"],
+                img=team_data["img"],
+                website=team_data["website"],
+                twitter=team_data["twitter"],
+                country=team_data["country"],
+                rank=team_data["rank"],
+                region=team_data["region"],
             )
-            await session.merge(player)
+            await session.merge(team)
+
+            # Upsert players
+            for player_data in team_data["roster"]:
+                role = player_data.get("role")
+                player_type = "player"
+                if role:
+                    role_lower = role.lower()
+                    if "coach" in role_lower:
+                        player_type = "coach"
+                    elif "manager" in role_lower:
+                        player_type = "manager"
+                    elif "captain" in role_lower or "igl" in role_lower:
+                        player_type = "igl"
+                player = Player(
+                    id=player_data["id"],
+                    name=player_data.get("name"),
+                    alias=player_data["alias"],
+                    role=role,
+                    player_type=player_type,
+                    img=player_data["img"],
+                    team_id=id,
+                )
+                await session.merge(player)
 
         await session.commit()

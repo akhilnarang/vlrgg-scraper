@@ -481,15 +481,16 @@ async def upsert_event_data(event_data: dict, matches: list, id: str):
         id: The event's unique identifier.
     """
     async with async_session() as session:
-        # Upsert teams
-        teams = []
-        for team_data in event_data.get("teams", []):
-            normalized_name = normalize_name(team_data["name"])
-            team = Team(
-                id=team_data["id"], name=team_data["name"], normalized_name=normalized_name, img=team_data["img"]
-            )
-            merged_team = await session.merge(team)
-            teams.append(merged_team)
+        with session.no_autoflush:
+            # Upsert teams
+            teams = []
+            for team_data in event_data.get("teams", []):
+                normalized_name = normalize_name(team_data["name"])
+                team = Team(
+                    id=team_data["id"], name=team_data["name"], normalized_name=normalized_name, img=team_data["img"]
+                )
+                merged_team = await session.merge(team)
+                teams.append(merged_team)
 
         # Upsert event
         event = Event(
