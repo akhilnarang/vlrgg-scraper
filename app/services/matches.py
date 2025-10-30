@@ -542,7 +542,6 @@ async def upsert_match_data(teams: list[dict], event: dict, data: list[dict], id
         data: List of map data dicts containing player info.
         id: The match's unique identifier.
     """
-    upsert_tasks = []
     async with async_session() as session:
         with session.no_autoflush:
             # Upsert teams
@@ -556,17 +555,14 @@ async def upsert_match_data(teams: list[dict], event: dict, data: list[dict], id
                         normalized_name=normalized_name,
                         img=team_data["img"],
                     )
-                    upsert_tasks.append(session.merge(team))
-                    team_objs.append(team)
+                    merged_team = await session.merge(team)
+                    team_objs.append(merged_team)
 
             if event.get("id"):
                 event_obj = Event(
                     id=event["id"], title=event.get("series", ""), status=event.get("status"), img=event.get("img", "")
                 )
-                upsert_tasks.append(session.merge(event_obj))
-
-            # Execute upserts concurrently
-            await gather(*upsert_tasks)
+                await session.merge(event_obj)
 
             # Upsert match
             match_obj = Match(
@@ -582,7 +578,6 @@ async def upsert_match_data(teams: list[dict], event: dict, data: list[dict], id
             await session.merge(match_obj)
 
             # Upsert match players
-            match_player_merges = []
             for map_data in data:
                 for player_data in map_data.get("players", []):
                     match_player = MatchPlayer(
@@ -603,8 +598,6 @@ async def upsert_match_data(teams: list[dict], event: dict, data: list[dict], id
                         first_deaths=player_data.get("first_deaths"),
                         first_kills_diff=player_data.get("first_kills_diff"),
                     )
-                    match_player_merges.append(session.merge(match_player))
-
-            await gather(*match_player_merges)
+                    await session.merge(match_player)
 
             await session.commit()
