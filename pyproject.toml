@@ -2,7 +2,7 @@
 name = "app"
 version = "0.1.0"
 description = "A FastAPI backend that serves data scraped from vlr.gg"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 authors = [
     { name = "Akhil Narang", email = "me@akhilnarang.dev" }
 ]
