@@ -18,5 +18,5 @@ async def list_events(client: Redis = Depends(deps.get_redis_client)) -> list[sc
 
 
 @router.get("/{id}")
-async def event_by_id(id: str) -> schemas.EventWithDetails:
-    return await events.get_event_by_id(id)
+async def event_by_id(id: str, client: Redis = Depends(deps.get_redis_client)) -> schemas.EventWithDetails:
+    return await events.get_event_by_id(id, client)

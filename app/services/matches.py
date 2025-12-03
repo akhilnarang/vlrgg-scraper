@@ -1,6 +1,7 @@
 import http
 import re
 from asyncio import gather
+from contextlib import suppress
 from datetime import datetime
 from itertools import chain
 
@@ -481,6 +482,7 @@ async def parse_match(date: Tag, match_info: Tag, client: Redis) -> schemas.Matc
             [simplify_name(team1_name), simplify_name(team2_name)],
             client=client,
         )
+        match_data = None
         if team_ids and not all(team_ids) and "TBD" not in (team1_name, team2_name):
             match_data = await match_by_id(match_id, client)
             team_ids = [team.id for team in match_data.teams]
@@ -491,7 +493,20 @@ async def parse_match(date: Tag, match_info: Tag, client: Redis) -> schemas.Matc
         event_id = await cache.hget("event", simplify_name(event_name), client=client)
 
         if event_id is None:
-            return None  # Skip this match if event_id is missing
+            # Try to get event_id from match details if we haven't fetched it yet
+            if match_data is None:
+                match_data = await match_by_id(match_id, client)
+
+            # Extract event_id from match data and populate cache
+            if match_data.event and match_data.event.id:
+                event_id = match_data.event.id
+                # Fetch event name and populate cache using lightweight function
+                from app.services import events
+                with suppress(Exception):
+                    await events.get_event_name_and_cache(event_id, client)
+
+            if event_id is None:
+                return None  # Skip this match if event_id is still missing
 
     return schemas.Match(
         team1=schemas.MatchTeam(

@@ -104,13 +104,41 @@ async def parse_event(event: Tag, client: Redis) -> schemas.Event:
     )
 
 
-async def get_event_by_id(id: str) -> schemas.EventWithDetails:
+async def get_event_name_and_cache(id: str, client: Redis) -> str:
+    """
+    Lightweight function to fetch just the event name and populate the cache
+    :param id: The event ID
+    :param client: Redis client for caching
+    :return: The event name
+    """
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as http_client:
+        response = await http_client.get(constants.EVENT_URL_WITH_ID.format(id))
+        if response.status_code != http.HTTPStatus.OK:
+            raise ScrapingError()
+
+    soup = BeautifulSoup(response.content, "lxml")
+
+    if (event_header := soup.find_all("div", class_="event-header")) is None:
+        raise BadRequestError(detail="Event header was missing, please retry")
+
+    header = event_header[0]
+    title = clean_string(header.find_all("h1", class_="wf-title")[0].get_text())
+
+    # Populate cache if enabled
+    if settings.ENABLE_ID_MAP_DB:
+        await cache.hset("event", {simplify_name(title): id}, client)
+
+    return title
+
+
+async def get_event_by_id(id: str, client: Redis | None = None) -> schemas.EventWithDetails:
     """
     Function to fetch an event from VLR, and return the parsed response
     :param id: The event ID
+    :param client: Optional Redis client for caching
     :return: The parsed event
     """
-    events, matches = await asyncio.gather(parse_events_data(id), parse_match_data(id))
+    events, matches = await asyncio.gather(parse_events_data(id, client), parse_match_data(id))
     events["matches"] = matches
     return schemas.EventWithDetails(
         id=events["id"],
@@ -128,10 +156,11 @@ async def get_event_by_id(id: str) -> schemas.EventWithDetails:
     )
 
 
-async def parse_events_data(id: str) -> ParsedEventData:
+async def parse_events_data(id: str, cache_client: Redis | None = None) -> ParsedEventData:
     """
     Function to fetch and parse the data for a given event
     :param id: The ID of the event
+    :param cache_client: Optional Redis client for caching
     :ret: Dict of the parsed data
     """
     async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
@@ -176,6 +205,11 @@ async def parse_events_data(id: str) -> ParsedEventData:
             event["status"] = constants.EventStatus.UNKNOWN
 
     event["standings"] = parse_event_standings(soup.find("div", class_="event-container"))
+
+    # Populate cache if enabled and client provided
+    if settings.ENABLE_ID_MAP_DB and cache_client:
+        await cache.hset("event", {simplify_name(event["title"]): id}, cache_client)
+
     return cast(ParsedEventData, event)
 
 
