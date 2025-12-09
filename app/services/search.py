@@ -34,7 +34,7 @@ async def parse_result(result_data: Tag) -> schemas.SearchResult:
     :param result_data: A search item from VLR search page
     :return: The data parsed
     """
-    url = result_data["href"]
+    url = utils.get_href(result_data["href"])
     if "team" in url:
         category = constants.SearchCategory.TEAM
     elif "event" in url:

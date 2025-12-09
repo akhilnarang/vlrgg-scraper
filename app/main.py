@@ -77,7 +77,7 @@ app = FastAPI(
     description="Scraper for VLR.gg that exposes a REST API for some data available there",
     lifespan=app_lifespan,
 )
-app.add_middleware(GZipMiddleware)
+app.add_middleware(GZipMiddleware, minimum_size=500)  # type: ignore[arg-type]
 
 
 @app.middleware("http")

@@ -20,6 +20,7 @@ from app.utils import (
     clean_string,
     expand_url,
     fix_datetime_tz,
+    get_href,
     get_image_url,
     simplify_name,
 )
@@ -314,7 +315,7 @@ async def parse_scoreboard(data: Tag, team_name_mapping: dict[str, str]) -> list
         team_name_short = clean_string(data.find_all("div", class_="ge-text-light")[-1].get_text())
         player_id = ""
         if player_data := data.find("a"):
-            player_id = player_data["href"].split("/")[-2]
+            player_id = get_href(player_data["href"]).split("/")[-2]
 
         ret.append(
             {
@@ -353,7 +354,7 @@ async def get_previous_encounters_data(data: Tag) -> list[dict]:
         ]
         for match_link in data.find_all("a", class_="wf-module-item mod-h2h"):
             match_obj = {
-                "match_id": match_link["href"].split("/")[1],
+                "match_id": get_href(match_link["href"]).split("/")[1],
                 "teams": [
                     {
                         "name": team_a,
@@ -461,7 +462,7 @@ async def parse_match(date: Tag, match_info: Tag, client: Redis) -> schemas.Matc
     :return: The parsed match
     """
     href = match_info.get("href")
-    match_id = href.split("/")[1] if href else ""
+    match_id = get_href(href).split("/")[1] if href else ""
     team_names = match_info.find_all("div", class_="text-of")
     team_scores = match_info.find_all("div", class_="match-item-vs-team-score")
     status = match_info.find("div", class_="ml-status").get_text().strip().lower()

@@ -15,7 +15,7 @@ from redis.asyncio import Redis
 from app import schemas, cache
 import app.constants as constants
 from app.core.config import settings
-from app.utils import clean_number_string, clean_string, get_image_url, simplify_name
+from app.utils import clean_number_string, clean_string, get_class, get_href, get_image_url, simplify_name
 
 
 class ParsedEventData(TypedDict):
@@ -79,17 +79,14 @@ async def parse_event(event: Tag, client: Redis) -> schemas.Event:
     :param event: The HTML
     :return: The event parsed
     """
-    event_id = event["href"].split("/")[2]
+    event_id = get_href(event["href"]).split("/")[2]
     title = clean_string(event.find_all("div", class_="event-item-title")[0].get_text())
     status = clean_string(event.find_all("span", class_="event-item-desc-item-status")[0].get_text())
     prize = event.find_all("div", class_="mod-prize")[0].get_text().strip().replace("\t", "").split("\n")[0]
     dates = event.find_all("div", class_="mod-dates")[0].get_text().strip().replace("\t", "").split("\n")[0]
-    location = (
-        event.find_all("div", class_="mod-location")[0]
-        .find_all("i", class_="flag")[0]
-        .get("class")[1]
-        .replace("mod-", "")
-    )
+    location = get_class(
+        event.find_all("div", class_="mod-location")[0].find_all("i", class_="flag")[0].get("class"), 1
+    ).replace("mod-", "")
     img = HttpUrl(get_image_url(event.find_all("div", class_="event-item-thumb")[0].find("img")["src"]))
     if settings.ENABLE_ID_MAP_DB:
         await cache.hset("event", {simplify_name(title): event_id}, client)
@@ -180,9 +177,9 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
     event_desc_item_value = header.find_all("div", class_="event-desc-item-value")
     event["dates"] = clean_string(event_desc_item_value[0].get_text())
     event["prize"] = clean_string(event_desc_item_value[1].get_text())
-    event["location"] = clean_string(event_desc_item_value[2].get_text()) or event_desc_item_value[2].find_all(
-        "i", class_="flag"
-    )[0].get("class")[1].replace("mod-", "")
+    event["location"] = clean_string(event_desc_item_value[2].get_text()) or get_class(
+        event_desc_item_value[2].find_all("i", class_="flag")[0].get("class"), 1
+    ).replace("mod-", "")
     event["img"] = get_image_url(header.find_all("div", class_="event-header-thumb")[0].find("img")["src"])
 
     if prizes_data := soup.find_all("table", class_="wf-table"):
@@ -292,7 +289,7 @@ async def match_parser(day_matches: Tag, date: str) -> list[dict[str, str | list
                 .astimezone(ZoneInfo("UTC"))
             )
         match = {
-            "id": match_data["href"].split("/")[1],
+            "id": get_href(match_data["href"]).split("/")[1],
             "status": match_data.find_all("div", class_="ml-status")[0].get_text().strip().lower(),
         }
         if match_timing:
@@ -306,7 +303,7 @@ async def match_parser(day_matches: Tag, date: str) -> list[dict[str, str | list
         for team in match_data.find_all("div", class_="match-item-vs-team"):
             data = {
                 "name": clean_string(team.find_all("div", class_="match-item-vs-team-name")[0].get_text()),
-                "region": team.find_all("span", class_="flag")[0].get("class")[1].replace("mod-", ""),
+                "region": get_class(team.find_all("span", class_="flag")[0].get("class"), 1).replace("mod-", ""),
             }
             score_data = clean_string(team.find_all("div", class_="match-item-vs-team-score")[0].get_text())
             if score_data.isdigit():
@@ -339,7 +336,7 @@ async def parse_team_data(team_data: Tag) -> list[dict[str, str]]:
             continue
         participant = {
             "name": name,
-            "id": event_team_name["href"].split("/")[2],
+            "id": get_href(event_team_name["href"]).split("/")[2],
             "img": get_image_url(team.find_all("img", class_="event-team-players-mask-team")[0]["src"]),
         }
 

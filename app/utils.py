@@ -8,12 +8,14 @@ from app.constants import PREFIX, VLR_IMAGE
 from app.core.config import settings
 
 
-def get_image_url(img: str) -> str:
+def get_image_url(img: str | list[str]) -> str:
     """
     Determine an image URL based on the string
-    :param img: The src string of the image
+    :param img: The src string of the image (or list from BeautifulSoup)
     :return: The full URL
     """
+    if isinstance(img, list):
+        img = img[0]
     if img.startswith("http"):
         return img
     elif img.startswith(VLR_IMAGE):
@@ -68,13 +70,15 @@ def clean_number_string(value: str | None) -> int | float:
     return 0
 
 
-def expand_url(url: str | None) -> str | None:
+def expand_url(url: str | list[str] | None) -> str | None:
     """
     Function to expand a URL to full form
 
-    :param url: The URL to expand
+    :param url: The URL to expand (or list from BeautifulSoup)
     :return: The full URL, or None if invalid
     """
+    if isinstance(url, list):
+        url = url[0]
     if not url or not url.strip():
         return None
     if url.startswith("http"):
@@ -108,3 +112,32 @@ def simplify_name(name: str) -> str:
     :return: The key
     """
     return name.lower().replace(" ", "_")
+
+
+def get_href(value: str | list[str]) -> str:
+    """
+    Safely extract href string from BeautifulSoup attribute.
+
+    :param value: The href attribute (str or AttributeValueList)
+    :return: The href string
+    """
+    if isinstance(value, list):
+        return value[0]
+    return value
+
+
+def get_class(value: str | list[str] | None, index: int = 0) -> str:
+    """
+    Safely extract class string from BeautifulSoup class attribute.
+
+    :param value: The class attribute (str, list, or None from BeautifulSoup)
+    :param index: The index to extract (only used if value is a list)
+    :return: The class string or empty string
+    """
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if len(value) > index:
+        return value[index]
+    return ""

@@ -104,7 +104,7 @@ async def parse_player(player_data: Tag) -> dict:
     :return: The parsed data
     """
     response = {
-        "id": player_data.find("a")["href"].split("/")[2],
+        "id": utils.get_href(player_data.find("a")["href"]).split("/")[2],
         "alias": utils.clean_string(player_data.find("div", class_="team-roster-item-name-alias").get_text()),
         "img": utils.get_image_url(player_data.find("div", class_="team-roster-item-img").find("img")["src"]),
     }
@@ -132,7 +132,7 @@ async def parse_match(match_data: Tag) -> dict:
     response = {
         "event": event,
         "stage": "".join(stage),
-        "id": match_data["href"].split("/")[1],
+        "id": utils.get_href(match_data["href"]).split("/")[1],
     }
     if eta := match_data.find("span", class_="rm-item-score-eta"):
         response["eta"] = utils.clean_string(eta.get_text())
