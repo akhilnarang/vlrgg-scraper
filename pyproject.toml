@@ -24,11 +24,11 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "ruff",
+    "pre-commit",
     "pytest",
     "pytest-asyncio",
-    "ty",
-    "pre-commit",
+    "ruff>=0.14.8",
+    "ty>=0.0.1a32",
 ]
 
 [tool.ruff]

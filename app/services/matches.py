@@ -502,6 +502,7 @@ async def parse_match(date: Tag, match_info: Tag, client: Redis) -> schemas.Matc
                 event_id = match_data.event.id
                 # Fetch event name and populate cache using lightweight function
                 from app.services import events
+
                 with suppress(Exception):
                     await events.get_event_name_and_cache(event_id, client)
 
