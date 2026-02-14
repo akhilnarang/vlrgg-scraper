@@ -353,23 +353,47 @@ async def parse_team_data(team_data: Tag) -> list[dict[str, str]]:
     return participants
 
 
-def parse_event_standings(data: Tag) -> list[dict[str, str | int]]:
+def parse_event_standings(data: Tag | None) -> list[dict[str, str | int]]:
+    def get_team_and_country(columns: list[Tag]) -> tuple[str, str]:
+        """Extract team and country from a standings row across layout variants."""
+        for column in columns:
+            if team_data := column.find("div", class_="event-group-team-name text-of"):
+                values = [clean_string(s) for s in team_data.get_text().split("\n")]
+                values = [value for value in values if value and value.lower() != "spoiler hidden"]
+                if not values:
+                    return "", ""
+                if len(values) == 1:
+                    return values[0], ""
+                return values[0], values[1]
+        return "", ""
+
+    if not data:
+        return []
+
     event_standings = []
     if event_groups := data.find("div", class_="event-groups-container"):
         for table in event_groups.find_all("table", class_="wf-table mod-simple mod-group"):
-            group = clean_string(table.find("thead").find("tr").find("th").get_text())
-            for row in table.find("tbody").find_all("tr"):
+            group_header = table.find("thead")
+            group = clean_string(group_header.get_text()) if group_header else ""
+            table_body = table.find("tbody")
+            if not table_body:
+                continue
+            for row in table_body.find_all("tr"):
                 columns = row.find_all("td")
-                img = columns[0].find("img").get("src")
+                img_tag = row.find("img")
+                if not img_tag:
+                    continue
+                img = img_tag.get("src")
+                if not img:
+                    continue
+                team, country = get_team_and_country(columns)
                 ties = 0  # TODO: figure out if there's anything for this for the "smaller" tables
                 if len(columns) == 6:
-                    team_data = columns[1].find("div", class_="event-group-team-name text-of")
                     wins, losses = map(int, clean_string(columns[2].get_text()).split("–"))
                     map_difference = clean_number_string(columns[3].get_text())
                     round_difference = clean_number_string(columns[4].get_text())
                     round_delta = clean_number_string(columns[5].get_text())
                 elif len(columns) > 5:
-                    team_data = columns[0].find("div", class_="event-group-team-name text-of")
                     wins = clean_number_string(columns[1].get_text())
                     losses = clean_number_string(columns[2].get_text())
                     ties = clean_number_string(columns[3].get_text())
@@ -377,12 +401,10 @@ def parse_event_standings(data: Tag) -> list[dict[str, str | int]]:
                     round_difference = clean_number_string(columns[5].get_text())
                     round_delta = clean_number_string(columns[6].get_text())
                 else:
-                    team_data = columns[0].find("div", class_="event-group-team-name text-of")
                     wins, losses = map(int, clean_string(columns[1].get_text()).split("–"))
                     map_difference = clean_number_string(columns[2].get_text())
                     round_difference = clean_number_string(columns[3].get_text())
                     round_delta = clean_number_string(columns[4].get_text())
-                team, country = (s.strip() for s in team_data.get_text().split("\n") if s.strip())
                 event_standings.append(
                     {
                         "group": group,
@@ -398,27 +420,25 @@ def parse_event_standings(data: Tag) -> list[dict[str, str | int]]:
                     }
                 )
     elif event_table := data.find("table", class_="wf-table mod-simple mod-group"):
-        for row in event_table.find("tbody").find_all("tr"):
+        table_body = event_table.find("tbody")
+        if not table_body:
+            return event_standings
+        for row in table_body.find_all("tr"):
             columns = row.find_all("td")
+            img_tag = row.find("img")
+            if not img_tag:
+                continue
+            img = img_tag.get("src")
+            if not img:
+                continue
+            team, country = get_team_and_country(columns)
             if len(columns) < 7:
-                img = columns[0].find("img").get("src")
-                team, country = (
-                    clean_string(s)
-                    for s in columns[0].find("div", class_="event-group-team-name text-of").get_text().split("\n")
-                    if s
-                )
                 wins, losses = map(int, clean_string(columns[1].get_text()).split("–"))
                 ties = 0  # TODO: figure out if there's anything for this
                 map_difference = clean_number_string(columns[2].get_text())
                 round_difference = clean_number_string(columns[3].get_text())
                 round_delta = clean_number_string(columns[4].get_text())
             else:
-                img = columns[0].find("img").get("src")
-                team, country = (
-                    clean_string(s)
-                    for s in columns[0].find("div", class_="event-group-team-name text-of").get_text().split("\n")
-                    if s
-                )
                 wins = clean_number_string(columns[1].get_text())
                 losses = clean_number_string(columns[2].get_text())
                 ties = clean_number_string(columns[3].get_text())

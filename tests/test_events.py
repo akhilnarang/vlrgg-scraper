@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 from pathlib import Path
+from bs4 import BeautifulSoup
 
 from app.services import events
 from app.constants import EventStatus
@@ -86,3 +87,21 @@ async def test_get_events_scraping_error():
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.detail == "VLR.gg server returned an error"
+
+
+def test_parse_event_standings_with_logo_first_column_fixture():
+    fixture_path = Path(__file__).parent / "fixtures" / "event_2760.html"
+    with open(fixture_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    soup = BeautifulSoup(html_content, "lxml")
+    standings_container = soup.find("div", class_="event-container")
+
+    result = events.parse_event_standings(standings_container)
+
+    assert len(result) >= 2
+    assert result[0]["team"] == "Xi Lai Gaming"
+    assert result[0]["country"] == "China"
+    assert result[0]["wins"] == 0
+    assert result[0]["losses"] == 0
+    assert all(standing["team"] != "Spoiler hidden" for standing in result)
