@@ -72,7 +72,7 @@ class SearchCategory(str, Enum):
 
 
 # Timeouts and TTLs (in seconds)
-REQUEST_TIMEOUT = 30.0
+REQUEST_TIMEOUT = 60.0
 CACHE_TTL_RANKINGS = 3600  # 1 hour
 CACHE_TTL_MATCHES = 300  # 5 minutes
 CACHE_TTL_EVENTS = 1800  # 30 minutes

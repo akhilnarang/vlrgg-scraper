@@ -211,7 +211,7 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
 
 
 async def parse_match_data(id: str) -> list:
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
         response = await client.get(constants.EVENT_URL_WITH_ID_MATCHES.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()
