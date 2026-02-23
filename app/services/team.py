@@ -147,6 +147,9 @@ async def parse_match(match_data: Tag) -> dict:
         else:
             response["opponent"] = utils.clean_string(opponent_div.find_next("div").get_text().strip().split("\n")[0])
 
+    if "score" not in response:
+        response["score"] = ""
+
     response["date"] = utils.fix_datetime_tz(
         dateutil.parser.parse(match_data.find("div", class_="m-item-date").get_text(), ignoretz=True)
     )
