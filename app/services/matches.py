@@ -1,7 +1,7 @@
+import asyncio
 import http
 import re
 from asyncio import gather
-from contextlib import suppress
 from datetime import datetime
 from itertools import chain
 
@@ -24,6 +24,9 @@ from app.utils import (
     get_image_url,
     simplify_name,
 )
+
+# Max concurrent fallback HTTP requests to avoid rate-limiting vlr.gg
+_MAX_CONCURRENT_FALLBACKS = 10
 
 
 async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
@@ -440,30 +443,108 @@ async def parse_matches(dates: ResultSet, match_data: ResultSet, client: Redis) 
     :param client: A redis instance
     :return: The parsed matches
     """
+    # First pass: extract all match info from HTML (CPU only, no I/O)
+    raw_matches: list[tuple[Tag, Tag]] = [
+        (date, match_info)
+        for date, matches in zip(dates, match_data[1:])
+        for match_info in matches.find_all("a", class_="wf-module-item")
+    ]
 
+    if not raw_matches:
+        return []
+
+    # Pre-extract names for batch cache lookup
+    parsed_entries = []
+    all_team_keys: list[str] = []
+    all_event_keys: list[str] = []
+    for date, match_info in raw_matches:
+        team_names = match_info.find_all("div", class_="text-of")
+        team1_name = clean_string(team_names[0].get_text())
+        team2_name = clean_string(team_names[1].get_text())
+        event_name = clean_string(match_info.find("div", class_="match-item-event").get_text().split("\n")[-1])
+        all_team_keys.extend([simplify_name(team1_name), simplify_name(team2_name)])
+        all_event_keys.append(simplify_name(event_name))
+        parsed_entries.append((date, match_info, team1_name, team2_name, event_name))
+
+    # Batch cache lookups: 2 Redis calls instead of 2×N
+    team_id_map: dict[str, str | None] = {}
+    event_id_map: dict[str, str | None] = {}
+    if settings.ENABLE_ID_MAP_DB:
+        unique_team_keys = list(dict.fromkeys(all_team_keys))  # dedupe, preserve order
+        unique_event_keys = list(dict.fromkeys(all_event_keys))
+
+        team_ids = await cache.hmget("team", unique_team_keys, client=client)
+        event_ids = await cache.hmget("event", unique_event_keys, client=client)
+
+        if team_ids:
+            team_id_map = dict(zip(unique_team_keys, team_ids))
+        if event_ids:
+            event_id_map = dict(zip(unique_event_keys, event_ids))
+
+    # Per-call semaphore to bound concurrent fallback HTTP requests
+    semaphore = asyncio.Semaphore(_MAX_CONCURRENT_FALLBACKS)
+
+    # Second pass: build Match objects with pre-fetched IDs
     return [
         match
         for match in await gather(
             *(
-                parse_match(date, match_info, client)
-                for date, matches in zip(dates, match_data[1:])
-                for match_info in matches.find_all("a", class_="wf-module-item")
+                parse_match(
+                    date,
+                    match_info,
+                    team1_name,
+                    team2_name,
+                    event_name,
+                    team_id_map,
+                    event_id_map,
+                    semaphore,
+                    client,
+                )
+                for date, match_info, team1_name, team2_name, event_name in parsed_entries
             )
         )
         if match is not None
     ]
 
 
-async def parse_match(date: Tag, match_info: Tag, client: Redis) -> schemas.Match | None:
+async def _fallback_fetch_ids(
+    match_id: str, client: Redis, semaphore: asyncio.Semaphore
+) -> tuple[str | None, str | None, str | None]:
+    """Fetch team and event IDs via match_by_id, bounded by semaphore."""
+    async with semaphore:
+        data = await match_by_id(match_id, client)
+    team1_id = data.teams[0].id if len(data.teams) > 0 else None
+    team2_id = data.teams[1].id if len(data.teams) > 1 else None
+    event_id = data.event.id if data.event else None
+    return team1_id, team2_id, event_id
+
+
+async def parse_match(
+    date: Tag,
+    match_info: Tag,
+    team1_name: str,
+    team2_name: str,
+    event_name: str,
+    team_id_map: dict[str, str | None],
+    event_id_map: dict[str, str | None],
+    semaphore: asyncio.Semaphore,
+    client: Redis,
+) -> schemas.Match | None:
     """
-    Function to parse a given match
+    Function to parse a given match, using pre-fetched ID maps.
     :param date: The match's date
     :param match_info: The match to parse
+    :param team1_name: Pre-extracted team 1 name
+    :param team2_name: Pre-extracted team 2 name
+    :param event_name: Pre-extracted event name
+    :param team_id_map: Batch-fetched team name → ID mapping
+    :param event_id_map: Batch-fetched event name → ID mapping
+    :param semaphore: Semaphore to bound concurrent fallback HTTP requests
+    :param client: A redis instance
     :return: The parsed match
     """
     href = match_info.get("href")
     match_id = get_href(href).split("/")[1] if href else ""
-    team_names = match_info.find_all("div", class_="text-of")
     team_scores = match_info.find_all("div", class_="match-item-vs-team-score")
     status = match_info.find("div", class_="ml-status").get_text().strip().lower()
     parsed_date = clean_string(date.get_text().split("\n")[1])
@@ -473,54 +554,55 @@ async def parse_match(date: Tag, match_info: Tag, client: Redis) -> schemas.Matc
     else:
         date_string = parsed_date + " " + time
 
-    team1_name = clean_string(team_names[0].get_text())
-    team2_name = clean_string(team_names[1].get_text())
-    event_name = clean_string(match_info.find("div", class_="match-item-event").get_text().split("\n")[-1])
     team1_id = team2_id = event_id = None
     if settings.ENABLE_ID_MAP_DB:
-        team_ids = await cache.hmget(
-            "team",
-            [simplify_name(team1_name), simplify_name(team2_name)],
-            client=client,
+        team1_key = simplify_name(team1_name)
+        team2_key = simplify_name(team2_name)
+        team1_id = team_id_map.get(team1_key)
+        team2_id = team_id_map.get(team2_key)
+        event_id = event_id_map.get(simplify_name(event_name))
+
+        # Fallback: fetch via match detail page if any ID is missing
+        needs_team_fallback = (not team1_id or not team2_id) and constants.TBD not in (
+            team1_name.lower(),
+            team2_name.lower(),
         )
-        match_data = None
-        if team_ids and not all(team_ids) and "TBD" not in (team1_name, team2_name):
-            match_data = await match_by_id(match_id, client)
-            team_ids = [team.id for team in match_data.teams]
+        needs_event_fallback = event_id is None
 
-        if team_ids:
-            team1_id, team2_id = team_ids
+        if (needs_team_fallback or needs_event_fallback) and match_id:
+            fb_team1, fb_team2, fb_event = await _fallback_fetch_ids(match_id, client, semaphore)
 
-        event_id = await cache.hget("event", simplify_name(event_name), client=client)
+            if needs_team_fallback:
+                team1_id = team1_id or fb_team1
+                team2_id = team2_id or fb_team2
+                # Populate cache + in-memory map for sibling coroutines
+                mapping = {}
+                if fb_team1 and team1_name.lower() != constants.TBD:
+                    mapping[team1_key] = fb_team1
+                    team_id_map[team1_key] = fb_team1
+                if fb_team2 and team2_name.lower() != constants.TBD:
+                    mapping[team2_key] = fb_team2
+                    team_id_map[team2_key] = fb_team2
+                if mapping:
+                    await cache.hset("team", mapping=mapping, client=client)
 
-        if event_id is None:
-            # Try to get event_id from match details if we haven't fetched it yet
-            if match_data is None:
-                match_data = await match_by_id(match_id, client)
-
-            # Extract event_id from match data and populate cache
-            if match_data.event and match_data.event.id:
-                event_id = match_data.event.id
-                # Fetch event name and populate cache using lightweight function
-                from app.services import events
-
-                with suppress(Exception):
-                    await events.get_event_name_and_cache(event_id, client)
+            if needs_event_fallback:
+                event_id = fb_event
+                # Cache the event name → ID mapping directly (no extra HTTP request)
+                if event_id:
+                    event_key = simplify_name(event_name)
+                    event_id_map[event_key] = event_id
+                    await cache.hset("event", {event_key: event_id}, client=client)
 
             if event_id is None:
                 return None  # Skip this match if event_id is still missing
 
+    score1 = parse_score(team_scores[0])
+    score2 = parse_score(team_scores[1])
+
     return schemas.Match(
-        team1=schemas.MatchTeam(
-            name=team1_name,
-            id=team1_id,
-            score=await parse_score(team_scores[0]),
-        ),
-        team2=schemas.MatchTeam(
-            name=team2_name,
-            id=team2_id,
-            score=await parse_score(team_scores[1]),
-        ),
+        team1=schemas.MatchTeam(name=team1_name, id=team1_id, score=score1),
+        team2=schemas.MatchTeam(name=team2_name, id=team2_id, score=score2),
         status=status,
         time=fix_datetime_tz(dateutil.parser.parse(date_string, ignoretz=True)),  # type: ignore
         id=match_id,
@@ -530,7 +612,7 @@ async def parse_match(date: Tag, match_info: Tag, client: Redis) -> schemas.Matc
     )
 
 
-async def parse_score(data: Tag) -> int | None:
+def parse_score(data: Tag) -> int | None:
     """
     Function that takes in a tag to parse the score
     :param data: The tag
