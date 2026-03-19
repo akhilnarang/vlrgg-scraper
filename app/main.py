@@ -89,11 +89,13 @@ app = FastAPI(
 )
 app.add_middleware(GZipMiddleware, minimum_size=500)  # type: ignore[arg-type]
 
+_HOSTNAME = socket.gethostname()
+
 
 @app.middleware("http")
 async def add_server_name_header(request: Request, call_next: Callable) -> Response:
     response = await call_next(request)
-    response.headers["X-Server"] = socket.gethostname()
+    response.headers["X-Server"] = _HOSTNAME
     return response
 
 

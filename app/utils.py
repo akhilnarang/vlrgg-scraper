@@ -7,6 +7,9 @@ from sentry_sdk.types import Event, Hint
 from app.constants import PREFIX, VLR_IMAGE
 from app.core.config import settings
 
+_TZ_LOCAL = ZoneInfo(settings.TIMEZONE)
+_TZ_UTC = ZoneInfo("UTC")
+
 
 def get_image_url(img: str | list[str]) -> str:
     """
@@ -34,7 +37,7 @@ def clear_datetime_tz(source: datetime) -> datetime:
 
 
 def fix_datetime_tz(value: datetime) -> datetime:
-    return value.replace(tzinfo=ZoneInfo(settings.TIMEZONE)).astimezone(ZoneInfo("UTC"))
+    return value.replace(tzinfo=_TZ_LOCAL).astimezone(_TZ_UTC)
 
 
 def clean_string(value: str) -> str:
@@ -55,16 +58,17 @@ def clean_number_string(value: str | None) -> int | float:
     :return: The cleaned integer/floating point value
     """
     if value and (value := clean_string(value)):
-        # Ensure that the value is not "nan"
         if value != "nan":
-            # Remove the percentage sign if it exists
             if value[-1] == "%":
                 value = value[:-1]
-            try:
-                return int(value)
-            except ValueError:
+            if "." in value:
                 try:
                     return float(value)
+                except ValueError:
+                    pass
+            else:
+                try:
+                    return int(value)
                 except ValueError:
                     pass
     return 0
