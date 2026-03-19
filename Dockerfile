@@ -6,6 +6,8 @@ COPY        . /app
 WORKDIR     /app
 USER        vlrscraper
 RUN         uv sync --frozen --no-cache --no-dev
+ARG         GIT_SHA
+ENV         GIT_SHA=${GIT_SHA}
 EXPOSE      8000
 CMD         ["uv", "run", "fastapi", "dev"]
 

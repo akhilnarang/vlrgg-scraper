@@ -55,7 +55,7 @@ async def news_list() -> list[schemas.NewsItem]:
     async with get_http_client() as client:
         response = await client.get(constants.NEWS_URL)
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -83,7 +83,7 @@ async def news_by_id(id: str) -> schemas.NewsArticle:
     async with get_http_client() as client:
         response = await client.get(constants.NEWS_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
     soup = BeautifulSoup(response.content, "lxml")
 

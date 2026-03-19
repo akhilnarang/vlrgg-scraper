@@ -43,7 +43,7 @@ async def get_events(cache_client: Redis) -> list[schemas.Event]:
     async with get_http_client() as client:
         response = await client.get(constants.EVENTS_URL)
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
     soup = BeautifulSoup(response.content, "lxml")
     return list(
@@ -111,7 +111,7 @@ async def get_event_name_and_cache(id: str, client: Redis) -> str:
     async with get_http_client() as http_client:
         response = await http_client.get(constants.EVENT_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -163,7 +163,7 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
     async with get_http_client() as client:
         response = await client.get(constants.EVENT_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
     event: dict[str, str | list] = {"id": id}
     soup = BeautifulSoup(response.content, "lxml")
@@ -214,7 +214,7 @@ async def parse_match_data(id: str) -> list:
     async with get_http_client() as client:
         response = await client.get(constants.EVENT_URL_WITH_ID_MATCHES.format(id))
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
     soup = BeautifulSoup(response.content, "lxml")
     return list(

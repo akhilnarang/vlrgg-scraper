@@ -24,13 +24,17 @@ async def get_team_data(id: str) -> schemas.Team:
             client.get(constants.TEAM_COMPLETED_MATCHES_URL.format(id)),
         )
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
         if upcoming_matches_response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(
+                url=str(upcoming_matches_response.url), upstream_status=upcoming_matches_response.status_code
+            )
 
         if completed_matches_response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(
+                url=str(completed_matches_response.url), upstream_status=completed_matches_response.status_code
+            )
 
     soup = BeautifulSoup(response.content, "lxml")
     upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "lxml")

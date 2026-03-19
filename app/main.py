@@ -1,5 +1,7 @@
 import logging
+import os
 import socket
+import subprocess
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Callable
 
@@ -24,6 +26,14 @@ from app.core.config import settings
 from app.cron import arq_worker
 from app.utils import before_send
 
+# Git SHA for Sentry release tracking
+_RELEASE = os.environ.get("GIT_SHA")
+if not _RELEASE:
+    try:
+        _RELEASE = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL).strip()
+    except Exception:
+        pass
+
 logging.basicConfig(
     format="[%(levelname)s] (%(asctime)s) %(module)s:%(pathname)s:%(funcName)s:%(lineno)s:: %(message)s",
     level=logging.INFO,
@@ -31,17 +41,28 @@ logging.basicConfig(
     handlers=[RichHandler(rich_tracebacks=True)],
 )
 
+
+def _traces_sampler(sampling_context: dict) -> float:
+    """100% sampling for cron jobs, 8% for API requests. Respects parent sampling decisions."""
+    if (parent := sampling_context.get("parent_sampled")) is not None:
+        return 1.0 if parent else 0.0
+    if sampling_context.get("transaction_context", {}).get("op") == "queue.task.arq":
+        return 1.0
+    return 0.08
+
+
 # Initialize Sentry SDK if a DSN is defined in our environment
 if settings.SENTRY_DSN:
     sentry_sdk.init(
         dsn=settings.SENTRY_DSN,
+        release=_RELEASE,
         integrations=[
             StarletteIntegration(),
             FastApiIntegration(),
             HttpxIntegration(),
             ArqIntegration(),
         ],
-        traces_sample_rate=0.08,
+        traces_sampler=_traces_sampler,
         before_send=before_send,
     )
 

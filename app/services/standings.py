@@ -19,7 +19,7 @@ async def standings_list(year: int) -> schemas.Standings:
     async with get_http_client() as client:
         response = await client.get(constants.STANDINGS_URL.format(year))
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
     soup = BeautifulSoup(response.content, "lxml")
 

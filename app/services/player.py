@@ -20,7 +20,7 @@ async def get_player_data(id: str) -> schemas.Player:
     async with get_http_client() as client:
         response = await client.get(constants.PLAYER_URL.format(id))
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
     soup = BeautifulSoup(response.content, "lxml")
     player_info = soup.find("div", class_="player-header")

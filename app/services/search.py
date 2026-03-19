@@ -20,7 +20,7 @@ async def get_data(search_category: constants.SearchCategory, search_term: str) 
     async with get_http_client() as client:
         response = await client.get(constants.SEARCH_URL.format(search_term, search_category))
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
     soup = BeautifulSoup(response.content, "lxml")
     return [parse_result(result) for result in soup.find_all("a", class_="search-item")]

@@ -40,7 +40,7 @@ async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
     async with get_http_client() as client:
         response = await client.get(constants.MATCH_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -391,7 +391,9 @@ async def get_upcoming_matches(redis_client: Redis) -> list[schemas.Match]:
     async with get_http_client() as client:
         upcoming_matches_response = await client.get(constants.UPCOMING_MATCHES_URL)
         if upcoming_matches_response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(
+                url=str(upcoming_matches_response.url), upstream_status=upcoming_matches_response.status_code
+            )
 
     upcoming_matches = BeautifulSoup(upcoming_matches_response.content, "lxml")
 
@@ -412,7 +414,9 @@ async def get_completed_matches(redis_client: Redis) -> list[schemas.Match]:
     async with get_http_client() as client:
         previous_matches_response = await client.get(constants.PAST_MATCHES_URL)
         if previous_matches_response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(
+                url=str(previous_matches_response.url), upstream_status=previous_matches_response.status_code
+            )
 
     previous_matches = BeautifulSoup(previous_matches_response.content, "lxml")
 

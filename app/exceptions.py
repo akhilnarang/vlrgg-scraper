@@ -22,8 +22,16 @@ class InternalServerError(HTTPException):
 
 
 class ScrapingError(HTTPException):
-    def __init__(self, detail: str = "VLR.gg server returned an error"):
+    def __init__(
+        self,
+        detail: str = "VLR.gg server returned an error",
+        *,
+        url: str = "",
+        upstream_status: int = 0,
+    ):
         super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+        self.url = url
+        self.upstream_status = upstream_status
 
 
 class RateLimitError(HTTPException):

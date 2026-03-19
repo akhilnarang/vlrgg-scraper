@@ -20,7 +20,7 @@ async def ranking_list() -> list[schemas.Ranking]:
     async with get_http_client() as client:
         response = await client.get(constants.RANKINGS_URL)
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -53,7 +53,7 @@ async def _fetch_region(path: str) -> bytes:
     async with get_http_client() as client:
         response = await client.get(constants.RANKING_URL_REGION.format(path))
         if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError()
+            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
     return response.content
 
 
