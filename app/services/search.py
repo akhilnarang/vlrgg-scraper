@@ -1,4 +1,3 @@
-import asyncio
 import http
 
 from bs4 import BeautifulSoup, Tag
@@ -24,10 +23,10 @@ async def get_data(search_category: constants.SearchCategory, search_term: str) 
             raise ScrapingError()
 
     soup = BeautifulSoup(response.content, "lxml")
-    return list(await asyncio.gather(*[parse_result(result) for result in soup.find_all("a", class_="search-item")]))
+    return [parse_result(result) for result in soup.find_all("a", class_="search-item")]
 
 
-async def parse_result(result_data: Tag) -> schemas.SearchResult:
+def parse_result(result_data: Tag) -> schemas.SearchResult:
     """
     Function to parse the search result data
 

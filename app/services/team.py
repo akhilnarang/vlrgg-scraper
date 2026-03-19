@@ -70,16 +70,13 @@ async def get_team_data(id: str) -> schemas.Team:
     else:
         region = ""
 
-    results = await asyncio.gather(
-        asyncio.gather(*[parse_player(player) for player in team_data.find_all("div", class_="team-roster-item")]),
-        asyncio.gather(
-            *[parse_match(match) for match in upcoming_matches.find_all("a", class_="wf-card fc-flex m-item")]
-        ),
-        asyncio.gather(
-            *[parse_match(match) for match in completed_matches.find_all("a", class_="wf-card fc-flex m-item")]
-        ),
-    )
-    roster, upcoming_match_list, completed_match_list = results
+    roster = [parse_player(player) for player in team_data.find_all("div", class_="team-roster-item")]
+    upcoming_match_list = [
+        parse_match(match) for match in upcoming_matches.find_all("a", class_="wf-card fc-flex m-item")
+    ]
+    completed_match_list = [
+        parse_match(match) for match in completed_matches.find_all("a", class_="wf-card fc-flex m-item")
+    ]
     return schemas.Team.model_validate(
         {
             "name": name,
@@ -97,7 +94,7 @@ async def get_team_data(id: str) -> schemas.Team:
     )
 
 
-async def parse_player(player_data: Tag) -> dict:
+def parse_player(player_data: Tag) -> dict:
     """
     Function to parse a player's data from VLR
     :param player_data: The HTML data
@@ -118,7 +115,7 @@ async def parse_player(player_data: Tag) -> dict:
     return response
 
 
-async def parse_match(match_data: Tag) -> dict:
+def parse_match(match_data: Tag) -> dict:
     """
     Function to parse a match's data from VLR
     :param match_data: The HTML data

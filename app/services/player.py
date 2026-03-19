@@ -1,4 +1,3 @@
-import asyncio
 import http
 
 from bs4 import BeautifulSoup
@@ -33,9 +32,7 @@ async def get_player_data(id: str) -> schemas.Player:
         "name": player_info.find("h2").get_text().strip(),
         "img": get_image_url(player_info.find("img")["src"]),
         "country": player_info.find("div", class_="ge-text-light").get_text().strip(),
-        "agents": await asyncio.gather(
-            *[parse_agent_data(agent.find_all("td")) for agent in agent_data.find_all("tr") if agent]
-        )
+        "agents": [parse_agent_data(agent.find_all("td")) for agent in agent_data.find_all("tr") if agent]
         if (agent_data := soup.find("tbody"))
         else [],
     }
@@ -74,7 +71,7 @@ async def get_player_data(id: str) -> schemas.Player:
     return schemas.Player.model_validate(player_data)
 
 
-async def parse_agent_data(agent_data: ResultSet) -> dict:
+def parse_agent_data(agent_data: ResultSet) -> dict:
     """
     Function to parse agent data from a player's page on VLR
     :param agent_data: An agent table row

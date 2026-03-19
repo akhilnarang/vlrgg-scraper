@@ -1,5 +1,7 @@
 import asyncio
 import http
+import os
+from concurrent.futures import ProcessPoolExecutor
 
 from bs4 import BeautifulSoup
 from app.exceptions import ScrapingError
@@ -22,31 +24,41 @@ async def ranking_list() -> list[schemas.Ranking]:
 
     soup = BeautifulSoup(response.content, "lxml")
 
-    data = list(
-        await asyncio.gather(
+    region_paths = [
+        region["href"]
+        for region in soup.find("div", class_="wf-nav mod-collapsible").find_all("a")[1:]
+        if not region["href"].endswith("/gc")
+    ]
+
+    # Fetch all region pages concurrently (I/O parallelism via asyncio)
+    responses = await asyncio.gather(*[_fetch_region(path) for path in region_paths])
+
+    # Parse all pages in parallel (CPU parallelism via ProcessPoolExecutor)
+    # Each page is 1-14 MB of HTML, parsing takes 100ms-2s per page
+    loop = asyncio.get_running_loop()
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as pool:
+        results = await asyncio.gather(
             *[
-                parse_rankings(region["href"])
-                for region in soup.find("div", class_="wf-nav mod-collapsible").find_all("a")[1:]
-                if not region["href"].endswith("/gc")
+                loop.run_in_executor(pool, _parse_ranking_page, path, html)
+                for path, html in zip(region_paths, responses)
             ]
         )
-    )
-    return data
+
+    return list(results)
 
 
-async def parse_rankings(path: str) -> schemas.Ranking:
-    """
-    Function to parse team data from a region's ranking page
-
-    :param path: The path to the region's page on VLR
-    :return: The parsed data
-    """
+async def _fetch_region(path: str) -> bytes:
+    """Fetch a region's ranking page HTML."""
     async with get_http_client() as client:
         response = await client.get(constants.RANKING_URL_REGION.format(path))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()
+    return response.content
 
-    soup = BeautifulSoup(response.content, "lxml")
+
+def _parse_ranking_page(path: str, content: bytes) -> schemas.Ranking:
+    """Parse a region's ranking page. Runs in a subprocess for CPU parallelism."""
+    soup = BeautifulSoup(content, "lxml")
 
     region_name = path.split("/")[-1]
     region_name = constants.REGION_NAME_MAPPING.get(region_name.lower()) or " ".join(region_name.split("-")).title()

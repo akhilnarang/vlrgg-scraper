@@ -183,10 +183,10 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
     event["img"] = get_image_url(header.find_all("div", class_="event-header-thumb")[0].find("img")["src"])
 
     if prizes_data := soup.find_all("table", class_="wf-table"):
-        event["prizes"] = await prizes_parser(prizes_data[-1])
+        event["prizes"] = prizes_parser(prizes_data[-1])
 
     if teams_container := soup.find_all("div", class_="event-teams-container"):
-        event["teams"] = await parse_team_data(teams_container[0])
+        event["teams"] = parse_team_data(teams_container[0])
 
     match_data = soup.find("div", class_="event-sidebar-matches").find_all("h2", class_="wf-label mod-large")
 
@@ -220,21 +220,17 @@ async def parse_match_data(id: str) -> list:
     return list(
         itertools.chain(
             *(
-                await asyncio.gather(
-                    *[
-                        match_parser(
-                            soup.find_all("div", class_="wf-card")[day + 1],
-                            clean_string(date.get_text()),
-                        )
-                        for (day, date) in enumerate(soup.find_all("div", class_="wf-label mod-large"))
-                    ]
+                match_parser(
+                    soup.find_all("div", class_="wf-card")[day + 1],
+                    clean_string(date.get_text()),
                 )
+                for (day, date) in enumerate(soup.find_all("div", class_="wf-label mod-large"))
             )
         )
     )
 
 
-async def prizes_parser(
+def prizes_parser(
     prizes_table: Tag,
 ) -> list[dict[str, str | dict[str, str]]]:
     """
@@ -267,7 +263,7 @@ async def prizes_parser(
     return prizes
 
 
-async def match_parser(day_matches: Tag, date: str) -> list[dict[str, str | list[str]]]:
+def match_parser(day_matches: Tag, date: str) -> list[dict[str, str | list[str]]]:
     """
     Parse match data
     :param day_matches: The HTML
@@ -322,7 +318,7 @@ async def match_parser(day_matches: Tag, date: str) -> list[dict[str, str | list
     return matches
 
 
-async def parse_team_data(team_data: Tag) -> list[dict[str, str]]:
+def parse_team_data(team_data: Tag) -> list[dict[str, str]]:
     """
     Function to parse team data
     :param team_data: The HTML

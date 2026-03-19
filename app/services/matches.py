@@ -44,14 +44,12 @@ async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
 
     soup = BeautifulSoup(response.content, "lxml")
 
-    teams, bans, event, video_data, map_ret, h2h_matches = await gather(
-        get_team_data(soup.find_all("div", class_="match-header-vs"), client=redis_client),
-        get_ban_data(soup.find_all("div", class_="match-header-note")),
-        get_event_data(soup),
-        get_video_data(soup.find("div", class_="match-streams-bets-container")),
-        get_map_data(soup.find_all("div", class_="vm-stats")),
-        get_previous_encounters_data(soup.find("div", class_="wf-card match-h2h")),
-    )
+    bans = get_ban_data(soup.find_all("div", class_="match-header-note"))
+    event = get_event_data(soup)
+    video_data = get_video_data(soup.find("div", class_="match-streams-bets-container"))
+    map_ret = get_map_data(soup.find_all("div", class_="vm-stats"))
+    h2h_matches = get_previous_encounters_data(soup.find("div", class_="wf-card match-h2h"))
+    teams = await get_team_data(soup.find_all("div", class_="match-header-vs"), client=redis_client)
     return schemas.MatchWithDetails(
         teams=teams,
         bans=bans,
@@ -112,7 +110,7 @@ async def get_team_data(data: ResultSet, client: Redis) -> list[dict]:
     return response
 
 
-async def get_ban_data(data: ResultSet) -> list:
+def get_ban_data(data: ResultSet) -> list:
     """
     Function to parse the notes from a match page on VLR
     :param data: The notes
@@ -122,7 +120,7 @@ async def get_ban_data(data: ResultSet) -> list:
     return [ban_data.strip() for ban_data in data[0].get_text().split(";")] if data else []
 
 
-async def get_event_data(soup: BeautifulSoup) -> dict:
+def get_event_data(soup: BeautifulSoup) -> dict:
     """
     Function to extract event data from a match page on VLR
     :param soup: The page
@@ -165,7 +163,7 @@ async def get_event_data(soup: BeautifulSoup) -> dict:
     return ret
 
 
-async def get_video_data(data: Tag) -> dict[str, list]:
+def get_video_data(data: Tag) -> dict[str, list]:
     """
     Function to extract information about stream/VOD links from a match page on VLR
     :param data: The data about the videos
@@ -203,7 +201,7 @@ async def get_video_data(data: Tag) -> dict[str, list]:
     return response
 
 
-async def get_map_data(data: ResultSet) -> tuple[list, int]:
+def get_map_data(data: ResultSet) -> tuple[list, int]:
     """
     Function to extract information about a map from a match page on VLR
     :param data: The data about the maps
@@ -293,16 +291,7 @@ async def get_map_data(data: ResultSet) -> tuple[list, int]:
                 "map": maps.get(match_map_id),
                 "teams": teams,
                 "members": list(
-                    chain(
-                        *(
-                            await gather(
-                                *[
-                                    parse_scoreboard(element, team_name_mapping)
-                                    for element in map_data.find_all("tbody")
-                                ]
-                            )
-                        )
-                    )
+                    chain(*(parse_scoreboard(element, team_name_mapping) for element in map_data.find_all("tbody")))
                 ),
                 "rounds": rounds,
             }
@@ -310,7 +299,7 @@ async def get_map_data(data: ResultSet) -> tuple[list, int]:
     return map_ret, map_count
 
 
-async def parse_scoreboard(data: Tag, team_name_mapping: dict[str, str]) -> list:
+def parse_scoreboard(data: Tag, team_name_mapping: dict[str, str]) -> list:
     ret = []
     for player in data.find_all("tr"):
         data = player.find_all("td", class_="mod-player")[0]
@@ -345,7 +334,7 @@ async def parse_scoreboard(data: Tag, team_name_mapping: dict[str, str]) -> list
     return ret
 
 
-async def get_previous_encounters_data(data: Tag) -> list[dict]:
+def get_previous_encounters_data(data: Tag) -> list[dict]:
     """
     :param data: Previous encounters data
     :return: List of match IDs
