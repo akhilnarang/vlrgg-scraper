@@ -12,6 +12,7 @@ from firebase_admin import credentials, delete_app, initialize_app, messaging
 from sentry_sdk import get_current_scope
 
 from app import schemas
+from app import constants
 from app.constants import MatchStatus
 from app.core.config import settings
 from app.services import events, matches, news, rankings, standings
@@ -34,22 +35,23 @@ async def fcm_notification_cron(ctx: dict) -> None:
         if match.status == MatchStatus.UPCOMING and 0 < (match.time - current_time).total_seconds() < 900
     ]
 
-    # Initialize an empty list of messages
-    messages = []
+    if not upcoming_matches:
+        logging.info("No notifications to send")
+        return
 
-    # Iterate over upcoming matches
-    for match in upcoming_matches:
+    # Fetch all match details concurrently
+    all_match_details = await asyncio.gather(
+        *[matches.match_by_id(match.id, redis_client=client) for match in upcoming_matches]
+    )
+
+    # Build notification messages
+    messages = []
+    for match, match_details in zip(upcoming_matches, all_match_details):
         logging.info(f"Sending notification for {match=}")
 
-        match_details = await matches.match_by_id(match.id, redis_client=client)
-
-        # Retrieve team IDs by querying the match information
         team1_id, team2_id = (team.id for team in match_details.teams)
-
-        # Calculate the time left in minutes
         time_to_start = int((match.time - current_time).total_seconds() // 60)
 
-        # Define the notification payload
         payload = {
             "title": f"{match.team1.name} vs {match.team2.name}",
             "body": f"Match is starting in {time_to_start} minutes",
@@ -59,12 +61,9 @@ async def fcm_notification_cron(ctx: dict) -> None:
         if streams := match_details.videos.streams:
             payload |= {"stream_url": streams[0].url.unicode_string()}
 
-        # Create the firebase message
         messages.append(
             messaging.Message(
                 data=payload,
-                # Even if a person has subscribed to the event + match + both teams, they shouldn't receive multiple
-                # notifications
                 condition=f"'event-{match_details.event.id}' in topics || 'match-{match.id}' in topics || "
                 f"'team-{team1_id}' in topics || 'team-{team2_id}' in topics",
                 android=messaging.AndroidConfig(ttl=timedelta(minutes=30)),
@@ -72,17 +71,17 @@ async def fcm_notification_cron(ctx: dict) -> None:
         )
 
     # Don't bother sending if there's nothing to send
-    if messages:
-        app_name = ctx.get("job_id", uuid.uuid4())
-        app = initialize_app(
-            name=app_name,
-            credential=credentials.Certificate(settings.GOOGLE_APPLICATION_CREDENTIALS),
-        )
-        messaging.send_each(messages=messages, app=app)
-        delete_app(app)
-        logging.info("Sent notification")
-    else:
-        logging.info("No notifications to send")
+    if not messages:
+        return
+
+    app_name = ctx.get("job_id", uuid.uuid4())
+    app = initialize_app(
+        name=app_name,
+        credential=credentials.Certificate(settings.GOOGLE_APPLICATION_CREDENTIALS),
+    )
+    messaging.send_each(messages=messages, app=app)
+    delete_app(app)
+    logging.info("Sent notification")
 
 
 async def rankings_cron(ctx: dict) -> None:
@@ -96,6 +95,7 @@ async def rankings_cron(ctx: dict) -> None:
     await ctx["redis"].set(
         "rankings",
         schemas.RankingListAdapter.dump_json(await rankings.ranking_list()),
+        ex=constants.CACHE_TTL_RANKINGS,
     )
 
 
@@ -111,6 +111,7 @@ async def matches_cron(ctx: dict) -> None:
     await client.set(
         "matches",
         schemas.MatchListAdapter.dump_json(await matches.match_list(redis_client=client)),
+        ex=constants.CACHE_TTL_MATCHES,
     )
 
 
@@ -126,6 +127,7 @@ async def events_cron(ctx: dict) -> None:
     await client.set(
         "events",
         schemas.EventListAdapter.dump_json(await events.get_events(cache_client=client)),
+        ex=constants.CACHE_TTL_EVENTS,
     )
 
 
@@ -140,6 +142,7 @@ async def news_cron(ctx: dict) -> None:
     await ctx["redis"].set(
         "news",
         schemas.NewsListAdapter.dump_json(await news.news_list()),
+        ex=constants.CACHE_TTL_NEWS,
     )
 
 
@@ -157,7 +160,7 @@ async def standings_cron(ctx: dict) -> None:
     await client.set(
         f"standings_{current_year}",
         result.model_dump_json(),
-        ex=3600,  # 1 hour TTL
+        ex=constants.CACHE_TTL_STANDINGS,
     )
 
 
