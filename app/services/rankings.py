@@ -36,7 +36,8 @@ async def ranking_list() -> list[schemas.Ranking]:
     # Parse all pages in parallel (CPU parallelism via ProcessPoolExecutor)
     # Each page is 1-14 MB of HTML, parsing takes 100ms-2s per page
     loop = asyncio.get_running_loop()
-    with ProcessPoolExecutor(max_workers=os.cpu_count()) as pool:
+    n_workers = min(len(region_paths), os.cpu_count() or 4)
+    with ProcessPoolExecutor(max_workers=n_workers) as pool:
         results = await asyncio.gather(
             *[
                 loop.run_in_executor(pool, _parse_ranking_page, path, html)
