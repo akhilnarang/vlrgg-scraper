@@ -80,14 +80,14 @@ async def parse_event(event: Tag, client: Redis) -> schemas.Event:
     :return: The event parsed
     """
     event_id = get_href(event["href"]).split("/")[2]
-    title = clean_string(event.find_all("div", class_="event-item-title")[0].get_text())
-    status = clean_string(event.find_all("span", class_="event-item-desc-item-status")[0].get_text())
-    prize = event.find_all("div", class_="mod-prize")[0].get_text().strip().replace("\t", "").split("\n")[0]
-    dates = event.find_all("div", class_="mod-dates")[0].get_text().strip().replace("\t", "").split("\n")[0]
-    location = get_class(
-        event.find_all("div", class_="mod-location")[0].find_all("i", class_="flag")[0].get("class"), 1
-    ).replace("mod-", "")
-    img = HttpUrl(get_image_url(event.find_all("div", class_="event-item-thumb")[0].find("img")["src"]))
+    title = clean_string(event.find("div", class_="event-item-title").get_text())
+    status = clean_string(event.find("span", class_="event-item-desc-item-status").get_text())
+    prize = event.find("div", class_="mod-prize").get_text().strip().replace("\t", "").split("\n")[0]
+    dates = event.find("div", class_="mod-dates").get_text().strip().replace("\t", "").split("\n")[0]
+    location = get_class(event.find("div", class_="mod-location").find("i", class_="flag").get("class"), 1).replace(
+        "mod-", ""
+    )
+    img = HttpUrl(get_image_url(event.find("div", class_="event-item-thumb").find("img")["src"]))
     if settings.ENABLE_ID_MAP_DB:
         await cache.hset("event", {simplify_name(title): event_id}, client)
     return schemas.Event(
@@ -119,7 +119,7 @@ async def get_event_name_and_cache(id: str, client: Redis) -> str:
         raise BadRequestError(detail="Event header was missing, please retry")
 
     header = event_header[0]
-    title = clean_string(header.find_all("h1", class_="wf-title")[0].get_text())
+    title = clean_string(header.find("h1", class_="wf-title").get_text())
 
     # Populate cache if enabled
     if settings.ENABLE_ID_MAP_DB:
@@ -172,15 +172,15 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
         raise BadRequestError(detail="Event header was missing, please retry")
 
     header = event_header[0]
-    event["title"] = clean_string(header.find_all("h1", class_="wf-title")[0].get_text())
-    event["subtitle"] = clean_string(header.find_all("h2", class_="event-desc-subtitle")[0].get_text())
+    event["title"] = clean_string(header.find("h1", class_="wf-title").get_text())
+    event["subtitle"] = clean_string(header.find("h2", class_="event-desc-subtitle").get_text())
     event_desc_item_value = header.find_all("div", class_="event-desc-item-value")
     event["dates"] = clean_string(event_desc_item_value[0].get_text())
     event["prize"] = clean_string(event_desc_item_value[1].get_text())
     event["location"] = clean_string(event_desc_item_value[2].get_text()) or get_class(
-        event_desc_item_value[2].find_all("i", class_="flag")[0].get("class"), 1
+        event_desc_item_value[2].find("i", class_="flag").get("class"), 1
     ).replace("mod-", "")
-    event["img"] = get_image_url(header.find_all("div", class_="event-header-thumb")[0].find("img")["src"])
+    event["img"] = get_image_url(header.find("div", class_="event-header-thumb").find("img")["src"])
 
     if prizes_data := soup.find_all("table", class_="wf-table"):
         event["prizes"] = prizes_parser(prizes_data[-1])
@@ -249,14 +249,10 @@ def prizes_parser(
         if team_row_anchor := team_row.find_all("a"):
             prize["team"] = {
                 "name": (
-                    team_row.find_all("div", class_="standing-item-team-name")[0]
-                    .get_text()
-                    .strip()
-                    .split("\n")[0]
-                    .strip()
+                    team_row.find("div", class_="standing-item-team-name").get_text().strip().split("\n")[0].strip()
                 ),
                 "id": team_row_anchor[0]["href"].split("/")[2],
-                "country": clean_string(team_row.find_all("div", class_="ge-text-light")[0].get_text()),
+                "country": clean_string(team_row.find("div", class_="ge-text-light").get_text()),
                 "img": get_image_url(team_row.find("img")["src"]),
             }
         prizes.append(prize)
@@ -272,7 +268,7 @@ def match_parser(day_matches: Tag, date: str) -> list[dict[str, str | list[str]]
     """
     matches = []
     for match_data in day_matches.find_all("a", class_="match-item"):
-        time = match_data.find_all("div", class_="match-item-time")[0].get_text().strip()
+        time = match_data.find("div", class_="match-item-time").get_text().strip()
         match_timing: datetime | None = None
         date = date.lower().replace("yesterday", "").replace("today", "")
         if constants.TBD not in time.lower():
@@ -286,7 +282,7 @@ def match_parser(day_matches: Tag, date: str) -> list[dict[str, str | list[str]]
             )
         match = {
             "id": get_href(match_data["href"]).split("/")[1],
-            "status": match_data.find_all("div", class_="ml-status")[0].get_text().strip().lower(),
+            "status": match_data.find("div", class_="ml-status").get_text().strip().lower(),
         }
         if match_timing:
             match |= {
@@ -298,20 +294,18 @@ def match_parser(day_matches: Tag, date: str) -> list[dict[str, str | list[str]]
         team_data = []
         for team in match_data.find_all("div", class_="match-item-vs-team"):
             data = {
-                "name": clean_string(team.find_all("div", class_="match-item-vs-team-name")[0].get_text()),
-                "region": get_class(team.find_all("span", class_="flag")[0].get("class"), 1).replace("mod-", ""),
+                "name": clean_string(team.find("div", class_="match-item-vs-team-name").get_text()),
+                "region": get_class(team.find("span", class_="flag").get("class"), 1).replace("mod-", ""),
             }
-            score_data = clean_string(team.find_all("div", class_="match-item-vs-team-score")[0].get_text())
+            score_data = clean_string(team.find("div", class_="match-item-vs-team-score").get_text())
             if score_data.isdigit():
                 data["score"] = int(score_data)
             team_data.append(data)
         match["teams"] = team_data
         if match["status"] not in (constants.MatchStatus.LIVE, constants.MatchStatus.TBD):
-            match["eta"] = clean_string(match_data.find_all("div", class_="ml-eta")[0].get_text())
+            match["eta"] = clean_string(match_data.find("div", class_="ml-eta").get_text())
 
-        match_item_event = (
-            match_data.find_all("div", class_="match-item-event text-of")[0].get_text().strip().split("\n")
-        )
+        match_item_event = match_data.find("div", class_="match-item-event text-of").get_text().strip().split("\n")
         match["round"] = clean_string(match_item_event[0])
         match["stage"] = clean_string(match_item_event[1])
         matches.append(match)
@@ -326,14 +320,14 @@ def parse_team_data(team_data: Tag) -> list[dict[str, str]]:
     """
     participants = []
     for team in team_data.find_all("div", class_="wf-card event-team"):
-        event_team_name = team.find_all("a", class_="event-team-name")[0]
+        event_team_name = team.find("a", class_="event-team-name")
         name = clean_string(event_team_name.get_text())
         if name.lower() == constants.TBD:
             continue
         participant = {
             "name": name,
             "id": get_href(event_team_name["href"]).split("/")[2],
-            "img": get_image_url(team.find_all("img", class_="event-team-players-mask-team")[0]["src"]),
+            "img": get_image_url(team.find("img", class_="event-team-players-mask-team")["src"]),
         }
 
         if seed_data := team.find_all("div", class_="wf-module-item"):

@@ -63,7 +63,7 @@ async def news_list() -> list[schemas.NewsItem]:
 
 
 def parse_news(data: Tag) -> schemas.NewsItem:
-    title, description, metadata = [item.get_text().strip() for item in data.find_all("div")[0].find_all("div")]
+    title, description, metadata = [item.get_text().strip() for item in data.find("div").find_all("div")]
     metadata = metadata.split("•")
     return schemas.NewsItem(
         url=f"{constants.PREFIX}{data['href']}",

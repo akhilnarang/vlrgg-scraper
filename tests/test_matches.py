@@ -50,12 +50,30 @@ async def test_match_by_id():
     with patch("httpx.AsyncClient.get", return_value=mock_response):
         result = await matches.match_by_id("12345", mock_redis)
 
-    # Assertions
+    # Assertions — verify all fields parsed via find() (Phase 6 conversion)
     assert result.teams is not None
     assert isinstance(result.teams, list)
+
+    # Event data (get_event_data uses find() for series, stage, img)
     assert result.event is not None
-    assert hasattr(result.event, "id")
-    assert hasattr(result.event, "series")
+    assert result.event.id != ""
+    assert result.event.series != ""
+    assert result.event.stage != ""
+    assert result.event.img is not None
+
+    # Videos
     assert result.videos is not None
-    assert hasattr(result.videos, "streams")
-    assert hasattr(result.videos, "vods")
+    assert isinstance(result.videos.streams, list)
+    assert isinstance(result.videos.vods, list)
+
+    # Map data (get_map_data uses find() for round_number; parse_scoreboard uses find() for player data)
+    if result.data:
+        for map_data in result.data:
+            assert map_data.map != ""
+            assert len(map_data.teams) == 2
+            for member in map_data.members:
+                assert member.name != ""
+                assert member.team != ""
+                assert isinstance(member.agents, list)
+            for round_info in map_data.rounds:
+                assert isinstance(round_info.round_number, int)

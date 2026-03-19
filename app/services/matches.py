@@ -151,8 +151,8 @@ def get_event_data(soup: BeautifulSoup) -> dict:
     ret = {
         "id": match_id,
         "img": get_image_url(event_link.find("img")["src"]),
-        "series": event_link.find_all("div")[0].find_all("div")[0].get_text().strip(),
-        "stage": clean_string(event_link.find_all("div", class_="match-header-event-series")[0].get_text()),
+        "series": event_link.find("div").find("div").get_text().strip(),
+        "stage": clean_string(event_link.find("div", class_="match-header-event-series").get_text()),
         "date": event_date,
         "status": status,
     }
@@ -278,7 +278,7 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
 
                 rounds.append(
                     {
-                        "round_number": clean_string(round_data.find_all("div", class_="rnd-num")[0].get_text()),
+                        "round_number": clean_string(round_data.find("div", class_="rnd-num").get_text()),
                         "round_score": round_score,
                         "winner": round_winner,
                         "side": side,
@@ -302,7 +302,7 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
 def parse_scoreboard(data: Tag, team_name_mapping: dict[str, str]) -> list:
     ret = []
     for player in data.find_all("tr"):
-        data = player.find_all("td", class_="mod-player")[0]
+        data = player.find("td", class_="mod-player")
         stats = player.find_all("td", class_="mod-stat")
         team_name_short = clean_string(data.find_all("div", class_="ge-text-light")[-1].get_text())
         player_id = ""
@@ -312,11 +312,11 @@ def parse_scoreboard(data: Tag, team_name_mapping: dict[str, str]) -> list:
         ret.append(
             {
                 "id": player_id,
-                "name": clean_string(data.find_all("div", class_="text-of")[0].get_text()),
+                "name": clean_string(data.find("div", class_="text-of").get_text()),
                 "team": team_name_mapping.get(team_name_short, team_name_short),
                 "agents": [
                     {"title": agent["title"], "img": get_image_url(agent["src"])}
-                    for agent in player.find_all("td", class_="mod-agents")[0].find_all("img")
+                    for agent in player.find("td", class_="mod-agents").find_all("img")
                 ],
                 "rating": clean_number_string(stats[0].find("span", class_="side mod-side mod-both").get_text()),
                 "acs": clean_number_string(stats[1].find("span", class_="side mod-side mod-both").get_text()),
