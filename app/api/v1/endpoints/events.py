@@ -1,5 +1,3 @@
-import json
-
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis
 
@@ -13,7 +11,7 @@ router = APIRouter()
 @router.get("/")
 async def list_events(client: Redis = Depends(deps.get_redis_client)) -> list[schemas.Event]:
     if data := await cache.get("events", client=client):
-        return [schemas.Event.model_validate(event) for event in json.loads(data)]
+        return schemas.EventListAdapter.validate_json(data)
     return await events.get_events(client)
 
 

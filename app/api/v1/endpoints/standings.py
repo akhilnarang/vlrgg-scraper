@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 
 from fastapi import APIRouter, Path
@@ -15,6 +14,6 @@ current_year = datetime.now().year
 async def get_standings(year: int = Path(..., ge=2021, le=current_year)) -> schemas.Standings:
     cache_key = f"standings_{year}"
     if data := await cache.get(cache_key):
-        return schemas.Standings.model_validate(json.loads(data))
+        return schemas.Standings.model_validate_json(data)
 
     return await standings.standings_list(year)

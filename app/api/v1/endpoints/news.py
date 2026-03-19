@@ -1,5 +1,3 @@
-import json
-
 from fastapi import APIRouter
 
 from app import cache, schemas
@@ -11,7 +9,7 @@ router = APIRouter()
 @router.get("/")
 async def get_news() -> list[schemas.NewsItem]:
     if data := await cache.get("news"):
-        return [schemas.NewsItem.model_validate(news_item) for news_item in json.loads(data)]
+        return schemas.NewsListAdapter.validate_json(data)
     return await news.news_list()
 
 

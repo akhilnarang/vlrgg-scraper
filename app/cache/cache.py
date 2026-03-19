@@ -13,7 +13,7 @@ def get_client() -> redis.Redis:
     return redis.Redis(connection_pool=redis_pool)
 
 
-async def get(key: str, client: redis.Redis | None = None) -> str | None:
+async def get(key: str, client: redis.Redis | None = None) -> bytes | None:
     """
     Function to get a value from the cache
 

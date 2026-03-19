@@ -1,5 +1,3 @@
-import json
-
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis
 
@@ -13,7 +11,7 @@ router = APIRouter()
 @router.get("/")
 async def get_matches(client: Redis = Depends(deps.get_redis_client)) -> list[schemas.Match]:
     if data := await cache.get("matches", client=client):
-        return [schemas.Match.model_validate(match) for match in json.loads(data)]
+        return schemas.MatchListAdapter.validate_json(data)
     return await matches.match_list(redis_client=client)
 
 

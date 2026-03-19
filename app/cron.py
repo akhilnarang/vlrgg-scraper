@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import uuid
 from asyncio import Task
@@ -9,10 +8,10 @@ from zoneinfo import ZoneInfo
 
 from arq import cron
 from arq.worker import Worker, create_worker
-from fastapi.encoders import jsonable_encoder
 from firebase_admin import credentials, delete_app, initialize_app, messaging
 from sentry_sdk import get_current_scope
 
+from app import schemas
 from app.constants import MatchStatus
 from app.core.config import settings
 from app.services import events, matches, news, rankings, standings
@@ -96,10 +95,7 @@ async def rankings_cron(ctx: dict) -> None:
 
     await ctx["redis"].set(
         "rankings",
-        json.dumps(
-            [item.model_dump() for item in await rankings.ranking_list()],
-            default=jsonable_encoder,
-        ),
+        schemas.RankingListAdapter.dump_json(await rankings.ranking_list()),
     )
 
 
@@ -114,10 +110,7 @@ async def matches_cron(ctx: dict) -> None:
 
     await client.set(
         "matches",
-        json.dumps(
-            [item.model_dump() for item in await matches.match_list(redis_client=client)],
-            default=jsonable_encoder,
-        ),
+        schemas.MatchListAdapter.dump_json(await matches.match_list(redis_client=client)),
     )
 
 
@@ -132,10 +125,7 @@ async def events_cron(ctx: dict) -> None:
 
     await client.set(
         "events",
-        json.dumps(
-            [item.model_dump() for item in await events.get_events(cache_client=client)],
-            default=jsonable_encoder,
-        ),
+        schemas.EventListAdapter.dump_json(await events.get_events(cache_client=client)),
     )
 
 
@@ -149,10 +139,7 @@ async def news_cron(ctx: dict) -> None:
 
     await ctx["redis"].set(
         "news",
-        json.dumps(
-            [item.model_dump() for item in await news.news_list()],
-            default=jsonable_encoder,
-        ),
+        schemas.NewsListAdapter.dump_json(await news.news_list()),
     )
 
 
