@@ -6,7 +6,6 @@ from typing import NotRequired, TypedDict, cast
 from zoneinfo import ZoneInfo
 
 import dateutil.parser
-import httpx
 from bs4 import BeautifulSoup, Tag
 from app.exceptions import ScrapingError, BadRequestError
 from pydantic import HttpUrl
@@ -15,6 +14,7 @@ from redis.asyncio import Redis
 from app import schemas, cache
 import app.constants as constants
 from app.core.config import settings
+from app.core.connections import get_http_client
 from app.utils import clean_number_string, clean_string, get_class, get_href, get_image_url, simplify_name
 
 
@@ -40,7 +40,7 @@ async def get_events(cache_client: Redis) -> list[schemas.Event]:
     :param cache_client: A redis client instance
     :return: Parsed list of events
     """
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with get_http_client() as client:
         response = await client.get(constants.EVENTS_URL)
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()
@@ -108,7 +108,7 @@ async def get_event_name_and_cache(id: str, client: Redis) -> str:
     :param client: Redis client for caching
     :return: The event name
     """
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as http_client:
+    async with get_http_client() as http_client:
         response = await http_client.get(constants.EVENT_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()
@@ -160,7 +160,7 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
     :param cache_client: Optional Redis client for caching
     :ret: Dict of the parsed data
     """
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with get_http_client() as client:
         response = await client.get(constants.EVENT_URL_WITH_ID.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()
@@ -211,7 +211,7 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
 
 
 async def parse_match_data(id: str) -> list:
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with get_http_client() as client:
         response = await client.get(constants.EVENT_URL_WITH_ID_MATCHES.format(id))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()

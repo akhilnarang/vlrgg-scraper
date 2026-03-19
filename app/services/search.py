@@ -1,12 +1,12 @@
 import asyncio
 import http
 
-import httpx
 from bs4 import BeautifulSoup, Tag
 from app.exceptions import ScrapingError
 
 from app import schemas, utils
 import app.constants as constants
+from app.core.connections import get_http_client
 
 
 async def get_data(search_category: constants.SearchCategory, search_term: str) -> list[schemas.SearchResult]:
@@ -18,7 +18,7 @@ async def get_data(search_category: constants.SearchCategory, search_term: str) 
     :return: The parsed data
     """
 
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with get_http_client() as client:
         response = await client.get(constants.SEARCH_URL.format(search_term, search_category))
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError()

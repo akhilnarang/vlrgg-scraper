@@ -3,6 +3,7 @@ import socket
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Callable
 
+import httpx
 import redis.asyncio as redis
 import sentry_sdk
 from arq.connections import RedisSettings
@@ -17,6 +18,7 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 from app.api import deps
 from app.api.v1.api import router
 from app.api.v1.endpoints.internal import router as internal_router
+from app import constants
 from app.core import connections
 from app.core.config import settings
 from app.cron import arq_worker
@@ -46,36 +48,44 @@ if settings.SENTRY_DSN:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator:
-    logging.info("Connecting to redis")
-    connections.redis_pool = redis.ConnectionPool(
-        host=settings.REDIS_HOST,
-        password=settings.REDIS_PASSWORD,
-        port=settings.REDIS_PORT,
-    )
-    logging.info("Starting arq worker")
-    await arq_worker.start(
-        handle_signals=False,
-        redis_settings=RedisSettings(
-            host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
-            password=settings.REDIS_PASSWORD,
-        ),
-    )
-    yield
-    logging.info("Stopping arq worker")
-    await arq_worker.stop()
-    logging.info("Closing redis connection pool")
-    await connections.redis_pool.aclose()
+    logging.info("Creating shared HTTP client")
+    connections.http_client = httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT)
+    try:
+        if settings.ENABLE_CACHE:
+            logging.info("Connecting to redis")
+            connections.redis_pool = redis.ConnectionPool(
+                host=settings.REDIS_HOST,
+                password=settings.REDIS_PASSWORD,
+                port=settings.REDIS_PORT,
+            )
+            logging.info("Starting arq worker")
+            await arq_worker.start(
+                handle_signals=False,
+                redis_settings=RedisSettings(
+                    host=settings.REDIS_HOST,
+                    port=settings.REDIS_PORT,
+                    password=settings.REDIS_PASSWORD,
+                ),
+            )
+        yield
+    finally:
+        if settings.ENABLE_CACHE:
+            logging.info("Stopping arq worker")
+            try:
+                await arq_worker.stop()
+            finally:
+                logging.info("Closing redis connection pool")
+                if connections.redis_pool:
+                    await connections.redis_pool.aclose()
+        logging.info("Closing shared HTTP client")
+        await connections.http_client.aclose()
+        connections.http_client = None
 
-
-app_lifespan = None
-if settings.ENABLE_CACHE:
-    app_lifespan = lifespan
 
 app = FastAPI(
     title="Scraper",
     description="Scraper for VLR.gg that exposes a REST API for some data available there",
-    lifespan=app_lifespan,
+    lifespan=lifespan,
 )
 app.add_middleware(GZipMiddleware, minimum_size=500)  # type: ignore[arg-type]
 

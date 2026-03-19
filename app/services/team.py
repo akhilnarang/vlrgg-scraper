@@ -2,12 +2,12 @@ import asyncio
 import http
 
 import dateutil.parser
-import httpx
 from bs4 import BeautifulSoup, Tag
 from app.exceptions import ScrapingError
 
 from app import schemas, utils
 import app.constants as constants
+from app.core.connections import get_http_client
 
 
 async def get_team_data(id: str) -> schemas.Team:
@@ -17,7 +17,7 @@ async def get_team_data(id: str) -> schemas.Team:
     :return: The parsed data
     """
 
-    async with httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT) as client:
+    async with get_http_client() as client:
         response, upcoming_matches_response, completed_matches_response = await asyncio.gather(
             client.get(constants.TEAM_URL.format(id)),
             client.get(constants.TEAM_UPCOMING_MATCHES_URL.format(id)),
