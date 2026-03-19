@@ -39,14 +39,19 @@ async def fcm_notification_cron(ctx: dict) -> None:
         logging.info("No notifications to send")
         return
 
-    # Fetch all match details concurrently
+    # Fetch all match details concurrently (skip failures gracefully)
     all_match_details = await asyncio.gather(
-        *[matches.match_by_id(match.id, redis_client=client) for match in upcoming_matches]
+        *[matches.match_by_id(match.id, redis_client=client) for match in upcoming_matches],
+        return_exceptions=True,
     )
 
-    # Build notification messages
+    # Build notification messages, skipping any failed lookups
     messages = []
     for match, match_details in zip(upcoming_matches, all_match_details):
+        if isinstance(match_details, BaseException):
+            logging.warning(f"Failed to fetch match details for {match.id}: {match_details}")
+            continue
+
         logging.info(f"Sending notification for {match=}")
 
         team1_id, team2_id = (team.id for team in match_details.teams)

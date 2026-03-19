@@ -72,9 +72,10 @@ class SearchCategory(str, Enum):
 
 
 # Timeouts and TTLs (in seconds)
+# TTLs should be >= 2× cron interval to survive a missed run
 REQUEST_TIMEOUT = 60.0
-CACHE_TTL_RANKINGS = 3600  # 1 hour
-CACHE_TTL_MATCHES = 300  # 5 minutes
-CACHE_TTL_EVENTS = 1800  # 30 minutes
-CACHE_TTL_NEWS = 1800  # 30 minutes
-CACHE_TTL_STANDINGS = 3600  # 1 hour
+CACHE_TTL_RANKINGS = 3600  # 1 hour (cron: every 30 min)
+CACHE_TTL_MATCHES = 600  # 10 minutes (cron: every 5 min)
+CACHE_TTL_EVENTS = 3600  # 1 hour (cron: every 30 min)
+CACHE_TTL_NEWS = 3600  # 1 hour (cron: every 30 min)
+CACHE_TTL_STANDINGS = 90000  # 25 hours (cron: daily at midnight)
