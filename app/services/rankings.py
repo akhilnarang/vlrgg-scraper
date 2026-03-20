@@ -30,6 +30,9 @@ async def ranking_list() -> list[schemas.Ranking]:
         if not region["href"].endswith("/gc")
     ]
 
+    if not region_paths:
+        return []
+
     # Fetch all region pages concurrently (I/O parallelism via asyncio)
     responses = await asyncio.gather(*[_fetch_region(path) for path in region_paths])
 
