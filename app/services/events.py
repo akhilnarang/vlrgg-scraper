@@ -1,6 +1,7 @@
 import asyncio
 import http
 import itertools
+import logging
 from datetime import datetime
 from typing import NotRequired, TypedDict, cast
 from zoneinfo import ZoneInfo
@@ -81,24 +82,32 @@ async def parse_event(event: Tag, client: Redis) -> schemas.Event:
     """
     event_id = get_href(event["href"]).split("/")[2]
     title = clean_string(event.find("div", class_="event-item-title").get_text())
-    status = clean_string(event.find("span", class_="event-item-desc-item-status").get_text())
+    raw_status = clean_string(event.find("span", class_="event-item-desc-item-status").get_text()).lower()
+    try:
+        status = constants.EventStatus(raw_status)
+    except ValueError:
+        logging.warning(
+            "Unknown VLR event status %r for event_id=%s; falling back to UNKNOWN", raw_status, event_id
+        )
+        status = constants.EventStatus.UNKNOWN
     prize = event.find("div", class_="mod-prize").get_text().strip().replace("\t", "").split("\n")[0]
     dates = event.find("div", class_="mod-dates").get_text().strip().replace("\t", "").split("\n")[0]
     location = get_class(event.find("div", class_="mod-location").find("i", class_="flag").get("class"), 1).replace(
         "mod-", ""
     )
     img = HttpUrl(get_image_url(event.find("div", class_="event-item-thumb").find("img")["src"]))
-    if settings.ENABLE_ID_MAP_DB:
-        await cache.hset("event", {simplify_name(title): event_id}, client)
-    return schemas.Event(
+    parsed_event = schemas.Event(
         id=event_id,
         title=title,
-        status=status,  # type: ignore
+        status=status,
         prize=prize,
         dates=dates,
         location=location,
         img=img,
     )
+    if settings.ENABLE_ID_MAP_DB:
+        await cache.hset("event", {simplify_name(title): event_id}, client)
+    return parsed_event
 
 
 async def get_event_name_and_cache(id: str, client: Redis) -> str:

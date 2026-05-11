@@ -89,6 +89,56 @@ async def test_get_events_scraping_error():
     assert exc_info.value.detail == "VLR.gg server returned an error"
 
 
+def _build_event_card(status_class: str, status_text: str) -> BeautifulSoup:
+    html = f"""
+    <a class="wf-card mod-flex event-item" href="/event/9999/some-event">
+      <div class="event-item-inner">
+        <div class="event-item-title">Some Event</div>
+        <div>
+          <div class="event-item-desc-item">
+            <span class="event-item-desc-item-status {status_class}">{status_text}</span>
+          </div>
+          <div class="event-item-desc-item mod-prize">$1,000</div>
+          <div class="event-item-desc-item mod-dates">Jan 1—Feb 1</div>
+          <div class="event-item-desc-item mod-location">
+            <i class="flag mod-kr"></i>
+          </div>
+        </div>
+        <div class="event-item-thumb">
+          <img src="//owcdn.net/img/test.png"/>
+        </div>
+      </div>
+    </a>
+    """
+    return BeautifulSoup(html, "lxml").find("a", class_="wf-card")
+
+
+@pytest.mark.asyncio
+async def test_parse_event_paused_status():
+    event_tag = _build_event_card("mod-paused", "paused")
+    mock_redis = AsyncMock()
+
+    result = await events.parse_event(event_tag, mock_redis)
+
+    assert result.status == EventStatus.PAUSED
+    assert result.id == "9999"
+    assert result.title == "Some Event"
+
+
+@pytest.mark.asyncio
+async def test_parse_event_unknown_status_falls_back(caplog):
+    event_tag = _build_event_card("mod-suspended", "suspended")
+    mock_redis = AsyncMock()
+
+    import logging
+
+    with caplog.at_level(logging.WARNING):
+        result = await events.parse_event(event_tag, mock_redis)
+
+    assert result.status == EventStatus.UNKNOWN
+    assert any("Unknown VLR event status" in record.message for record in caplog.records)
+
+
 def test_parse_event_standings_with_logo_first_column_fixture():
     fixture_path = Path(__file__).parent / "fixtures" / "event_2760.html"
     with open(fixture_path, "r", encoding="utf-8") as f:

@@ -51,6 +51,7 @@ class EventStatus(str, Enum):
     COMPLETED = "completed"
     ONGOING = "ongoing"
     UPCOMING = "upcoming"
+    PAUSED = "paused"
     UNKNOWN = "unknown"
 
 
