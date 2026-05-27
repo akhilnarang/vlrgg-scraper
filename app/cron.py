@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import uuid
 from asyncio import Task
 from datetime import datetime, timedelta
 from typing import Any
@@ -8,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 from arq import cron
 from arq.worker import Worker, create_worker
-from firebase_admin import credentials, delete_app, initialize_app, messaging
+from firebase_admin import App, credentials, delete_app, get_app, initialize_app, messaging
 from sentry_sdk import get_current_scope
 
 from app import schemas
@@ -16,6 +15,39 @@ from app import constants
 from app.constants import MatchStatus
 from app.core.config import settings
 from app.services import events, matches, news, rankings, standings
+
+_FCM_APP_NAME = "vlrgg-fcm"
+
+
+def _get_fcm_app() -> App:
+    try:
+        return get_app(_FCM_APP_NAME)
+    except ValueError:
+        try:
+            credential = credentials.Certificate(settings.GOOGLE_APPLICATION_CREDENTIALS)
+            return initialize_app(
+                name=_FCM_APP_NAME,
+                credential=credential,
+            )
+        except ValueError as exc:
+            try:
+                return get_app(_FCM_APP_NAME)
+            except ValueError:
+                raise exc
+
+
+async def _close_fcm_app() -> None:
+    try:
+        app = get_app(_FCM_APP_NAME)
+    except ValueError:
+        return
+
+    # firebase_admin 7.3.0 closes an async HTTP client via asyncio.run(), so
+    # cleanup must happen off the worker's event loop.
+    try:
+        await asyncio.to_thread(delete_app, app)
+    except Exception:
+        logging.exception("Failed to delete Firebase app during shutdown: %s", _FCM_APP_NAME)
 
 
 async def fcm_notification_cron(ctx: dict) -> None:
@@ -79,13 +111,8 @@ async def fcm_notification_cron(ctx: dict) -> None:
     if not messages:
         return
 
-    app_name = ctx.get("job_id", uuid.uuid4())
-    app = initialize_app(
-        name=app_name,
-        credential=credentials.Certificate(settings.GOOGLE_APPLICATION_CREDENTIALS),
-    )
-    messaging.send_each(messages=messages, app=app)
-    delete_app(app)
+    app = _get_fcm_app()
+    await messaging.send_each_async(messages=messages, dry_run=False, app=app)
     logging.info("Sent notification")
 
 
@@ -200,6 +227,7 @@ class ArqWorker:
     async def stop(self) -> None:
         if self.worker:
             await self.worker.close()
+        await _close_fcm_app()
 
 
 arq_worker = ArqWorker()
