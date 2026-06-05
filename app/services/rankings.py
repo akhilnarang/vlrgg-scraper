@@ -26,7 +26,7 @@ async def ranking_list() -> list[schemas.Ranking]:
 
     region_paths = [
         region["href"]
-        for region in soup.find("div", class_="wf-nav mod-collapsible").find_all("a")[1:]
+        for region in soup.find_all("a", class_="zx-tab", href=lambda href: href and href.startswith("/rankings/"))
         if not region["href"].endswith("/gc")
     ]
 
