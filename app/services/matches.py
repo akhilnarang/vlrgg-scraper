@@ -439,7 +439,8 @@ async def parse_matches(dates: ResultSet, match_data: ResultSet, client: Redis) 
     # First pass: extract all match info from HTML (CPU only, no I/O)
     raw_matches: list[tuple[Tag, Tag]] = [
         (date, match_info)
-        for date, matches in zip(dates, match_data[1:])
+        for matches in match_data
+        if (date := matches.find_previous_sibling("div", class_="wf-label")) is not None
         for match_info in matches.find_all("a", class_="wf-module-item")
     ]
 

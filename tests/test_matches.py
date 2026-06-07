@@ -1,35 +1,48 @@
-import pytest
 from unittest.mock import AsyncMock, patch
 from pathlib import Path
 
+import pytest
+
+import app.constants as constants
 from app.services import matches
 
 
 @pytest.mark.asyncio
-async def test_match_list():
-    # Mock the HTTP responses for upcoming and past matches
-    mock_response_upcoming = AsyncMock()
-    mock_response_upcoming.status_code = 200
-    mock_response_upcoming.content = (
-        b'<html><body><div class="wf-label">Upcoming</div><div class="wf-card"></div></body></html>'
-    )
+async def test_match_list_keeps_first_upcoming_date_group(monkeypatch):
+    fixture_dir = Path(__file__).parent / "fixtures"
+    upcoming_html = (fixture_dir / "matches.html").read_bytes()
+    results_html = (fixture_dir / "matches_results.html").read_bytes()
 
-    mock_response_past = AsyncMock()
-    mock_response_past.status_code = 200
-    mock_response_past.content = (
-        b'<html><body><div class="wf-label">Past</div><div class="wf-card"></div></body></html>'
-    )
+    response_by_url = {
+        constants.UPCOMING_MATCHES_URL: _mock_response(constants.UPCOMING_MATCHES_URL, upcoming_html),
+        constants.PAST_MATCHES_URL: _mock_response(constants.PAST_MATCHES_URL, results_html),
+    }
 
-    # Mock Redis client
+    async def mock_get(url: str, *args, **kwargs):
+        return response_by_url[url]
+
     mock_redis = AsyncMock()
+    monkeypatch.setattr(matches.settings, "ENABLE_ID_MAP_DB", False)
 
-    with patch("httpx.AsyncClient.get", side_effect=[mock_response_upcoming, mock_response_past]):
+    with patch("httpx.AsyncClient.get", side_effect=mock_get):
         result = await matches.match_list(mock_redis)
 
-    # Assertions
-    assert isinstance(result, list)
-    # Since the mock HTML has no actual matches, the list should be empty
-    assert len(result) == 0
+    result_by_id = {match.id: match for match in result}
+
+    assert result_by_id["684611"].team1.name == "FULL SENSE"
+    assert result_by_id["684611"].team2.name == "FUT Esports"
+    assert result_by_id["684612"].team1.name == "LEVIATÁN"
+    assert result_by_id["684612"].team2.name == "Global Esports"
+    assert result_by_id["684610"].team1.name == "Team Vitality"
+    assert result_by_id["684610"].team2.name == "Dragon Ranger Gaming"
+
+
+def _mock_response(url: str, content: bytes) -> AsyncMock:
+    response = AsyncMock()
+    response.status_code = 200
+    response.content = content
+    response.url = url
+    return response
 
 
 @pytest.mark.asyncio
