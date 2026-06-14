@@ -110,6 +110,19 @@ async def parse_event(event: Tag, client: Redis) -> schemas.Event:
     return parsed_event
 
 
+def get_event_title(header: Tag) -> str:
+    """
+    Extract the event title from an event-header tag, supporting both the old
+    (h1.wf-title) and the redesigned (h1.event-header-main-title) VLR.gg layouts.
+    :param header: The div.event-header tag
+    :return: The cleaned title
+    """
+    title_tag = header.find("h1", class_="event-header-main-title") or header.find("h1", class_="wf-title")
+    if title_tag is None:
+        raise BadRequestError(detail="Event title was missing, please retry")
+    return clean_string(title_tag.get_text())
+
+
 async def get_event_name_and_cache(id: str, client: Redis) -> str:
     """
     Lightweight function to fetch just the event name and populate the cache
@@ -128,7 +141,7 @@ async def get_event_name_and_cache(id: str, client: Redis) -> str:
         raise BadRequestError(detail="Event header was missing, please retry")
 
     header = event_header[0]
-    title = clean_string(header.find("h1", class_="wf-title").get_text())
+    title = get_event_title(header)
 
     # Populate cache if enabled
     if settings.ENABLE_ID_MAP_DB:
@@ -181,14 +194,41 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
         raise BadRequestError(detail="Event header was missing, please retry")
 
     header = event_header[0]
-    event["title"] = clean_string(header.find("h1", class_="wf-title").get_text())
-    event["subtitle"] = clean_string(header.find("h2", class_="event-desc-subtitle").get_text())
-    event_desc_item_value = header.find_all("div", class_="event-desc-item-value")
-    event["dates"] = clean_string(event_desc_item_value[0].get_text())
-    event["prize"] = clean_string(event_desc_item_value[1].get_text())
-    event["location"] = clean_string(event_desc_item_value[2].get_text()) or get_class(
-        event_desc_item_value[2].find("i", class_="flag").get("class"), 1
-    ).replace("mod-", "")
+    # VLR.gg redesigned the event header: title/subtitle classes changed and the
+    # flat event-desc-item-value siblings became label/value pairs under
+    # event-header-main-meta. Support both layouts (new first, old fallback).
+    event["title"] = get_event_title(header)
+    subtitle_tag = header.find("h2", class_="event-header-main-desc") or header.find(
+        "h2", class_="event-desc-subtitle"
+    )
+    event["subtitle"] = clean_string(subtitle_tag.get_text()) if subtitle_tag else ""
+
+    if meta := header.find("div", class_="event-header-main-meta"):
+        # New layout: each child div has a div.label naming the field and a div.value
+        meta_values: dict[str, Tag] = {}
+        for item in meta.find_all("div", recursive=False):
+            if (label := item.find("div", class_="label")) and (value := item.find("div", class_="value")):
+                meta_values[clean_string(label.get_text()).lower()] = value
+        dates_value = meta_values.get("dates")
+        prize_value = meta_values.get("prize")
+        # The place slot is labelled "Location" for some events and "Region" for others
+        location_value = meta_values.get("location") or meta_values.get("region")
+        if dates_value is None or prize_value is None or location_value is None:
+            raise BadRequestError(detail="Event metadata was missing, please retry")
+    else:
+        # Old layout: three flat event-desc-item-value siblings (dates, prize, location)
+        event_desc_item_value = header.find_all("div", class_="event-desc-item-value")
+        if len(event_desc_item_value) < 3:
+            raise BadRequestError(detail="Event metadata was missing, please retry")
+        dates_value, prize_value, location_value = event_desc_item_value[:3]
+
+    event["dates"] = clean_string(dates_value.get_text())
+    event["prize"] = clean_string(prize_value.get_text())
+    # Location text may be empty (flag-only); fall back to the flag's country class if present
+    location_text = clean_string(location_value.get_text())
+    if not location_text and (flag := location_value.find("i", class_="flag")):
+        location_text = get_class(flag.get("class"), 1).replace("mod-", "")
+    event["location"] = location_text
     event["img"] = get_image_url(header.find("div", class_="event-header-thumb").find("img")["src"])
 
     if prizes_data := soup.find_all("table", class_="wf-table"):

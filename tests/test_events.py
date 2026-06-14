@@ -72,6 +72,101 @@ async def test_get_event_by_id():
 
 
 @pytest.mark.asyncio
+async def test_get_event_by_id_new_header_layout():
+    """VLR.gg redesigned the event header (VLR-SCRAPER-8R): title moved from
+    h1.wf-title to h1.event-header-main-title, subtitle to h2.event-header-main-desc,
+    and dates/prize/location from flat div.event-desc-item-value siblings to
+    label/value pairs under div.event-header-main-meta."""
+    fixture_path = Path(__file__).parent / "fixtures" / "event_2863.html"
+    with open(fixture_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    mock_response_event = AsyncMock()
+    mock_response_event.status_code = 200
+    mock_response_event.content = html_content.encode("utf-8")
+
+    mock_response_matches = AsyncMock()
+    mock_response_matches.status_code = 200
+    mock_response_matches.content = b"<html><body></body></html>"
+
+    with patch("httpx.AsyncClient.get", side_effect=[mock_response_event, mock_response_matches]):
+        result = await events.get_event_by_id("2863")
+
+    assert result.id == "2863"
+    assert result.title == "VCT 2026: EMEA Stage 1"
+    assert result.subtitle == "Part of the Valorant Champions Tour, Riot's official 2026 tournament circuit."
+    assert result.dates == "Apr 1 – May 18, 2026"
+    assert result.prize == "TBD"
+    assert result.location == "Riot Games Arena, Berlin"
+    assert str(result.img) == "https://owcdn.net/img/65ab59620a233.png"
+    assert isinstance(result.matches, list)
+
+
+@pytest.mark.asyncio
+async def test_get_event_by_id_region_meta_label():
+    """Some events label the location slot "Region" instead of "Location", with an
+    empty value resolved via the flag class (e.g. mod-fr -> "fr"). The metadata
+    parser must accept either label and fall back to the flag."""
+    fixture_path = Path(__file__).parent / "fixtures" / "event_2842.html"
+    with open(fixture_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    mock_response_event = AsyncMock()
+    mock_response_event.status_code = 200
+    mock_response_event.content = html_content.encode("utf-8")
+
+    mock_response_matches = AsyncMock()
+    mock_response_matches.status_code = 200
+    mock_response_matches.content = b"<html><body></body></html>"
+
+    with patch("httpx.AsyncClient.get", side_effect=[mock_response_event, mock_response_matches]):
+        result = await events.get_event_by_id("2842")
+
+    assert result.id == "2842"
+    assert result.title == "Challengers 2026: France Revolution Stage 2"
+    assert result.dates == "Apr 4 – May 13, 2026"
+    assert result.prize == "€10,000 EUR~ $11,825"
+    assert result.location == "fr"
+
+
+@pytest.mark.asyncio
+async def test_get_event_by_id_location_without_flag_does_not_crash():
+    """An empty location value with no flag icon must degrade to "" rather than
+    crash with AttributeError (the original VLR-SCRAPER-8R bug class)."""
+    html = """
+    <html><body>
+      <div class="event-header">
+        <h1 class="event-header-main-title">Some Event</h1>
+        <h2 class="event-header-main-desc">A subtitle</h2>
+        <div class="event-header-main-meta">
+          <div><div class="label">Dates</div><div class="value">Jan 1 – Feb 1, 2026</div></div>
+          <div><div class="label">Prize</div><div class="value">$1,000</div></div>
+          <div><div class="label">Region</div><div class="value"></div></div>
+        </div>
+        <div class="event-header-thumb"><img src="//owcdn.net/img/x.png"/></div>
+      </div>
+      <div class="event-sidebar-matches"></div>
+    </body></html>
+    """
+
+    mock_response_event = AsyncMock()
+    mock_response_event.status_code = 200
+    mock_response_event.content = html.encode("utf-8")
+
+    mock_response_matches = AsyncMock()
+    mock_response_matches.status_code = 200
+    mock_response_matches.content = b"<html><body></body></html>"
+
+    with patch("httpx.AsyncClient.get", side_effect=[mock_response_event, mock_response_matches]):
+        result = await events.get_event_by_id("9999")
+
+    assert result.id == "9999"
+    assert result.location == ""
+    assert result.dates == "Jan 1 – Feb 1, 2026"
+    assert result.subtitle == "A subtitle"
+
+
+@pytest.mark.asyncio
 async def test_get_events_scraping_error():
     """Test that ScrapingError is raised when VLR.gg returns a bad response."""
     # Mock the HTTP response with bad status
