@@ -9,6 +9,7 @@ from app.api.v1.endpoints.search import router as search_router
 from app.api.v1.endpoints.standings import router as standings_router
 from app.api.v1.endpoints.team import router as team_router
 from app.api.v1.endpoints.version import router as version_router
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -21,3 +22,7 @@ router.include_router(rankings_router, prefix="/rankings", tags=["Rankings"])
 router.include_router(standings_router, prefix="/standings", tags=["Standings"])
 router.include_router(version_router, prefix="/version", tags=["Version"])
 router.include_router(search_router, prefix="/search", tags=["Search"])
+
+if settings.LLM_API_KEY:
+    from app.api.v1.endpoints.ask import router as ask_router
+    router.include_router(ask_router, prefix="/ask", tags=["Ask"])
