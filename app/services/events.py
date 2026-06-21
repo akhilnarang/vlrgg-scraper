@@ -19,6 +19,11 @@ from app.core.connections import get_http_client
 from app.utils import clean_number_string, clean_string, get_class, get_href, get_image_url, simplify_name
 
 
+# VLR serves a fixed number of event cards per page. When fetching "all" pages we request
+# them in batches of this size and stop as soon as a page yields no cards.
+EVENTS_PAGE_BATCH_SIZE = 5
+
+
 class ParsedEventData(TypedDict):
     id: str
     title: str
@@ -34,11 +39,15 @@ class ParsedEventData(TypedDict):
     matches: NotRequired[list]
 
 
-async def get_events(cache_client: Redis) -> list[schemas.Event]:
+async def get_events(cache_client: Redis, pages: int = 1) -> list[schemas.Event]:
     """
     Fetch a list of events from VLR, and return the parsed response
 
     :param cache_client: A redis client instance
+    :param pages: How many pages of events to fetch. Defaults to ``1`` (the first page,
+        preserving the previous behaviour). A value ``> 1`` fetches pages ``1..pages``
+        (page 1 plus the rest concurrently). A value ``<= 0`` fetches ALL pages, requesting
+        more until a page returns no events.
     :return: Parsed list of events
     """
     async with get_http_client() as client:
@@ -46,7 +55,25 @@ async def get_events(cache_client: Redis) -> list[schemas.Event]:
         if response.status_code != http.HTTPStatus.OK:
             raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
 
-    soup = BeautifulSoup(response.content, "lxml")
+        # Page 1 has been fetched above; grab any additional pages while the client is open.
+        event_list = await parse_events_page(response.content, cache_client)
+        if event_list and pages != 1:
+            seen: set[str] = {e.id for e in event_list}
+            # Clamp bounded mode; full-history mode cap is enforced inside the helper.
+            effective_pages = min(pages, constants.MAX_PAGINATION_PAGES) if pages >= 1 else pages
+            event_list.extend(await fetch_additional_events(client, cache_client, effective_pages, seen))
+
+    return event_list
+
+
+def events_url(page: int) -> str:
+    """Build the URL for a given page of the events list."""
+    return f"{constants.EVENTS_URL}&page={page}"
+
+
+async def parse_events_page(content: bytes, cache_client: Redis) -> list[schemas.Event]:
+    """Parse all event cards from a single page of HTML."""
+    soup = BeautifulSoup(content, "lxml")
     return list(
         itertools.chain(
             *(
@@ -59,6 +86,77 @@ async def get_events(cache_client: Redis) -> list[schemas.Event]:
             )
         )
     )
+
+
+async def fetch_additional_events(
+    client, cache_client: Redis, pages: int, seen: set[str] | None = None
+) -> list[schemas.Event]:
+    """
+    Fetch events beyond page 1, preserving order (page 2, then 3, ...).
+
+    :param client: The shared HTTP client.
+    :param cache_client: A redis client instance.
+    :param pages: Total pages wanted (already clamped by caller for bounded mode).
+        ``> 1`` fetches pages ``2..pages`` concurrently; ``<= 0`` fetches every remaining
+        page in batches up to ``MAX_PAGINATION_PAGES`` total, stopping once a page returns
+        no events or contributes no new ids. A non-200 on any page raises ScrapingError
+        rather than returning a partial list (page 1 is already validated by the caller).
+    :param seen: Set of event ids already collected (page 1). New items are filtered against
+        this set in all modes; full-history mode also stops when a page adds zero new ids.
+    :return: The parsed events from the additional pages, in order.
+    """
+    event_list: list[schemas.Event] = []
+    if seen is None:
+        seen = set()
+
+    if pages > 1:
+        # Fetch pages 2..N in batches (not one big fan-out) to bound concurrent load on VLR.
+        stop = False
+        for start in range(2, pages + 1, EVENTS_PAGE_BATCH_SIZE):
+            batch = range(start, min(start + EVENTS_PAGE_BATCH_SIZE, pages + 1))
+            responses = await asyncio.gather(*(client.get(events_url(p)) for p in batch))
+            for response in responses:
+                if response.status_code != http.HTTPStatus.OK:
+                    raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
+                page_events = await parse_events_page(response.content, cache_client)
+                if not page_events:
+                    stop = True
+                    break
+                new = [e for e in page_events if e.id not in seen]
+                seen.update(e.id for e in new)
+                event_list.extend(new)
+            if stop:
+                break
+        return event_list
+
+    # pages <= 0: fetch all remaining pages in batches until empty, zero new ids,
+    # or MAX_PAGINATION_PAGES total pages (including the already-fetched page 1) is reached.
+    page = 2
+    pages_crawled = 1  # page 1 already counted
+    while pages_crawled < constants.MAX_PAGINATION_PAGES:
+        batch_size = min(EVENTS_PAGE_BATCH_SIZE, constants.MAX_PAGINATION_PAGES - pages_crawled)
+        batch = list(range(page, page + batch_size))
+        responses = await asyncio.gather(*(client.get(events_url(p)) for p in batch))
+        pages_crawled += len(batch)
+        stop = False
+        for response in responses:
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
+            page_events = await parse_events_page(response.content, cache_client)
+            if not page_events:
+                stop = True
+                break
+            new = [e for e in page_events if e.id not in seen]
+            if not new:
+                stop = True
+                break
+            seen.update(e.id for e in new)
+            event_list.extend(new)
+        if stop:
+            break
+        page += batch_size
+
+    return event_list
 
 
 async def convert_to_list(events: Tag, client: Redis) -> list[schemas.Event]:

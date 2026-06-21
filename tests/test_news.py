@@ -2,7 +2,37 @@ import pytest
 from unittest.mock import AsyncMock, patch
 from pathlib import Path
 
+import app.constants as constants
 from app.services import news
+
+FIXTURE_DIR = Path(__file__).parent / "fixtures"
+
+
+def _mock_response(url: str, content: bytes) -> AsyncMock:
+    response = AsyncMock()
+    response.status_code = 200
+    response.content = content
+    response.url = url
+    return response
+
+
+def _build_mock_get():
+    page1_html = (FIXTURE_DIR / "news_page1.html").read_bytes()
+    page2_html = (FIXTURE_DIR / "news_page2.html").read_bytes()
+    empty_html = (FIXTURE_DIR / "news_empty.html").read_bytes()
+
+    response_by_url = {
+        # Page 1 is fetched without an explicit ?page param by news_list.
+        constants.NEWS_URL: page1_html,
+        news.news_url(2): page2_html,
+    }
+
+    async def mock_get(url: str, *args, **kwargs):
+        # Any page beyond what we have a fixture for is treated as empty (out of range).
+        content = response_by_url.get(url, empty_html)
+        return _mock_response(url, content)
+
+    return mock_get
 
 
 @pytest.mark.asyncio
@@ -72,6 +102,64 @@ async def test_news_by_id():
     assert isinstance(result.videos, list)
     assert len(result.videos) == 0
     assert result.author == "raezeri"
+
+
+@pytest.mark.asyncio
+async def test_news_list_default_single_page():
+    with patch("httpx.AsyncClient.get", side_effect=_build_mock_get()):
+        result = await news.news_list()
+
+    # Default behaviour: only the first page of news (30 items).
+    assert len(result) == 30
+    assert all(item.title for item in result)
+    assert all(item.url.startswith(constants.PREFIX) for item in result)
+
+
+@pytest.mark.asyncio
+async def test_news_list_multi_page_returns_more_items():
+    with patch("httpx.AsyncClient.get", side_effect=_build_mock_get()):
+        default = await news.news_list()
+        two_pages = await news.news_list(pages=2)
+
+    # Two pages should yield roughly twice as many news items as the default.
+    assert len(two_pages) == 60
+    assert len(two_pages) > len(default)
+
+    # Ordering is preserved: page 1 first, then page 2 appended after.
+    assert [n.url for n in two_pages[:30]] == [n.url for n in default]
+    # No duplicates across the combined pages and parsing stayed intact.
+    urls = [n.url for n in two_pages]
+    assert len(set(urls)) == len(urls)
+    assert all(n.title for n in two_pages)
+
+
+@pytest.mark.asyncio
+async def test_news_list_fetch_all_pages_stops_on_empty():
+    # pages <= 0 means "fetch all"; only pages 1 and 2 have items here, the batch walk
+    # should stop once it hits the empty out-of-range pages.
+    with patch("httpx.AsyncClient.get", side_effect=_build_mock_get()):
+        result = await news.news_list(pages=0)
+
+    assert len(result) == 60
+
+
+@pytest.mark.asyncio
+async def test_news_list_later_page_error_raises_not_partial():
+    """A non-200 on a later page must raise ScrapingError, never return a partial list."""
+    from app.exceptions import ScrapingError
+
+    page1_html = (FIXTURE_DIR / "news_page1.html").read_bytes()
+
+    async def mock_get(url: str, *args, **kwargs):
+        if url == constants.NEWS_URL:
+            return _mock_response(url, page1_html)
+        resp = _mock_response(url, b"")
+        resp.status_code = 500
+        return resp
+
+    with patch("httpx.AsyncClient.get", side_effect=mock_get):
+        with pytest.raises(ScrapingError):
+            await news.news_list(pages=0)
 
 
 @pytest.mark.asyncio

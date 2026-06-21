@@ -28,6 +28,10 @@ from app.utils import (
 # Max concurrent fallback HTTP requests to avoid rate-limiting vlr.gg
 _MAX_CONCURRENT_FALLBACKS = 10
 
+# VLR serves 50 completed match cards per results page. When fetching "all" pages we request
+# them in batches of this size and stop as soon as a page yields no cards.
+COMPLETED_PAGE_BATCH_SIZE = 5
+
 
 async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
     """
@@ -404,11 +408,41 @@ async def get_upcoming_matches(redis_client: Redis) -> list[schemas.Match]:
     )
 
 
-async def get_completed_matches(redis_client: Redis) -> list[schemas.Match]:
+def completed_matches_url(page: int) -> str:
+    """Build the URL for a given page of completed match results."""
+    return f"{constants.PAST_MATCHES_URL}?page={page}"
+
+
+def count_result_cards(content: bytes) -> int:
+    """Count raw match-card anchor elements in a results page, regardless of parseability.
+
+    ``parse_match`` silently drops cards missing an event id, so a populated page may
+    produce an empty parsed list.  This helper counts the raw HTML elements so callers
+    can distinguish a truly empty page from one that simply failed to parse.
+    """
+    soup = BeautifulSoup(content, "lxml")
+    return sum(len(card.find_all("a", class_="wf-module-item")) for card in soup.find_all("div", class_="wf-card"))
+
+
+async def parse_results_page(content: bytes, redis_client: Redis) -> list[schemas.Match]:
+    """Parse all completed-match cards from a single results page of HTML."""
+    soup = BeautifulSoup(content, "lxml")
+    return await parse_matches(
+        soup.find_all("div", class_="wf-label"),
+        soup.find_all("div", class_="wf-card"),
+        redis_client,
+    )
+
+
+async def get_completed_matches(redis_client: Redis, pages: int = 1) -> list[schemas.Match]:
     """
     Function get a list of completed matches from VLR
 
     :param redis_client: A redis instance
+    :param pages: How many pages of completed match results to fetch (VLR serves 50 per page).
+        Defaults to ``1`` (the first page, preserving the previous behaviour).
+        A value ``> 1`` fetches pages ``2..pages`` concurrently in addition to the first.
+        A value ``<= 0`` fetches ALL pages, requesting more until a page returns no matches.
     :return: The list of matches
     """
     async with get_http_client() as client:
@@ -418,13 +452,95 @@ async def get_completed_matches(redis_client: Redis) -> list[schemas.Match]:
                 url=str(previous_matches_response.url), upstream_status=previous_matches_response.status_code
             )
 
-    previous_matches = BeautifulSoup(previous_matches_response.content, "lxml")
+        # Page 1 has been fetched above; grab any additional pages while the client is open.
+        results = await parse_results_page(previous_matches_response.content, redis_client)
+        if results and pages != 1:
+            seen: set[str] = {m.id for m in results}
+            # Clamp bounded mode; full-history mode cap is enforced inside the helper.
+            effective_pages = min(pages, constants.MAX_PAGINATION_PAGES) if pages >= 1 else pages
+            results.extend(await fetch_additional_completed_matches(client, redis_client, effective_pages, seen))
 
-    return await parse_matches(
-        previous_matches.find_all("div", class_="wf-label"),
-        previous_matches.find_all("div", class_="wf-card"),
-        redis_client,
-    )
+    return results
+
+
+async def fetch_additional_completed_matches(
+    client, redis_client: Redis, pages: int, seen: set[str] | None = None
+) -> list[schemas.Match]:
+    """
+    Fetch completed match results beyond page 1, preserving order (page 2, then 3, ...).
+
+    :param client: The shared HTTP client.
+    :param redis_client: A redis instance.
+    :param pages: Total pages wanted (already clamped by caller for bounded mode).
+        ``> 1`` fetches pages ``2..pages`` concurrently; ``<= 0`` fetches every remaining page
+        in batches up to ``MAX_PAGINATION_PAGES`` total, stopping once a page has no raw cards
+        or contributes no new ids. A non-200 on any page raises ScrapingError rather than
+        returning a partial list (page 1 is already validated by the caller).
+    :param seen: Set of match ids already collected (page 1). New items are filtered against
+        this set in all modes; full-history mode also stops when a page adds zero new ids.
+    :return: The parsed matches from the additional pages, in order.
+    """
+    matches: list[schemas.Match] = []
+    if seen is None:
+        seen = set()
+
+    if pages > 1:
+        # Fetch pages 2..N in batches (not one big fan-out) to bound concurrent load on VLR.
+        stop = False
+        for start in range(2, pages + 1, COMPLETED_PAGE_BATCH_SIZE):
+            batch = range(start, min(start + COMPLETED_PAGE_BATCH_SIZE, pages + 1))
+            responses = await gather(*(client.get(completed_matches_url(p)) for p in batch))
+            for response in responses:
+                if response.status_code != http.HTTPStatus.OK:
+                    raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
+                # Use raw card count so pages where parse_match drops all cards don't trigger a false stop.
+                if not count_result_cards(response.content):
+                    stop = True
+                    break
+                page_matches = await parse_results_page(response.content, redis_client)
+                new = [m for m in page_matches if m.id not in seen]
+                seen.update(m.id for m in new)
+                matches.extend(new)
+            if stop:
+                break
+        return matches
+
+    # pages <= 0: fetch all remaining pages in batches until empty (raw card count), all parsed results
+    # are duplicate ids, or MAX_PAGINATION_PAGES total pages (incl. page 1 already fetched) is reached.
+    # NOTE: if raw cards > 0 but page_matches is [] (parse_match silently dropped everything, e.g. all
+    # cards lack an event id), we do NOT stop — the page cap provides the safety net in that case.
+    page = 2
+    pages_crawled = 1  # page 1 already counted
+    while pages_crawled < constants.MAX_PAGINATION_PAGES:
+        batch_size = min(COMPLETED_PAGE_BATCH_SIZE, constants.MAX_PAGINATION_PAGES - pages_crawled)
+        batch = list(range(page, page + batch_size))
+        responses = await gather(*(client.get(completed_matches_url(p)) for p in batch))
+        pages_crawled += len(batch)
+        stop = False
+        for response in responses:
+            if response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
+            # Use raw card count as the empty-page sentinel. parse_match may silently return None
+            # for cards missing an event id, so the parsed list can be empty while the page is not.
+            if not count_result_cards(response.content):
+                stop = True
+                break
+            page_matches = await parse_results_page(response.content, redis_client)
+            if page_matches:
+                # Only apply dedup-stop when we have parsed results: if ALL are duplicates the
+                # upstream is looping and we should terminate.  If page_matches is [] (parse failure)
+                # we let the page cap bound us rather than stopping prematurely.
+                new = [m for m in page_matches if m.id not in seen]
+                if not new:
+                    stop = True
+                    break
+                seen.update(m.id for m in new)
+                matches.extend(new)
+        if stop:
+            break
+        page += batch_size
+
+    return matches
 
 
 async def parse_matches(dates: ResultSet, match_data: ResultSet, client: Redis) -> list[schemas.Match]:
