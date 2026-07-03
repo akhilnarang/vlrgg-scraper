@@ -4,8 +4,37 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 from app.services import events
-from app.constants import EventStatus
+from app.constants import EventStatus, EVENTS_URL
 from app.exceptions import ScrapingError
+
+FIXTURE_DIR = Path(__file__).parent / "fixtures"
+
+
+def _mock_response(url: str, content: bytes) -> AsyncMock:
+    response = AsyncMock()
+    response.status_code = 200
+    response.content = content
+    response.url = url
+    return response
+
+
+def _build_paged_mock_get():
+    page1_html = (FIXTURE_DIR / "events_page1.html").read_bytes()
+    page2_html = (FIXTURE_DIR / "events_page2.html").read_bytes()
+    empty_html = (FIXTURE_DIR / "events_empty.html").read_bytes()
+
+    response_by_url = {
+        # Page 1 is fetched without an explicit &page param by get_events.
+        EVENTS_URL: page1_html,
+        f"{EVENTS_URL}&page=2": page2_html,
+    }
+
+    async def mock_get(url: str, *args, **kwargs):
+        # Any page beyond what we have a fixture for is treated as empty (out of range).
+        content = response_by_url.get(url, empty_html)
+        return _mock_response(url, content)
+
+    return mock_get
 
 
 @pytest.mark.asyncio
@@ -250,3 +279,65 @@ def test_parse_event_standings_with_logo_first_column_fixture():
     assert result[0]["wins"] == 0
     assert result[0]["losses"] == 0
     assert all(standing["team"] != "Spoiler hidden" for standing in result)
+
+
+@pytest.mark.asyncio
+async def test_get_events_default_single_page():
+    mock_redis = AsyncMock()
+    with patch("httpx.AsyncClient.get", side_effect=_build_paged_mock_get()):
+        result = await events.get_events(mock_redis)
+
+    # Default behaviour: only the first page of events.
+    assert len(result) > 0
+    # Parsing stayed intact across the real-page fixture.
+    assert all(event.id for event in result)
+    assert result[0].id == "2765"
+
+
+@pytest.mark.asyncio
+async def test_get_events_multi_page_returns_more_events():
+    mock_redis = AsyncMock()
+    with patch("httpx.AsyncClient.get", side_effect=_build_paged_mock_get()):
+        default = await events.get_events(mock_redis)
+        two_pages = await events.get_events(mock_redis, pages=2)
+
+    # Two pages should yield more events than the default single page.
+    assert len(two_pages) > len(default)
+    assert len(two_pages) == len(default) + 50
+
+    # Ordering is preserved: page 1 first, then page 2 appended after.
+    assert [e.id for e in two_pages[: len(default)]] == [e.id for e in default]
+    # No duplicates across the combined pages and parsing stayed intact.
+    ids = [e.id for e in two_pages]
+    assert len(set(ids)) == len(ids)
+    assert all(e.id for e in two_pages)
+
+
+@pytest.mark.asyncio
+async def test_get_events_fetch_all_pages_stops_on_empty():
+    # pages <= 0 means "fetch all"; only pages 1 and 2 have events here, the batch
+    # walk should stop once it hits the empty out-of-range pages.
+    mock_redis = AsyncMock()
+    with patch("httpx.AsyncClient.get", side_effect=_build_paged_mock_get()):
+        all_pages = await events.get_events(mock_redis, pages=0)
+        two_pages = await events.get_events(mock_redis, pages=2)
+
+    assert len(all_pages) == len(two_pages)
+
+
+@pytest.mark.asyncio
+async def test_get_events_later_page_error_raises_not_partial():
+    """A non-200 on a later page must raise ScrapingError, never return a partial list."""
+    page1_html = (FIXTURE_DIR / "events_page1.html").read_bytes()
+
+    async def mock_get(url: str, *args, **kwargs):
+        if url == EVENTS_URL:
+            return _mock_response(url, page1_html)
+        resp = _mock_response(url, b"")
+        resp.status_code = 503
+        return resp
+
+    mock_redis = AsyncMock()
+    with patch("httpx.AsyncClient.get", side_effect=mock_get):
+        with pytest.raises(ScrapingError):
+            await events.get_events(mock_redis, pages=0)

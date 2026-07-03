@@ -28,6 +28,8 @@ TEAM_COMPLETED_MATCHES_URL = f"{PREFIX}/team/matches/{{}}/?group=completed"
 
 PLAYER_URL = f"{PREFIX}/player/{{}}/?timespan=all"
 
+PLAYER_MATCHES_URL = f"{PREFIX}/player/matches/{{}}"
+
 RANKINGS_URL = f"{PREFIX}/rankings"
 
 RANKING_URL_REGION = f"{PREFIX}{{}}"
@@ -72,6 +74,11 @@ class SearchCategory(str, Enum):
     SERIES = "series"
 
 
+# Hard cap on the maximum number of pages fetched in any pagination mode.
+# Bounded mode: pages are clamped to min(param, MAX_PAGINATION_PAGES).
+# Full-history mode (param <= 0): crawl stops after this many total pages.
+MAX_PAGINATION_PAGES = 50
+
 # Timeouts and TTLs (in seconds)
 # TTLs should be >= 2× cron interval to survive a missed run
 REQUEST_TIMEOUT = 60.0
@@ -80,3 +87,8 @@ CACHE_TTL_MATCHES = 600  # 10 minutes (cron: every 5 min)
 CACHE_TTL_EVENTS = 3600  # 1 hour (cron: every 30 min)
 CACHE_TTL_NEWS = 3600  # 1 hour (cron: every 30 min)
 CACHE_TTL_STANDINGS = 90000  # 25 hours (cron: daily at midnight)
+# By-id team/player pages have no cron; these are live-fetched on demand (heavily by
+# the /ask agent). A very small TTL collapses the burst of duplicate fetches within a
+# single agent run and rapid repeats, without serving stale data.
+CACHE_TTL_TEAM = 60  # 1 minute
+CACHE_TTL_PLAYER = 60  # 1 minute

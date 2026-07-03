@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, HttpUrl
 
 
@@ -29,6 +31,19 @@ class PlayerTeam(BaseModel):
     img: HttpUrl
 
 
+# A single match from a player's paginated match history (`/player/matches/{id}`).
+class PlayerMatch(BaseModel):
+    id: str
+    date: datetime
+    event: str
+    stage: str
+    team: str  # The player's team in that match (first team listed on the card)
+    opponent: str
+    score: str  # Raw score string, e.g. "0:2"
+    roster_core: str | None = None
+    opponent_roster_core: str | None = None
+
+
 # Response for `GET /api/v1/player/{id}`
 class Player(BaseModel):
     name: str
@@ -41,3 +56,4 @@ class Player(BaseModel):
     total_winnings: float = 0.0
     current_team: PlayerTeam | None = None
     past_teams: list[PlayerTeam] = []
+    matches: list[PlayerMatch] = []

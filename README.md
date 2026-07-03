@@ -34,6 +34,7 @@ The application follows a modular architecture:
 | `GET /api/v1/team/{id}` | Team details and matches |
 | `GET /api/v1/search` | Search teams, players, and events |
 | `GET /api/v1/version` | API version info |
+| `POST /api/v1/ask` | Natural-language Q&A over VLR data (LLM-powered; enabled when `LLM_API_KEY` is set) |
 
 See [API Documentation](docs/api.md) for detailed endpoint specs.
 

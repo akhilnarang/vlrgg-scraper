@@ -35,5 +35,6 @@ class ScrapingError(HTTPException):
 
 
 class RateLimitError(HTTPException):
-    def __init__(self, detail: str = "Rate limit exceeded"):
-        super().__init__(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail)
+    def __init__(self, detail: str = "Rate limit exceeded", *, retry_after: int | None = None):
+        headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
+        super().__init__(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail, headers=headers)

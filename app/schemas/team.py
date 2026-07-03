@@ -17,6 +17,8 @@ class MatchBase(BaseModel):
     stage: str
     opponent: str
     date: datetime
+    roster_core: str | None = None
+    opponent_roster_core: str | None = None
 
 
 class UpcomingMatch(MatchBase):

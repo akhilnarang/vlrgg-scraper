@@ -1,4 +1,7 @@
+import logging
+
 import redis.asyncio as redis
+from redis.exceptions import RedisError
 
 from ..core.config import settings
 from ..core.connections import redis_pool
@@ -28,6 +31,10 @@ async def get(key: str, client: redis.Redis | None = None) -> bytes | None:
         client = get_client()
     try:
         return await client.get(key)  # type: ignore
+    except RedisError:
+        # Cache is best-effort: a Redis outage must degrade to a live fetch, not 500 the request.
+        logging.warning("cache read failed for key=%s; treating as miss", key, exc_info=True)
+        return None
     finally:
         if need_client:
             await client.aclose()
@@ -50,6 +57,10 @@ async def set(key: str, value: str, ttl: int = 60, client: redis.Redis | None = 
         client = get_client()
     try:
         return await client.set(key, value, ttl)  # type: ignore
+    except RedisError:
+        # Cache is best-effort: a failed write must not break the request path.
+        logging.warning("cache write failed for key=%s; skipping", key, exc_info=True)
+        return None
     finally:
         if need_client:
             await client.aclose()
