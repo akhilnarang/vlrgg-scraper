@@ -16,6 +16,24 @@ def _mock_response(url: str, content: bytes) -> AsyncMock:
     return response
 
 
+def test_normalize_article_text_collapses_only_wrapped_link_quote_padding():
+    assert news.normalize_article_text('Tang " {{link_2}} " Shijun') == 'Tang "{{link_2}}" Shijun'
+    assert news.normalize_article_text('Tang “ {{link_2}} ” Shijun') == 'Tang “{{link_2}}” Shijun'
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ('He said "hi" {{link_0}}', 'He said "hi" {{link_0}}'),
+        ('{{link_0}} "duelist"', '{{link_0}} "duelist"'),
+        ('before " {{link_0}} after', 'before " {{link_0}} after'),
+        ('before {{link_0}} " after', 'before {{link_0}} " after'),
+    ],
+)
+def test_normalize_article_text_preserves_non_wrapper_quote_spacing(raw: str, expected: str):
+    assert news.normalize_article_text(raw) == expected
+
+
 def _build_mock_get():
     page1_html = (FIXTURE_DIR / "news_page1.html").read_bytes()
     page2_html = (FIXTURE_DIR / "news_page2.html").read_bytes()

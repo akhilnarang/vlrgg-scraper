@@ -18,11 +18,30 @@ from app.utils import expand_url, fix_datetime_tz, get_image_url
 NEWS_PAGE_BATCH_SIZE = 5
 
 
+def _collapse_link_quote_padding(text: str) -> str:
+    result = []
+    last_end = 0
+    for match in re.finditer(r"\s+({{link_\d+}})\s+", text):
+        prev_char = text[match.start() - 1] if match.start() > 0 else ""
+        next_char = text[match.end()] if match.end() < len(text) else ""
+        is_quoted_link = (prev_char == next_char == '"') or (prev_char == "“" and next_char == "”")
+        if not is_quoted_link:
+            continue
+
+        result.append(text[last_end : match.start()])
+        result.append(match.group(1))
+        last_end = match.end()
+
+    if not result:
+        return text
+
+    result.append(text[last_end:])
+    return "".join(result)
+
+
 def normalize_article_text(text: str) -> str:
     text = re.sub(r'\s+([.,;:!?])', r'\1', text)
-    text = re.sub(r'(["“])\s+({{link_\d+}})', r'\1\2', text)
-    text = re.sub(r'({{link_\d+}})\s+(["”])', r'\1\2', text)
-    return text
+    return _collapse_link_quote_padding(text)
 
 
 def extract_text_and_links(element: Tag, counter: int) -> tuple[str, list[dict[str, str]], int]:
