@@ -329,8 +329,7 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
     event["location"] = location_text
     event["img"] = get_image_url(header.find("div", class_="event-header-thumb").find("img")["src"])
 
-    if prizes_data := soup.find_all("table", class_="wf-table"):
-        event["prizes"] = prizes_parser(prizes_data[-1])
+    event["prizes"] = parse_prizes(soup)
 
     if teams_container := soup.find_all("div", class_="event-teams-container"):
         event["teams"] = parse_team_data(teams_container[0])
@@ -377,9 +376,76 @@ async def parse_match_data(id: str) -> list:
     )
 
 
-def prizes_parser(
-    prizes_table: Tag,
-) -> list[dict[str, str | dict[str, str]]]:
+def parse_prizes(soup: BeautifulSoup) -> list[dict[str, str | dict[str, str]]]:
+    label = soup.find(
+        class_="wf-label mod-large",
+        string=lambda value: value is not None and clean_string(value).lower() == "prize distribution",
+    )
+    if not label:
+        return []
+
+    prize_container = label.find_next_sibling()
+    while isinstance(prize_container, Tag) and prize_container.name == "style":
+        prize_container = prize_container.find_next_sibling()
+    if not isinstance(prize_container, Tag):
+        return []
+
+    if prize_grid := prize_container.find("div", class_="wf-ptable"):
+        return prizes_grid_parser(prize_grid)
+
+    if prizes_table := (
+        prize_container if prize_container.name == "table" and "wf-table" in prize_container.get("class", []) else None
+    ) or prize_container.find("table", class_="wf-table"):
+        return prizes_parser(prizes_table)
+
+    return []
+
+
+def prizes_grid_parser(prizes_grid: Tag) -> list[dict[str, str | dict[str, str]]]:
+    prizes = []
+    rows = prizes_grid.find_all("div", attrs={"role": "row"})
+    for row in rows:
+        cells = row.find_all("div", attrs={"role": "cell"}, recursive=False)
+        if len(cells) < 3:
+            continue
+        if clean_string(cells[0].get_text()).lower() == "place":
+            continue
+
+        prize: dict = {
+            "position": clean_string(cells[0].get_text()),
+            "prize": clean_string(cells[1].get_text()),
+        }
+        if team := parse_prize_team(cells[2]):
+            prize["team"] = team
+        prizes.append(prize)
+    return prizes
+
+
+def parse_prize_team(team_cell: Tag) -> dict[str, str] | None:
+    team_anchor = team_cell.find("a")
+    if not team_anchor:
+        return None
+
+    href = team_anchor.get("href")
+    img = team_anchor.find("img")
+    if not href or not img or not img.get("src"):
+        return None
+
+    country = clean_string(country_tag.get_text()) if (country_tag := team_anchor.find(class_="ge-text-light")) else ""
+    text_values = [clean_string(value) for value in team_anchor.stripped_strings]
+    text_values = [value for value in text_values if value and value != country]
+    if not text_values:
+        return None
+
+    return {
+        "name": text_values[0],
+        "id": get_href(href).split("/")[2],
+        "country": country,
+        "img": get_image_url(img["src"]),
+    }
+
+
+def prizes_parser(prizes_table: Tag) -> list[dict[str, str | dict[str, str]]]:
     """
     Parse prize data
     :param prizes_table: The HTML
