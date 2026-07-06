@@ -182,6 +182,10 @@ async def test_news_by_id_562934():
     assert result.title == "EDward Gaming bids farewell to head coach Muggle"
     assert isinstance(result.content, str)
     assert "Muggle" in result.content
+    assert 'Tang "{{link_2}}" Shijun' in result.content
+    assert '" {{link_2}} "' not in result.content
+    assert "}} ." not in result.content
+    assert "}} ," not in result.content
     assert isinstance(result.links, list)
     assert len(result.links) == 21
     assert isinstance(result.images, list)

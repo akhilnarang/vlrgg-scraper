@@ -1,5 +1,6 @@
 import asyncio
 import http
+import re
 
 import dateutil.parser
 from bs4 import BeautifulSoup, Tag
@@ -15,6 +16,13 @@ from app.utils import expand_url, fix_datetime_tz, get_image_url
 # VLR returns 30 news cards per page. When fetching "all" pages we request them in
 # batches of this size and stop as soon as a page yields no cards.
 NEWS_PAGE_BATCH_SIZE = 5
+
+
+def normalize_article_text(text: str) -> str:
+    text = re.sub(r'\s+([.,;:!?])', r'\1', text)
+    text = re.sub(r'(["“])\s+({{link_\d+}})', r'\1\2', text)
+    text = re.sub(r'({{link_\d+}})\s+(["”])', r'\1\2', text)
+    return text
 
 
 def extract_text_and_links(element: Tag, counter: int) -> tuple[str, list[dict[str, str]], int]:
@@ -49,8 +57,7 @@ def extract_text_and_links(element: Tag, counter: int) -> tuple[str, list[dict[s
                 t = " ".join(child.get_text().strip().split())
                 if t:
                     text_parts.append(t)
-    full_text = " ".join(text_parts)
-    return full_text, local_links, counter
+    return normalize_article_text(" ".join(text_parts)), local_links, counter
 
 
 def news_url(page: int) -> str:
