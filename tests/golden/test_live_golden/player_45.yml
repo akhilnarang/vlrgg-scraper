@@ -1,0 +1,698 @@
+agents:
+- a: 847
+  acs: 226.0
+  adr: 139.9
+  apr: 0.31
+  count: 131
+  d: 1719
+  fd: 148
+  fdpr: 0.09
+  fk: 293
+  fkpr: 0.11
+  img: https://www.vlr.gg/img/vlr/game/agents/sage.png
+  k: 2202
+  kast: 74.0
+  kd: 1.28
+  kpr: 0.81
+  name: sage
+  percent: 38.0
+  rating: 1.15
+  rounds: 2709
+- a: 527
+  acs: 247.3
+  adr: 154.5
+  apr: 0.29
+  count: 86
+  d: 1227
+  fd: 198
+  fdpr: 0.11
+  fk: 294
+  fkpr: 0.16
+  img: https://www.vlr.gg/img/vlr/game/agents/phoenix.png
+  k: 1541
+  kast: 76.0
+  kd: 1.26
+  kpr: 0.85
+  name: phoenix
+  percent: 25.0
+  rating: 1.17
+  rounds: 1818
+- a: 149
+  acs: 210.5
+  adr: 142.8
+  apr: 0.24
+  count: 29
+  d: 399
+  fd: 46
+  fdpr: 0.07
+  fk: 65
+  fkpr: 0.11
+  img: https://www.vlr.gg/img/vlr/game/agents/skye.png
+  k: 473
+  kast: 77.0
+  kd: 1.19
+  kpr: 0.77
+  name: skye
+  percent: 8.0
+  rating: 1.08
+  rounds: 616
+- a: 183
+  acs: 218.1
+  adr: 140.9
+  apr: 0.34
+  count: 26
+  d: 371
+  fd: 55
+  fdpr: 0.1
+  fk: 50
+  fkpr: 0.09
+  img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+  k: 417
+  kast: 75.0
+  kd: 1.12
+  kpr: 0.78
+  name: omen
+  percent: 8.0
+  rating: 1.08
+  rounds: 538
+- a: 117
+  acs: 242.7
+  adr: 153.8
+  apr: 0.24
+  count: 23
+  d: 335
+  fd: 57
+  fdpr: 0.12
+  fk: 59
+  fkpr: 0.12
+  img: https://www.vlr.gg/img/vlr/game/agents/raze.png
+  k: 412
+  kast: 76.0
+  kd: 1.23
+  kpr: 0.85
+  name: raze
+  percent: 7.0
+  rating: 1.13
+  rounds: 485
+- a: 129
+  acs: 196.4
+  adr: 122.3
+  apr: 0.33
+  count: 19
+  d: 237
+  fd: 17
+  fdpr: 0.04
+  fk: 16
+  fkpr: 0.04
+  img: https://www.vlr.gg/img/vlr/game/agents/sova.png
+  k: 278
+  kast: 77.0
+  kd: 1.17
+  kpr: 0.71
+  name: sova
+  percent: 6.0
+  rating: 1.08
+  rounds: 389
+- a: 102
+  acs: 201.9
+  adr: 124.6
+  apr: 0.32
+  count: 15
+  d: 226
+  fd: 27
+  fdpr: 0.08
+  fk: 18
+  fkpr: 0.06
+  img: https://www.vlr.gg/img/vlr/game/agents/breach.png
+  k: 234
+  kast: 62.0
+  kd: 1.04
+  kpr: 0.73
+  name: breach
+  percent: 4.0
+  rating: 1.01
+  rounds: 321
+- a: 69
+  acs: 195.7
+  adr: 142.4
+  apr: 0.53
+  count: 6
+  d: 94
+  fd: 10
+  fdpr: 0.08
+  fk: 11
+  fkpr: 0.08
+  img: https://www.vlr.gg/img/vlr/game/agents/kayo.png
+  k: 86
+  kast: 74.0
+  kd: 0.91
+  kpr: 0.66
+  name: kayo
+  percent: 2.0
+  rating: 1.05
+  rounds: 131
+- a: 27
+  acs: 187.8
+  adr: 118.7
+  apr: 0.31
+  count: 4
+  d: 68
+  fd: 8
+  fdpr: 0.09
+  fk: 5
+  fkpr: 0.06
+  img: https://www.vlr.gg/img/vlr/game/agents/astra.png
+  k: 58
+  kast: 67.0
+  kd: 0.85
+  kpr: 0.67
+  name: astra
+  percent: 1.0
+  rating: 0.87
+  rounds: 87
+- a: 18
+  acs: 169.0
+  adr: 109.7
+  apr: 0.34
+  count: 2
+  d: 34
+  fd: 6
+  fdpr: 0.11
+  fk: 4
+  fkpr: 0.08
+  img: https://www.vlr.gg/img/vlr/game/agents/viper.png
+  k: 33
+  kast: 68.0
+  kd: 0.97
+  kpr: 0.62
+  name: viper
+  percent: 1.0
+  rating: 0.95
+  rounds: 53
+- a: 8
+  acs: 204.0
+  adr: 124.2
+  apr: 0.17
+  count: 2
+  d: 37
+  fd: 8
+  fdpr: 0.17
+  fk: 9
+  fkpr: 0.19
+  img: https://www.vlr.gg/img/vlr/game/agents/chamber.png
+  k: 34
+  kast: 68.0
+  kd: 0.92
+  kpr: 0.72
+  name: chamber
+  percent: 1.0
+  rating: 0.83
+  rounds: 47
+- a: 11
+  acs: 159.0
+  adr: 109.2
+  apr: 0.48
+  count: 1
+  d: 18
+  fd: 1
+  fdpr: 0.04
+  fk: 1
+  fkpr: 0.04
+  img: https://www.vlr.gg/img/vlr/game/agents/brimstone.png
+  k: 12
+  kast: 74.0
+  kd: 0.67
+  kpr: 0.52
+  name: brimstone
+  percent: 0.0
+  rating: 0.62
+  rounds: 23
+alias: SicK
+country: UNITED STATES
+current_team: null
+img: https://owcdn.net/img/6399a54fc4472.png
+matches:
+- date: '2022-12-05T07:30:00Z'
+  event: The Lil Bro Cup
+  id: '160788'
+  opponent: Team Subroza
+  opponent_roster_core: '#M10K'
+  roster_core: '#Q10K'
+  score: 0:2
+  stage: Playoffs ⋅GF
+  team: Team Rossy
+- date: '2022-12-05T01:55:00Z'
+  event: The Lil Bro Cup
+  id: '160786'
+  opponent: Team Zander
+  opponent_roster_core: '#V10K'
+  roster_core: '#Q10K'
+  score: '2:0'
+  stage: Playoffs ⋅SF
+  team: Team Rossy
+- date: '2022-05-22T04:10:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '99695'
+  opponent: Evil Geniuses
+  opponent_roster_core: '#TI6'
+  roster_core: '#V5J'
+  score: 0:2
+  stage: Group Stage ⋅W2
+  team: Sentinels
+- date: '2022-05-14T03:55:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '99687'
+  opponent: Luminosity
+  opponent_roster_core: '#B5F'
+  roster_core: '#V5J'
+  score: '1:2'
+  stage: Group Stage ⋅W1
+  team: Sentinels
+- date: '2022-05-09T05:25:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '97233'
+  opponent: Akrew
+  opponent_roster_core: '#WI6'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: 'Open Qualifier #2 ⋅LR6'
+  team: Sentinels
+- date: '2022-05-09T00:30:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '97231'
+  opponent: SoaR
+  opponent_roster_core: '#YCP'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: 'Open Qualifier #2 ⋅LR5'
+  team: Sentinels
+- date: '2022-05-08T05:35:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '97228'
+  opponent: DarkZero Esports
+  opponent_roster_core: '#ARC'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: 'Open Qualifier #2 ⋅LR4'
+  team: Sentinels
+- date: '2022-05-08T03:30:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '97224'
+  opponent: Cosmic Divide
+  opponent_roster_core: '#VK3'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: 'Open Qualifier #2 ⋅LR3'
+  team: Sentinels
+- date: '2022-05-08T00:30:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '97219'
+  opponent: PUGSTARS
+  opponent_roster_core: '#MRX'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: 'Open Qualifier #2 ⋅LR2'
+  team: Sentinels
+- date: '2022-05-07T05:35:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '97194'
+  opponent: Akrew
+  opponent_roster_core: '#WI6'
+  roster_core: '#V5J'
+  score: 0:2
+  stage: 'Open Qualifier #2 ⋅URo16'
+  team: Sentinels
+- date: '2022-05-07T03:30:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '97180'
+  opponent: Clanless
+  opponent_roster_core: '#BQV'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: 'Open Qualifier #2 ⋅URo32'
+  team: Sentinels
+- date: '2022-05-02T01:30:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '94354'
+  opponent: Luminosity
+  opponent_roster_core: '#B5F'
+  roster_core: '#V5J'
+  score: '1:2'
+  stage: 'Open Qualifier #1 ⋅LR5'
+  team: Sentinels
+- date: '2022-05-01T07:50:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '94351'
+  opponent: NYFU
+  opponent_roster_core: '#TSK'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: 'Open Qualifier #1 ⋅LR4'
+  team: Sentinels
+- date: '2022-05-01T01:30:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '94326'
+  opponent: FaZe Clan
+  opponent_roster_core: '#XQH'
+  roster_core: '#V5J'
+  score: '1:2'
+  stage: 'Open Qualifier #1 ⋅UBQF'
+  team: Sentinels
+- date: '2022-04-30T05:50:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '94321'
+  opponent: Akrew
+  opponent_roster_core: '#WI6'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: 'Open Qualifier #1 ⋅URo16'
+  team: Sentinels
+- date: '2022-04-30T03:30:00Z'
+  event: 'VCT NA S2: Challengers '
+  id: '94311'
+  opponent: PUGSTARS
+  opponent_roster_core: '#MRX'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: 'Open Qualifier #1 ⋅URo32'
+  team: Sentinels
+- date: '2022-03-21T04:00:00Z'
+  event: 'VCT NA S1: Challengers '
+  id: '77794'
+  opponent: Version1
+  opponent_roster_core: '#WAR'
+  roster_core: '#V5J'
+  score: '1:2'
+  stage: LR1
+  team: Sentinels
+- date: '2022-03-19T04:55:00Z'
+  event: 'VCT NA S1: Challengers '
+  id: '77788'
+  opponent: The Guard
+  opponent_roster_core: '#BN1'
+  roster_core: '#V5J'
+  score: 0:2
+  stage: UBQF
+  team: Sentinels
+- date: '2022-03-14T01:30:00Z'
+  event: 'VCT NA S1: Challengers '
+  id: '70078'
+  opponent: Version1
+  opponent_roster_core: '#WAR'
+  roster_core: '#V5J'
+  score: 0:2
+  stage: Group Stage ⋅W5
+  team: Sentinels
+- date: '2022-03-05T02:30:00Z'
+  event: 'VCT NA S1: Challengers '
+  id: '70070'
+  opponent: Rise
+  opponent_roster_core: '#V66'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: Group Stage ⋅W4
+  team: Sentinels
+- date: '2022-02-27T02:30:00Z'
+  event: 'VCT NA S1: Challengers '
+  id: '70066'
+  opponent: OpTic Gaming
+  opponent_roster_core: '#Z5K'
+  roster_core: '#V5J'
+  score: '1:2'
+  stage: Group Stage ⋅W3
+  team: Sentinels
+- date: '2022-02-19T02:30:00Z'
+  event: 'VCT NA S1: Challengers '
+  id: '70057'
+  opponent: Knights
+  opponent_roster_core: '#V71'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: Group Stage ⋅W2
+  team: Sentinels
+- date: '2022-02-13T02:30:00Z'
+  event: 'VCT NA S1: Challengers '
+  id: '69879'
+  opponent: NRG
+  opponent_roster_core: '#X7X'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: Group Stage ⋅W1
+  team: Sentinels
+- date: '2021-12-07T01:10:00Z'
+  event: 'VCT: Champions 2021'
+  id: '51276'
+  opponent: KRÜ Esports
+  opponent_roster_core: '#MAL'
+  roster_core: '#V5J'
+  score: '1:2'
+  stage: Group Stage ⋅Decider (B)
+  team: Sentinels
+- date: '2021-12-05T00:30:00Z'
+  event: 'VCT: Champions 2021'
+  id: '51274'
+  opponent: Team Liquid
+  opponent_roster_core: '#M5A'
+  roster_core: '#V5J'
+  score: '1:2'
+  stage: Group Stage ⋅Winner's (B)
+  team: Sentinels
+- date: '2021-12-02T23:00:00Z'
+  event: 'VCT: Champions 2021'
+  id: '51273'
+  opponent: FURIA
+  opponent_roster_core: '#MAT'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: Group Stage ⋅Opening (B)
+  team: Sentinels
+- date: '2021-09-18T02:25:00Z'
+  event: 'VCT S3: Masters Berlin'
+  id: '34974'
+  opponent: ENVY
+  opponent_roster_core: '#Z5K'
+  roster_core: '#V5J'
+  score: 0:2
+  stage: Playoffs ⋅QF
+  team: Sentinels
+- date: '2021-09-17T01:35:00Z'
+  event: 'VCT S3: Masters Berlin'
+  id: '35943'
+  opponent: F4Q
+  opponent_roster_core: '#B7O'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: Group Stage ⋅Group D
+  team: Sentinels
+- date: '2021-09-15T22:30:00Z'
+  event: 'VCT S3: Masters Berlin'
+  id: '35942'
+  opponent: G2 Esports
+  opponent_roster_core: '#YH2'
+  roster_core: '#V5J'
+  score: 0:2
+  stage: Group Stage ⋅Group D
+  team: Sentinels
+- date: '2021-09-13T23:30:00Z'
+  event: 'VCT S3: Masters Berlin'
+  id: '35940'
+  opponent: F4Q
+  opponent_roster_core: '#B7O'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: Group Stage ⋅Group D
+  team: Sentinels
+- date: '2021-09-12T22:20:00Z'
+  event: 'VCT S3: Masters Berlin'
+  id: '35939'
+  opponent: G2 Esports
+  opponent_roster_core: '#YH2'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: Group Stage ⋅Group D
+  team: Sentinels
+- date: '2021-08-16T00:30:00Z'
+  event: 'VCT NA S3: Challengers Playoffs'
+  id: '29398'
+  opponent: 100 Thieves
+  opponent_roster_core: '#Y7Y'
+  roster_core: '#V5J'
+  score: '3:1'
+  stage: GF
+  team: Sentinels
+- date: '2021-08-14T02:30:00Z'
+  event: 'VCT NA S3: Challengers Playoffs'
+  id: '29397'
+  opponent: 100 Thieves
+  opponent_roster_core: '#Y7Y'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: UBF
+  team: Sentinels
+- date: '2021-08-12T05:35:00Z'
+  event: 'VCT NA S3: Challengers Playoffs'
+  id: '29395'
+  opponent: ENVY
+  opponent_roster_core: '#Z5K'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: UBSF
+  team: Sentinels
+- date: '2021-08-12T00:30:00Z'
+  event: 'VCT NA S3: Challengers Playoffs'
+  id: '29391'
+  opponent: Rise
+  opponent_roster_core: '#V66'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: UBQF
+  team: Sentinels
+- date: '2021-07-12T00:30:00Z'
+  event: 'VCT NA S3: Challengers 1'
+  id: '25200'
+  opponent: XSET
+  opponent_roster_core: '#T66'
+  roster_core: '#V5J'
+  score: '3:1'
+  stage: GF
+  team: Sentinels
+- date: '2021-07-11T05:45:00Z'
+  event: 'VCT NA S3: Challengers 1'
+  id: '25206'
+  opponent: 100 Thieves
+  opponent_roster_core: '#Y7Y'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: LBF
+  team: Sentinels
+- date: '2021-07-11T03:50:00Z'
+  event: 'VCT NA S3: Challengers 1'
+  id: '25205'
+  opponent: ENVY
+  opponent_roster_core: '#Z5K'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: LR3
+  team: Sentinels
+- date: '2021-07-10T05:45:00Z'
+  event: 'VCT NA S3: Challengers 1'
+  id: '25203'
+  opponent: Pioneers
+  opponent_roster_core: '#AIG'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: LR2
+  team: Sentinels
+- date: '2021-07-10T02:30:00Z'
+  event: 'VCT NA S3: Challengers 1'
+  id: '25198'
+  opponent: XSET
+  opponent_roster_core: '#T66'
+  roster_core: '#V5J'
+  score: '1:2'
+  stage: UBSF
+  team: Sentinels
+- date: '2021-07-09T05:15:00Z'
+  event: 'VCT NA S3: Challengers 1'
+  id: '25196'
+  opponent: Gen.G
+  opponent_roster_core: '#M5E'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: UBQF
+  team: Sentinels
+- date: '2021-07-04T00:30:00Z'
+  event: 'VCT NA S3: Challengers 1'
+  id: '24020'
+  opponent: Soniqs
+  opponent_roster_core: '#XCW'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: Open Qualifier ⋅Ro16
+  team: Sentinels
+- date: '2021-07-03T02:30:00Z'
+  event: 'VCT NA S3: Challengers 1'
+  id: '24004'
+  opponent: Evil Geniuses
+  opponent_roster_core: '#TI6'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: Open Qualifier ⋅Ro32
+  team: Sentinels
+- date: '2021-05-30T22:30:00Z'
+  event: 'VCT Masters: Reykjavík'
+  id: '19089'
+  opponent: FNATIC
+  opponent_roster_core: '#AFP'
+  roster_core: '#V5J'
+  score: '3:0'
+  stage: GF
+  team: Sentinels
+- date: '2021-05-29T01:00:00Z'
+  event: 'VCT Masters: Reykjavík'
+  id: '19080'
+  opponent: NUTURN
+  opponent_roster_core: '#Y7J'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: UBF
+  team: Sentinels
+- date: '2021-05-27T01:00:00Z'
+  event: 'VCT Masters: Reykjavík'
+  id: '19078'
+  opponent: Team Vikings
+  opponent_roster_core: '#TAA'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: UBSF
+  team: Sentinels
+- date: '2021-05-26T03:35:00Z'
+  event: 'VCT Masters: Reykjavík'
+  id: '19073'
+  opponent: FNATIC
+  opponent_roster_core: '#AFP'
+  roster_core: '#V5J'
+  score: '2:0'
+  stage: UBQF
+  team: Sentinels
+- date: '2021-05-03T01:30:00Z'
+  event: 'VCT NA S2: Challengers Finals'
+  id: '17391'
+  opponent: Version1
+  opponent_roster_core: '#WAR'
+  roster_core: '#V5J'
+  score: '3:0'
+  stage: GF
+  team: Sentinels
+- date: '2021-05-02T01:30:00Z'
+  event: 'VCT NA S2: Challengers Finals'
+  id: '17384'
+  opponent: Cloud9
+  opponent_roster_core: '#V5F'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: UBF
+  team: Sentinels
+- date: '2021-05-01T01:30:00Z'
+  event: 'VCT NA S2: Challengers Finals'
+  id: '17382'
+  opponent: 100 Thieves
+  opponent_roster_core: '#Y7Y'
+  roster_core: '#V5J'
+  score: '2:1'
+  stage: UBSF
+  team: Sentinels
+name: Hunter Mims
+past_teams:
+- id: '10962'
+  img: https://www.vlr.gg/img/vlr/tmp/vlr.png
+  name: Team Rossy
+- id: '2'
+  img: https://owcdn.net/img/62875027c8e06.png
+  name: Sentinels
+- id: '2'
+  img: https://owcdn.net/img/62875027c8e06.png
+  name: Sentinels
+total_winnings: 112700.0
+twitch: https://www.twitch.tv/sick_cs
+twitter: null

@@ -1,0 +1,760 @@
+agents:
+- a: 1749
+  acs: 218.9
+  adr: 145.8
+  apr: 0.29
+  count: 290
+  d: 4009
+  fd: 375
+  fdpr: 0.06
+  fk: 563
+  fkpr: 0.09
+  img: https://www.vlr.gg/img/vlr/game/agents/sova.png
+  k: 4548
+  kast: 75.0
+  kd: 1.13
+  kpr: 0.76
+  name: sova
+  percent: 63.0
+  rating: 1.11
+  rounds: 5972
+- a: 358
+  acs: 196.7
+  adr: 127.2
+  apr: 0.3
+  count: 58
+  d: 799
+  fd: 84
+  fdpr: 0.07
+  fk: 111
+  fkpr: 0.09
+  img: https://www.vlr.gg/img/vlr/game/agents/skye.png
+  k: 852
+  kast: 73.0
+  kd: 1.07
+  kpr: 0.71
+  name: skye
+  percent: 13.0
+  rating: 1.03
+  rounds: 1196
+- a: 134
+  acs: 182.9
+  adr: 121.4
+  apr: 0.22
+  count: 28
+  d: 419
+  fd: 48
+  fdpr: 0.08
+  fk: 46
+  fkpr: 0.08
+  img: https://www.vlr.gg/img/vlr/game/agents/fade.png
+  k: 402
+  kast: 69.0
+  kd: 0.96
+  kpr: 0.67
+  name: fade
+  percent: 6.0
+  rating: 0.95
+  rounds: 597
+- a: 200
+  acs: 191.0
+  adr: 121.9
+  apr: 0.34
+  count: 27
+  d: 426
+  fd: 41
+  fdpr: 0.07
+  fk: 49
+  fkpr: 0.08
+  img: https://www.vlr.gg/img/vlr/game/agents/breach.png
+  k: 402
+  kast: 72.0
+  kd: 0.94
+  kpr: 0.68
+  name: breach
+  percent: 6.0
+  rating: 0.96
+  rounds: 587
+- a: 82
+  acs: 199.5
+  adr: 131.3
+  apr: 0.16
+  count: 25
+  d: 342
+  fd: 28
+  fdpr: 0.05
+  fk: 25
+  fkpr: 0.05
+  img: https://www.vlr.gg/img/vlr/game/agents/killjoy.png
+  k: 358
+  kast: 70.0
+  kd: 1.05
+  kpr: 0.7
+  name: killjoy
+  percent: 5.0
+  rating: 0.99
+  rounds: 513
+- a: 57
+  acs: 168.3
+  adr: 108.8
+  apr: 0.24
+  count: 11
+  d: 158
+  fd: 28
+  fdpr: 0.12
+  fk: 17
+  fkpr: 0.07
+  img: https://www.vlr.gg/img/vlr/game/agents/gekko.png
+  k: 143
+  kast: 69.0
+  kd: 0.91
+  kpr: 0.61
+  name: gekko
+  percent: 2.0
+  rating: 0.87
+  rounds: 235
+- a: 34
+  acs: 197.2
+  adr: 138.1
+  apr: 0.28
+  count: 6
+  d: 76
+  fd: 10
+  fdpr: 0.08
+  fk: 10
+  fkpr: 0.08
+  img: https://www.vlr.gg/img/vlr/game/agents/astra.png
+  k: 89
+  kast: 78.0
+  kd: 1.17
+  kpr: 0.74
+  name: astra
+  percent: 1.0
+  rating: 1.14
+  rounds: 121
+- a: 25
+  acs: 203.3
+  adr: 137.5
+  apr: 0.29
+  count: 4
+  d: 62
+  fd: 9
+  fdpr: 0.1
+  fk: 9
+  fkpr: 0.1
+  img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+  k: 61
+  kast: 76.0
+  kd: 0.98
+  kpr: 0.7
+  name: omen
+  percent: 1.0
+  rating: 1.05
+  rounds: 87
+- a: 10
+  acs: 344.0
+  adr: 221.4
+  apr: 0.21
+  count: 3
+  d: 29
+  fd: 6
+  fdpr: 0.13
+  fk: 9
+  fkpr: 0.19
+  img: https://www.vlr.gg/img/vlr/game/agents/reyna.png
+  k: 58
+  kast: 83.0
+  kd: 2.0
+  kpr: 1.21
+  name: reyna
+  percent: 1.0
+  rating: 1.55
+  rounds: 48
+- a: 9
+  acs: 176.0
+  adr: 122.1
+  apr: 0.21
+  count: 2
+  d: 30
+  fd: 2
+  fdpr: 0.05
+  fk: 4
+  fkpr: 0.1
+  img: https://www.vlr.gg/img/vlr/game/agents/tejo.png
+  k: 27
+  kast: 69.0
+  kd: 0.9
+  kpr: 0.64
+  name: tejo
+  percent: 0.0
+  rating: 0.88
+  rounds: 42
+- a: 3
+  acs: 180.0
+  adr: 111.9
+  apr: 0.07
+  count: 2
+  d: 33
+  fd: 5
+  fdpr: 0.12
+  fk: 6
+  fkpr: 0.15
+  img: https://www.vlr.gg/img/vlr/game/agents/cypher.png
+  k: 27
+  kast: 0.0
+  kd: 0.82
+  kpr: 0.66
+  name: cypher
+  percent: 0.0
+  rating: 0.0
+  rounds: 41
+- a: 14
+  acs: 198.0
+  adr: 140.0
+  apr: 0.61
+  count: 1
+  d: 16
+  fd: 1
+  fdpr: 0.04
+  fk: 2
+  fkpr: 0.09
+  img: https://www.vlr.gg/img/vlr/game/agents/viper.png
+  k: 15
+  kast: 83.0
+  kd: 0.94
+  kpr: 0.65
+  name: viper
+  percent: 0.0
+  rating: 1.05
+  rounds: 23
+- a: 13
+  acs: 92.0
+  adr: 65.3
+  apr: 0.62
+  count: 1
+  d: 16
+  fd: 0
+  fdpr: 0.0
+  fk: 0
+  fkpr: 0.0
+  img: https://www.vlr.gg/img/vlr/game/agents/sage.png
+  k: 5
+  kast: 0.0
+  kd: 0.31
+  kpr: 0.24
+  name: sage
+  percent: 0.0
+  rating: 0.0
+  rounds: 21
+- a: 2
+  acs: 82.0
+  adr: 59.6
+  apr: 0.11
+  count: 1
+  d: 18
+  fd: 3
+  fdpr: 0.16
+  fk: 2
+  fkpr: 0.11
+  img: https://www.vlr.gg/img/vlr/game/agents/yoru.png
+  k: 6
+  kast: 37.0
+  kd: 0.33
+  kpr: 0.32
+  name: yoru
+  percent: 0.0
+  rating: 0.29
+  rounds: 19
+alias: UNFAKE
+country: POLAND
+current_team:
+  id: '11232'
+  img: https://owcdn.net/img/63a944e6cbe49.png
+  name: Joblife
+img: https://owcdn.net/img/6977a6f8ca2b2.png
+matches:
+- date: '2026-07-04T20:30:00Z'
+  event: 'VCL 26: EMEA Stage 3'
+  id: '707710'
+  opponent: REBORN
+  opponent_roster_core: '#W1NI'
+  roster_core: '#M1Z9'
+  score: '1:3'
+  stage: Playoffs ⋅LBF
+  team: Joblife
+- date: '2026-07-03T20:30:00Z'
+  event: 'VCL 26: EMEA Stage 3'
+  id: '707709'
+  opponent: FOKUS
+  opponent_roster_core: '#Z20F'
+  roster_core: '#M1Z9'
+  score: '2:1'
+  stage: Playoffs ⋅LR3
+  team: Joblife
+- date: '2026-07-02T20:30:00Z'
+  event: 'VCL 26: EMEA Stage 3'
+  id: '707708'
+  opponent: Natus Vincere Junior
+  opponent_roster_core: '#W238'
+  roster_core: '#M1Z9'
+  score: '2:1'
+  stage: Playoffs ⋅LR2
+  team: Joblife
+- date: '2026-07-01T23:00:00Z'
+  event: 'VCL 26: EMEA Stage 3'
+  id: '707706'
+  opponent: MIR
+  opponent_roster_core: '#X1Z3'
+  roster_core: '#M1Z9'
+  score: '2:1'
+  stage: Playoffs ⋅LR1
+  team: Joblife
+- date: '2026-06-30T22:30:00Z'
+  event: 'VCL 26: EMEA Stage 3'
+  id: '707700'
+  opponent: REBORN
+  opponent_roster_core: '#W1NI'
+  roster_core: '#M1Z9'
+  score: '1:2'
+  stage: Playoffs ⋅UBQF
+  team: Joblife
+- date: '2026-06-29T20:30:00Z'
+  event: 'VCL 26: EMEA Stage 3'
+  id: '688441'
+  opponent: Barça eSports
+  opponent_roster_core: '#T20F'
+  roster_core: '#M1Z9'
+  score: '2:1'
+  stage: Group Stage ⋅Decider (B)
+  team: Joblife
+- date: '2026-06-24T20:30:00Z'
+  event: 'VCL 26: EMEA Stage 3'
+  id: '688439'
+  opponent: Enterprise Esports
+  opponent_roster_core: '#A21A'
+  roster_core: '#M1Z9'
+  score: '1:2'
+  stage: Group Stage ⋅Winner's (B)
+  team: Joblife
+- date: '2026-06-23T20:30:00Z'
+  event: 'VCL 26: EMEA Stage 3'
+  id: '688438'
+  opponent: CGN Esports
+  opponent_roster_core: '#W20F'
+  roster_core: '#M1Z9'
+  score: '2:0'
+  stage: Group Stage ⋅Opening (B)
+  team: Joblife
+- date: '2026-05-26T20:30:00Z'
+  event: 'VCL 26: EMEA Stage 2'
+  id: '683769'
+  opponent: REBORN
+  opponent_roster_core: '#W1NI'
+  roster_core: '#M1Z9'
+  score: 0:2
+  stage: Playoffs ⋅LR1
+  team: Joblife
+- date: '2026-05-25T23:00:00Z'
+  event: 'VCL 26: EMEA Stage 2'
+  id: '683766'
+  opponent: UCAM Esports Club
+  opponent_roster_core: '#A20F'
+  roster_core: '#M1Z9'
+  score: 0:2
+  stage: Playoffs ⋅UBSF
+  team: Joblife
+- date: '2026-05-22T20:30:00Z'
+  event: 'VCL 26: EMEA Stage 2'
+  id: '680292'
+  opponent: Team Liquid Academy
+  opponent_roster_core: '#Y1NR'
+  roster_core: '#M1Z9'
+  score: '2:0'
+  stage: Group Stage ⋅(D)
+  team: Joblife
+- date: '2026-05-21T23:00:00Z'
+  event: 'VCL 26: EMEA Stage 2'
+  id: '680291'
+  opponent: Barça eSports
+  opponent_roster_core: '#T20F'
+  roster_core: '#M1Z9'
+  score: '2:0'
+  stage: Group Stage ⋅(D)
+  team: Joblife
+- date: '2026-05-18T23:00:00Z'
+  event: 'VCL 26: EMEA Stage 2'
+  id: '680287'
+  opponent: Ghools Esports
+  opponent_roster_core: '#X1R2'
+  roster_core: '#M1Z9'
+  score: '2:0'
+  stage: Group Stage ⋅(D)
+  team: Joblife
+- date: '2026-05-12T21:30:00Z'
+  event: 'VCL 26: FR Stage 2'
+  id: '649789'
+  opponent: WIP Esports
+  opponent_roster_core: '#Z13M'
+  roster_core: '#M1Z9'
+  score: '3:1'
+  stage: Playoffs ⋅GF
+  team: Joblife
+- date: '2026-05-04T21:30:00Z'
+  event: 'VCL 26: FR Stage 2'
+  id: '649788'
+  opponent: Mandatory
+  opponent_roster_core: '#V20E'
+  roster_core: '#M1Z9'
+  score: '2:1'
+  stage: Playoffs ⋅UBF
+  team: Joblife
+- date: '2026-05-03T21:30:00Z'
+  event: 'VCL 26: FR Stage 2'
+  id: '649786'
+  opponent: WIP Esports
+  opponent_roster_core: '#Z13M'
+  roster_core: '#M1Z9'
+  score: '2:1'
+  stage: Playoffs ⋅UBSF
+  team: Joblife
+- date: '2026-04-26T22:30:00Z'
+  event: 'VCL 26: FR Stage 2'
+  id: '649785'
+  opponent: Mandatory
+  opponent_roster_core: '#V20E'
+  roster_core: '#M1Z9'
+  score: '1:2'
+  stage: Group Stage ⋅W4
+  team: Joblife
+- date: '2026-04-26T00:30:00Z'
+  event: 'VCL 26: FR Stage 2'
+  id: '649782'
+  opponent: Galions
+  opponent_roster_core: '#A1N2'
+  roster_core: '#M1Z9'
+  score: '2:1'
+  stage: Group Stage ⋅W4
+  team: Joblife
+- date: '2026-04-19T21:55:00Z'
+  event: 'VCL 26: FR Stage 2'
+  id: '649778'
+  opponent: Nuxeria Esport
+  opponent_roster_core: '#B211'
+  roster_core: '#M1Z9'
+  score: '2:0'
+  stage: Group Stage ⋅W3
+  team: Joblife
+- date: '2026-02-14T18:30:00Z'
+  event: 'VCT 26: EMEA Kickoff'
+  id: '594768'
+  opponent: Team Liquid
+  opponent_roster_core: '#A20X'
+  roster_core: '#Y1ZA'
+  score: '1:2'
+  stage: LR5
+  team: Team Vitality
+- date: '2026-02-13T18:30:00Z'
+  event: 'VCT 26: EMEA Kickoff'
+  id: '594759'
+  opponent: FNATIC
+  opponent_roster_core: '#AFP'
+  roster_core: '#Y1ZA'
+  score: 0:2
+  stage: MR4
+  team: Team Vitality
+- date: '2026-02-05T01:30:00Z'
+  event: 'VCT 26: EMEA Kickoff'
+  id: '594758'
+  opponent: GIANTX
+  opponent_roster_core: '#A1M3'
+  roster_core: '#Y1ZA'
+  score: '2:0'
+  stage: MR3
+  team: Team Vitality
+- date: '2026-01-29T23:50:00Z'
+  event: 'VCT 26: EMEA Kickoff'
+  id: '594749'
+  opponent: BBL Esports
+  opponent_roster_core: '#Y1H3'
+  roster_core: '#Y1ZA'
+  score: 0:2
+  stage: UR3
+  team: Team Vitality
+- date: '2026-01-23T23:55:00Z'
+  event: 'VCT 26: EMEA Kickoff'
+  id: '594747'
+  opponent: Team Liquid
+  opponent_roster_core: '#A20X'
+  roster_core: '#Y1ZA'
+  score: '2:1'
+  stage: UR2
+  team: Team Vitality
+- date: '2026-01-22T00:50:00Z'
+  event: 'VCT 26: EMEA Kickoff'
+  id: '594743'
+  opponent: ULF Esports
+  opponent_roster_core: '#V1MM'
+  roster_core: '#Y1ZA'
+  score: '2:0'
+  stage: UR1
+  team: Team Vitality
+- date: '2025-08-24T00:25:00Z'
+  event: 'VCT 25: EMEA Stage 2'
+  id: '530927'
+  opponent: Natus Vincere
+  opponent_roster_core: '#Y1NG'
+  roster_core: '#B1CQ'
+  score: 0:2
+  stage: Playoffs ⋅LR1
+  team: Team Vitality
+- date: '2025-08-14T22:35:00Z'
+  event: 'VCT 25: EMEA Stage 2'
+  id: '511579'
+  opponent: Gentle Mates
+  opponent_roster_core: '#Z1MH'
+  roster_core: '#B1CQ'
+  score: '2:1'
+  stage: Group Stage ⋅W5
+  team: Team Vitality
+- date: '2025-08-08T20:30:00Z'
+  event: 'VCT 25: EMEA Stage 2'
+  id: '511572'
+  opponent: BBL Esports
+  opponent_roster_core: '#Y1L2'
+  roster_core: '#B1CQ'
+  score: '1:2'
+  stage: Group Stage ⋅W4
+  team: Team Vitality
+- date: '2025-08-02T00:10:00Z'
+  event: 'VCT 25: EMEA Stage 2'
+  id: '511567'
+  opponent: Team Heretics
+  opponent_roster_core: '#Y1AR'
+  roster_core: '#B1CQ'
+  score: 0:2
+  stage: Group Stage ⋅W3
+  team: Team Vitality
+- date: '2025-07-25T20:30:00Z'
+  event: 'VCT 25: EMEA Stage 2'
+  id: '511553'
+  opponent: FUT Esports
+  opponent_roster_core: '#Z5N'
+  roster_core: '#B1CQ'
+  score: '2:0'
+  stage: Group Stage ⋅W2
+  team: Team Vitality
+- date: '2025-07-16T23:20:00Z'
+  event: 'VCT 25: EMEA Stage 2'
+  id: '511544'
+  opponent: GIANTX
+  opponent_roster_core: '#A1M3'
+  roster_core: '#B1CQ'
+  score: 0:2
+  stage: Group Stage ⋅W1
+  team: Team Vitality
+- date: '2025-04-26T20:30:00Z'
+  event: 'VCL 25: FR Stage 2'
+  id: '474999'
+  opponent: VIT.Revolution
+  opponent_roster_core: '#T1L2'
+  roster_core: '#T1N2'
+  score: '1:2'
+  stage: Playoffs ⋅LR1
+  team: Joblife
+- date: '2025-04-20T22:45:00Z'
+  event: 'VCL 25: FR Stage 2'
+  id: '474994'
+  opponent: KCORP Blue Stars
+  opponent_roster_core: '#M1N3'
+  roster_core: '#T1N2'
+  score: 0:2
+  stage: Playoffs ⋅UBSF
+  team: Joblife
+- date: '2025-04-19T22:30:00Z'
+  event: 'VCL 25: FR Stage 2'
+  id: '474992'
+  opponent: Siko Esports
+  opponent_roster_core: '#X1AC'
+  roster_core: '#T1N2'
+  score: '2:0'
+  stage: Playoffs ⋅UR1
+  team: Joblife
+- date: '2025-04-01T23:45:00Z'
+  event: 'VCL 25: FR Stage 2'
+  id: '466303'
+  opponent: KCORP Blue Stars
+  opponent_roster_core: '#M1N3'
+  roster_core: '#T1N2'
+  score: 0:2
+  stage: Group Stage ⋅Groups
+  team: Joblife
+- date: '2025-03-26T01:55:00Z'
+  event: 'VCL 25: FR Stage 2'
+  id: '462273'
+  opponent: Siko Esports
+  opponent_roster_core: '#X1AC'
+  roster_core: '#T1N2'
+  score: '2:0'
+  stage: Group Stage ⋅Groups
+  team: Joblife
+- date: '2025-03-24T00:30:00Z'
+  event: 'VCL 25: FR Stage 2'
+  id: '462269'
+  opponent: Team Valiant
+  opponent_roster_core: '#A1N2'
+  roster_core: '#T1N2'
+  score: '2:0'
+  stage: Group Stage ⋅Groups
+  team: Joblife
+- date: '2025-03-06T00:10:00Z'
+  event: 'VCL 25: EMEA Stage 1'
+  id: '454041'
+  opponent: Eternal Fire
+  opponent_roster_core: '#X1KT'
+  roster_core: '#T1N2'
+  score: 0:2
+  stage: Group Stage ⋅D3
+  team: Joblife
+- date: '2025-03-05T00:55:00Z'
+  event: 'VCL 25: EMEA Stage 1'
+  id: '454040'
+  opponent: GoNext Esports
+  opponent_roster_core: '#W11H'
+  roster_core: '#T1N2'
+  score: 0:2
+  stage: Group Stage ⋅D2
+  team: Joblife
+- date: '2025-02-18T21:30:00Z'
+  event: 'VCL 25: FR Stage 1'
+  id: '444983'
+  opponent: Mandatory
+  opponent_roster_core: '#B1N3'
+  roster_core: '#T1N2'
+  score: '3:0'
+  stage: Playoffs Phase ⋅GF
+  team: Joblife
+- date: '2025-02-16T21:30:00Z'
+  event: 'VCL 25: FR Stage 1'
+  id: '444982'
+  opponent: DVM Esport
+  opponent_roster_core: '#T1L2'
+  roster_core: '#T1N2'
+  score: '3:1'
+  stage: Playoffs Phase ⋅SF
+  team: Joblife
+- date: '2025-02-05T21:30:00Z'
+  event: 'VCL 25: FR Stage 1'
+  id: '444979'
+  opponent: Siko Esports
+  opponent_roster_core: '#X1AC'
+  roster_core: '#T1N2'
+  score: '3:2'
+  stage: Playoffs Phase ⋅QF
+  team: Joblife
+- date: '2025-01-26T23:45:00Z'
+  event: 'VCL 25: FR Stage 1'
+  id: '433489'
+  opponent: Mandatory
+  opponent_roster_core: '#B1N3'
+  roster_core: '#T1N2'
+  score: '1:2'
+  stage: Groups Phase ⋅W3
+  team: Joblife
+- date: '2025-01-18T21:30:00Z'
+  event: 'VCL 25: FR Stage 1'
+  id: '433482'
+  opponent: KCORP Blue Stars
+  opponent_roster_core: '#M1N3'
+  roster_core: '#T1N2'
+  score: '2:0'
+  stage: Groups Phase ⋅W2
+  team: Joblife
+- date: '2025-01-11T23:45:00Z'
+  event: 'VCL 25: FR Stage 1'
+  id: '432664'
+  opponent: Siko Esports
+  opponent_roster_core: '#X1AC'
+  roster_core: '#T1N2'
+  score: '2:0'
+  stage: Groups Phase ⋅W1
+  team: Joblife
+- date: '2024-07-20T19:30:00Z'
+  event: 'VCL 24 FR Revolution: Split 2'
+  id: '349277'
+  opponent: Mandatory
+  opponent_roster_core: '#ZR8'
+  roster_core: '#MW1'
+  score: '2:0'
+  stage: Playoffs ⋅Consolation
+  team: Zerance
+- date: '2024-07-13T21:30:00Z'
+  event: 'VCL 24 FR Revolution: Split 2'
+  id: '349274'
+  opponent: Joblife
+  opponent_roster_core: '#M1DG'
+  roster_core: '#MW1'
+  score: '1:3'
+  stage: Playoffs ⋅Semifinals
+  team: Zerance
+- date: '2024-07-06T21:30:00Z'
+  event: 'VCL 24 FR Revolution: Split 2'
+  id: '349269'
+  opponent: Joblife
+  opponent_roster_core: '#M1DG'
+  roster_core: '#MW1'
+  score: '2:1'
+  stage: Regular Season ⋅W7
+  team: Zerance
+- date: '2024-06-30T21:30:00Z'
+  event: 'VCL 24 FR Revolution: Split 2'
+  id: '349267'
+  opponent: DVM Esport
+  opponent_roster_core: '#T1HH'
+  roster_core: '#MW1'
+  score: '2:1'
+  stage: Regular Season ⋅W6
+  team: Zerance
+- date: '2024-06-22T21:30:00Z'
+  event: 'VCL 24 FR Revolution: Split 2'
+  id: '349261'
+  opponent: Akroma
+  opponent_roster_core: '#VYM'
+  roster_core: '#MW1'
+  score: '2:0'
+  stage: Regular Season ⋅W5
+  team: Zerance
+name: Bartosz Bernacki
+past_teams:
+- id: '22782'
+  img: https://owcdn.net/img/6a3aaa79deea0.png
+  name: Poland
+- id: '2059'
+  img: https://owcdn.net/img/6466d79e1ed40.png
+  name: Team Vitality
+- id: '11232'
+  img: https://owcdn.net/img/63a944e6cbe49.png
+  name: Joblife
+- id: '9559'
+  img: https://owcdn.net/img/635b8c71e318f.png
+  name: Zerance
+- id: '7035'
+  img: https://owcdn.net/img/67667c7a563be.png
+  name: KOI
+- id: '4538'
+  img: https://owcdn.net/img/61b998ee72b3e.png
+  name: Team Queso
+- id: '4357'
+  img: https://owcdn.net/img/60907bc643592.png
+  name: Invicta Gaming
+- id: '3541'
+  img: https://www.vlr.gg/img/vlr/tmp/vlr.png
+  name: KLATWA
+- id: '1150'
+  img: https://www.vlr.gg/img/vlr/tmp/vlr.png
+  name: MAJSTERSZTYK
+- id: '659'
+  img: https://www.vlr.gg/img/vlr/tmp/vlr.png
+  name: Dambis
+total_winnings: 2830.0
+twitch: null
+twitter: null

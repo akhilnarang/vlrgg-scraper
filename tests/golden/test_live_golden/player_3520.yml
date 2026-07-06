@@ -1,0 +1,837 @@
+agents:
+- a: 954
+  acs: 272.0
+  adr: 164.1
+  apr: 0.16
+  count: 277
+  d: 4353
+  fd: 846
+  fdpr: 0.17
+  fk: 1185
+  fkpr: 0.24
+  img: https://www.vlr.gg/img/vlr/game/agents/jett.png
+  k: 5619
+  kast: 71.0
+  kd: 1.29
+  kpr: 0.96
+  name: jett
+  percent: 43.0
+  rating: 1.16
+  rounds: 5839
+- a: 510
+  acs: 265.1
+  adr: 164.3
+  apr: 0.2
+  count: 118
+  d: 1918
+  fd: 291
+  fdpr: 0.17
+  fk: 332
+  fkpr: 0.19
+  img: https://www.vlr.gg/img/vlr/game/agents/raze.png
+  k: 2277
+  kast: 71.0
+  kd: 1.19
+  kpr: 0.91
+  name: raze
+  percent: 18.0
+  rating: 1.1
+  rounds: 2499
+- a: 259
+  acs: 265.5
+  adr: 164.7
+  apr: 0.12
+  count: 104
+  d: 1456
+  fd: 230
+  fdpr: 0.12
+  fk: 411
+  fkpr: 0.21
+  img: https://www.vlr.gg/img/vlr/game/agents/chamber.png
+  k: 2017
+  kast: 72.0
+  kd: 1.39
+  kpr: 0.95
+  name: chamber
+  percent: 16.0
+  rating: 1.21
+  rounds: 2120
+- a: 380
+  acs: 257.1
+  adr: 156.9
+  apr: 0.24
+  count: 77
+  d: 1219
+  fd: 230
+  fdpr: 0.2
+  fk: 271
+  fkpr: 0.22
+  img: https://www.vlr.gg/img/vlr/game/agents/neon.png
+  k: 1446
+  kast: 71.0
+  kd: 1.19
+  kpr: 0.9
+  name: neon
+  percent: 12.0
+  rating: 1.08
+  rounds: 1612
+- a: 111
+  acs: 213.3
+  adr: 131.2
+  apr: 0.22
+  count: 22
+  d: 377
+  fd: 94
+  fdpr: 0.19
+  fk: 91
+  fkpr: 0.18
+  img: https://www.vlr.gg/img/vlr/game/agents/yoru.png
+  k: 370
+  kast: 65.0
+  kd: 0.98
+  kpr: 0.74
+  name: yoru
+  percent: 3.0
+  rating: 0.91
+  rounds: 498
+- a: 43
+  acs: 259.7
+  adr: 167.0
+  apr: 0.19
+  count: 11
+  d: 168
+  fd: 30
+  fdpr: 0.16
+  fk: 36
+  fkpr: 0.19
+  img: https://www.vlr.gg/img/vlr/game/agents/waylay.png
+  k: 216
+  kast: 74.0
+  kd: 1.29
+  kpr: 0.93
+  name: waylay
+  percent: 2.0
+  rating: 1.23
+  rounds: 232
+- a: 31
+  acs: 257.7
+  adr: 176.0
+  apr: 0.2
+  count: 7
+  d: 127
+  fd: 16
+  fdpr: 0.14
+  fk: 12
+  fkpr: 0.11
+  img: https://www.vlr.gg/img/vlr/game/agents/iso.png
+  k: 144
+  kast: 72.0
+  kd: 1.13
+  kpr: 0.92
+  name: iso
+  percent: 1.0
+  rating: 1.13
+  rounds: 156
+- a: 23
+  acs: 256.2
+  adr: 156.0
+  apr: 0.18
+  count: 6
+  d: 82
+  fd: 12
+  fdpr: 0.1
+  fk: 24
+  fkpr: 0.19
+  img: https://www.vlr.gg/img/vlr/game/agents/gekko.png
+  k: 115
+  kast: 68.0
+  kd: 1.4
+  kpr: 0.92
+  name: gekko
+  percent: 1.0
+  rating: 1.21
+  rounds: 125
+- a: 63
+  acs: 228.2
+  adr: 144.5
+  apr: 0.61
+  count: 5
+  d: 74
+  fd: 0
+  fdpr: 0.0
+  fk: 3
+  fkpr: 0.14
+  img: https://www.vlr.gg/img/vlr/game/agents/kayo.png
+  k: 76
+  kast: 77.0
+  kd: 1.03
+  kpr: 0.73
+  name: kayo
+  percent: 1.0
+  rating: 1.12
+  rounds: 104
+- a: 37
+  acs: 209.3
+  adr: 0.0
+  apr: 0.4
+  count: 4
+  d: 64
+  fd: 4
+  fdpr: 0.17
+  fk: 3
+  fkpr: 0.13
+  img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+  k: 72
+  kast: 0.0
+  kd: 1.13
+  kpr: 0.77
+  name: omen
+  percent: 1.0
+  rating: 0.0
+  rounds: 93
+- a: 22
+  acs: 221.3
+  adr: 142.1
+  apr: 0.29
+  count: 4
+  d: 58
+  fd: 3
+  fdpr: 0.08
+  fk: 10
+  fkpr: 0.26
+  img: https://www.vlr.gg/img/vlr/game/agents/phoenix.png
+  k: 57
+  kast: 69.0
+  kd: 0.98
+  kpr: 0.76
+  name: phoenix
+  percent: 1.0
+  rating: 0.85
+  rounds: 75
+- a: 13
+  acs: 289.5
+  adr: 185.8
+  apr: 0.26
+  count: 2
+  d: 36
+  fd: 1
+  fdpr: 0.04
+  fk: 7
+  fkpr: 0.29
+  img: https://www.vlr.gg/img/vlr/game/agents/reyna.png
+  k: 52
+  kast: 75.0
+  kd: 1.44
+  kpr: 1.04
+  name: reyna
+  percent: 0.0
+  rating: 1.37
+  rounds: 50
+- a: 5
+  acs: 153.5
+  adr: 0.0
+  apr: 0.12
+  count: 2
+  d: 34
+  fd: 0
+  fdpr: 0.0
+  fk: 0
+  fkpr: 0.0
+  img: https://www.vlr.gg/img/vlr/game/agents/cypher.png
+  k: 25
+  kast: 0.0
+  kd: 0.74
+  kpr: 0.6
+  name: cypher
+  percent: 0.0
+  rating: 0.0
+  rounds: 42
+- a: 5
+  acs: 121.0
+  adr: 0.0
+  apr: 0.21
+  count: 1
+  d: 18
+  fd: 0
+  fdpr: 0.0
+  fk: 0
+  fkpr: 0.0
+  img: https://www.vlr.gg/img/vlr/game/agents/astra.png
+  k: 11
+  kast: 0.0
+  kd: 0.61
+  kpr: 0.46
+  name: astra
+  percent: 0.0
+  rating: 0.0
+  rounds: 24
+- a: 6
+  acs: 203.0
+  adr: 0.0
+  apr: 0.25
+  count: 1
+  d: 20
+  fd: 0
+  fdpr: 0.0
+  fk: 0
+  fkpr: 0.0
+  img: https://www.vlr.gg/img/vlr/game/agents/sova.png
+  k: 17
+  kast: 0.0
+  kd: 0.85
+  kpr: 0.71
+  name: sova
+  percent: 0.0
+  rating: 0.0
+  rounds: 24
+- a: 3
+  acs: 157.0
+  adr: 0.0
+  apr: 0.14
+  count: 1
+  d: 16
+  fd: 0
+  fdpr: 0.0
+  fk: 0
+  fkpr: 0.0
+  img: https://www.vlr.gg/img/vlr/game/agents/killjoy.png
+  k: 13
+  kast: 0.0
+  kd: 0.81
+  kpr: 0.59
+  name: killjoy
+  percent: 0.0
+  rating: 0.0
+  rounds: 22
+- a: 3
+  acs: 244.0
+  adr: 0.0
+  apr: 0.14
+  count: 1
+  d: 20
+  fd: 0
+  fdpr: 0.0
+  fk: 0
+  fkpr: 0.0
+  img: https://www.vlr.gg/img/vlr/game/agents/clove.png
+  k: 18
+  kast: 0.0
+  kd: 0.9
+  kpr: 0.82
+  name: clove
+  percent: 0.0
+  rating: 0.0
+  rounds: 22
+- a: 7
+  acs: 243.0
+  adr: 0.0
+  apr: 0.33
+  count: 1
+  d: 17
+  fd: 0
+  fdpr: 0.0
+  fk: 0
+  fkpr: 0.0
+  img: https://www.vlr.gg/img/vlr/game/agents/breach.png
+  k: 17
+  kast: 0.0
+  kd: 1.0
+  kpr: 0.81
+  name: breach
+  percent: 0.0
+  rating: 0.0
+  rounds: 21
+- a: 6
+  acs: 161.0
+  adr: 0.0
+  apr: 0.3
+  count: 1
+  d: 16
+  fd: 0
+  fdpr: 0.0
+  fk: 0
+  fkpr: 0.0
+  img: https://www.vlr.gg/img/vlr/game/agents/sage.png
+  k: 9
+  kast: 0.0
+  kd: 0.56
+  kpr: 0.45
+  name: sage
+  percent: 0.0
+  rating: 0.0
+  rounds: 20
+alias: ZmjjKK
+country: CHINA
+current_team:
+  id: '1120'
+  img: https://owcdn.net/img/62c82049253b2.png
+  name: EDward Gaming
+img: https://owcdn.net/img/677fe40edf9da.png
+matches:
+- date: '2026-07-06T16:30:00Z'
+  event: EWC 2026
+  id: '706758'
+  opponent: BBL Esports
+  opponent_roster_core: '#Y1H3'
+  roster_core: '#YAJ'
+  score: 0:2
+  stage: Group Stage ⋅Decider (A)
+  team: EDward Gaming
+- date: '2026-07-04T16:30:00Z'
+  event: EWC 2026
+  id: '706757'
+  opponent: Rex Regum Qeon
+  opponent_roster_core: '#YZL'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: Group Stage ⋅Elim (A)
+  team: EDward Gaming
+- date: '2026-07-02T16:30:00Z'
+  event: EWC 2026
+  id: '706755'
+  opponent: BBL Esports
+  opponent_roster_core: '#Y1H3'
+  roster_core: '#YAJ'
+  score: '1:2'
+  stage: Group Stage ⋅Opening (A)
+  team: EDward Gaming
+- date: '2026-06-20T18:30:00Z'
+  event: Masters London 2026
+  id: '670477'
+  opponent: LEVIATÁN
+  opponent_roster_core: '#W1Z5'
+  roster_core: '#YAJ'
+  score: 0:3
+  stage: Playoffs ⋅LBF
+  team: EDward Gaming
+- date: '2026-06-19T18:30:00Z'
+  event: Masters London 2026
+  id: '670470'
+  opponent: Paper Rex
+  opponent_roster_core: '#ACM'
+  roster_core: '#YAJ'
+  score: '1:2'
+  stage: Playoffs ⋅UBF
+  team: EDward Gaming
+- date: '2026-06-15T19:30:00Z'
+  event: Masters London 2026
+  id: '670468'
+  opponent: Xi Lai Gaming
+  opponent_roster_core: '#Q1IN'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: Playoffs ⋅UBSF
+  team: EDward Gaming
+- date: '2026-06-13T19:30:00Z'
+  event: Masters London 2026
+  id: '670465'
+  opponent: FUT Esports
+  opponent_roster_core: '#Z5N'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: Playoffs ⋅UBQF
+  team: EDward Gaming
+- date: '2026-05-10T14:30:00Z'
+  event: 'VCT 26: CN Stage 1'
+  id: '659481'
+  opponent: Xi Lai Gaming
+  opponent_roster_core: '#Q1IN'
+  roster_core: '#YAJ'
+  score: '3:2'
+  stage: Playoffs ⋅GF
+  team: EDward Gaming
+- date: '2026-05-08T14:30:00Z'
+  event: 'VCT 26: CN Stage 1'
+  id: '659480'
+  opponent: Xi Lai Gaming
+  opponent_roster_core: '#Q1IN'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: Playoffs ⋅UBF
+  team: EDward Gaming
+- date: '2026-05-04T16:30:00Z'
+  event: 'VCT 26: CN Stage 1'
+  id: '659479'
+  opponent: All Gamers
+  opponent_roster_core: '#M20W'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: Playoffs ⋅UBSF
+  team: EDward Gaming
+- date: '2026-05-02T16:40:00Z'
+  event: 'VCT 26: CN Stage 1'
+  id: '659477'
+  opponent: Dragon Ranger Gaming
+  opponent_roster_core: '#X14V'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: Playoffs ⋅UBQF
+  team: EDward Gaming
+- date: '2026-04-18T16:45:00Z'
+  event: 'VCT 26: CN Stage 1'
+  id: '642946'
+  opponent: JDG Esports
+  opponent_roster_core: '#T143'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: Group Stage ⋅Seeding
+  team: EDward Gaming
+- date: '2026-04-16T16:45:00Z'
+  event: 'VCT 26: CN Stage 1'
+  id: '642944'
+  opponent: Xi Lai Gaming
+  opponent_roster_core: '#Q1IN'
+  roster_core: '#YAJ'
+  score: '1:2'
+  stage: Group Stage ⋅W3
+  team: EDward Gaming
+- date: '2026-04-11T17:45:00Z'
+  event: 'VCT 26: CN Stage 1'
+  id: '642936'
+  opponent: Dragon Ranger Gaming
+  opponent_roster_core: '#X14V'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: Group Stage ⋅W2
+  team: EDward Gaming
+- date: '2026-04-08T17:00:00Z'
+  event: 'VCT 26: CN Stage 1'
+  id: '642930'
+  opponent: Trace Esports
+  opponent_roster_core: '#X143'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: Group Stage ⋅W2
+  team: EDward Gaming
+- date: '2026-04-04T17:00:00Z'
+  event: 'VCT 26: CN Stage 1'
+  id: '642923'
+  opponent: Wolves Esports
+  opponent_roster_core: '#Z1YH'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: Group Stage ⋅W1
+  team: EDward Gaming
+- date: '2026-03-31T18:00:00Z'
+  event: 'VCT 26: CN Stage 1'
+  id: '642915'
+  opponent: Nova Esports
+  opponent_roster_core: '#Z14G'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: Group Stage ⋅W1
+  team: EDward Gaming
+- date: '2026-03-03T23:30:00Z'
+  event: Masters Santiago 2026
+  id: '626532'
+  opponent: T1
+  opponent_roster_core: '#M1KS'
+  roster_core: '#YAJ'
+  score: 0:2
+  stage: Swiss Stage ⋅R2 (0-1)
+  team: EDward Gaming
+- date: '2026-02-28T22:30:00Z'
+  event: Masters Santiago 2026
+  id: '625788'
+  opponent: Gentle Mates
+  opponent_roster_core: '#W1YW'
+  roster_core: '#YAJ'
+  score: 0:2
+  stage: Swiss Stage ⋅R1
+  team: EDward Gaming
+- date: '2026-02-09T14:30:00Z'
+  event: 'VCT 26: CN Kickoff'
+  id: '598950'
+  opponent: Bilibili Gaming
+  opponent_roster_core: '#A15D'
+  roster_core: '#YAJ'
+  score: '3:1'
+  stage: LBF
+  team: EDward Gaming
+- date: '2026-02-07T12:30:00Z'
+  event: 'VCT 26: CN Kickoff'
+  id: '598949'
+  opponent: Dragon Ranger Gaming
+  opponent_roster_core: '#X14V'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: LR5
+  team: EDward Gaming
+- date: '2026-02-06T16:30:00Z'
+  event: 'VCT 26: CN Kickoff'
+  id: '598948'
+  opponent: TYLOO
+  opponent_roster_core: '#W17J'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: LR4
+  team: EDward Gaming
+- date: '2026-02-05T16:55:00Z'
+  event: 'VCT 26: CN Kickoff'
+  id: '598947'
+  opponent: JDG Esports
+  opponent_roster_core: '#T143'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: LR3
+  team: EDward Gaming
+- date: '2026-02-04T17:50:00Z'
+  event: 'VCT 26: CN Kickoff'
+  id: '598939'
+  opponent: Bilibili Gaming
+  opponent_roster_core: '#A15D'
+  roster_core: '#YAJ'
+  score: '1:2'
+  stage: MR3
+  team: EDward Gaming
+- date: '2026-02-01T17:30:00Z'
+  event: 'VCT 26: CN Kickoff'
+  id: '598930'
+  opponent: Xi Lai Gaming
+  opponent_roster_core: '#Q1IN'
+  roster_core: '#YAJ'
+  score: 0:2
+  stage: UR3
+  team: EDward Gaming
+- date: '2026-01-24T17:05:00Z'
+  event: 'VCT 26: CN Kickoff'
+  id: '598928'
+  opponent: TYLOO
+  opponent_roster_core: '#W17J'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: UR2
+  team: EDward Gaming
+- date: '2025-09-19T18:30:00Z'
+  event: Champions 2025
+  id: '542209'
+  opponent: Team Liquid
+  opponent_roster_core: '#Y1M3'
+  roster_core: '#YAJ'
+  score: '1:2'
+  stage: Group Stage ⋅Elim (C)
+  team: EDward Gaming
+- date: '2025-09-13T18:30:00Z'
+  event: Champions 2025
+  id: '542207'
+  opponent: NRG
+  opponent_roster_core: '#Z5K'
+  roster_core: '#YAJ'
+  score: 0:2
+  stage: Group Stage ⋅Opening (C)
+  team: EDward Gaming
+- date: '2025-08-23T14:30:00Z'
+  event: 'VCT 25: CN Stage 2'
+  id: '527588'
+  opponent: Bilibili Gaming
+  opponent_roster_core: '#A15D'
+  roster_core: '#YAJ'
+  score: '1:3'
+  stage: Playoffs ⋅LBF
+  team: EDward Gaming
+- date: '2025-08-22T18:10:00Z'
+  event: 'VCT 25: CN Stage 2'
+  id: '527587'
+  opponent: Xi Lai Gaming
+  opponent_roster_core: '#Q1IN'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: Playoffs ⋅LR3
+  team: EDward Gaming
+- date: '2025-08-21T14:30:00Z'
+  event: 'VCT 25: CN Stage 2'
+  id: '527585'
+  opponent: TYLOO
+  opponent_roster_core: '#W17J'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: Playoffs ⋅LR2
+  team: EDward Gaming
+- date: '2025-08-10T17:45:00Z'
+  event: 'VCT 25: CN Stage 2'
+  id: '527583'
+  opponent: Trace Esports
+  opponent_roster_core: '#X143'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: Playoffs ⋅LR1
+  team: EDward Gaming
+- date: '2025-08-09T16:50:00Z'
+  event: 'VCT 25: CN Stage 2'
+  id: '527576'
+  opponent: Dragon Ranger Gaming
+  opponent_roster_core: '#X14V'
+  roster_core: '#YAJ'
+  score: 0:2
+  stage: Playoffs ⋅UBQF
+  team: EDward Gaming
+- date: '2025-08-03T17:30:00Z'
+  event: 'VCT 25: CN Stage 2'
+  id: '506960'
+  opponent: Bilibili Gaming
+  opponent_roster_core: '#A15D'
+  roster_core: '#YAJ'
+  score: 0:2
+  stage: Group Stage ⋅W4
+  team: EDward Gaming
+- date: '2025-07-31T16:30:00Z'
+  event: 'VCT 25: CN Stage 2'
+  id: '506954'
+  opponent: JDG Esports
+  opponent_roster_core: '#T143'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: Group Stage ⋅W4
+  team: EDward Gaming
+- date: '2025-07-25T18:00:00Z'
+  event: 'VCT 25: CN Stage 2'
+  id: '506948'
+  opponent: TYLOO
+  opponent_roster_core: '#W17J'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: Group Stage ⋅W3
+  team: EDward Gaming
+- date: '2025-07-19T16:40:00Z'
+  event: 'VCT 25: CN Stage 2'
+  id: '506941'
+  opponent: Trace Esports
+  opponent_roster_core: '#X143'
+  roster_core: '#YAJ'
+  score: '1:2'
+  stage: Group Stage ⋅W2
+  team: EDward Gaming
+- date: '2025-07-10T17:45:00Z'
+  event: EWC 2025
+  id: '510147'
+  opponent: Gen.G
+  opponent_roster_core: '#Q1CQ'
+  roster_core: '#YAJ'
+  score: 0:2
+  stage: Group Stage ⋅Decider (D)
+  team: EDward Gaming
+- date: '2025-07-09T17:45:00Z'
+  event: EWC 2025
+  id: '510146'
+  opponent: 100 Thieves
+  opponent_roster_core: '#XSN'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: Group Stage ⋅Elim (D)
+  team: EDward Gaming
+- date: '2025-07-08T19:00:00Z'
+  event: EWC 2025
+  id: '510144'
+  opponent: Gen.G
+  opponent_roster_core: '#Q1CQ'
+  roster_core: '#YAJ'
+  score: 0:1
+  stage: Group Stage ⋅Opening (D)
+  team: EDward Gaming
+- date: '2025-07-03T16:30:00Z'
+  event: 'VCT 25: CN Stage 2'
+  id: '506930'
+  opponent: Titan Esports Club
+  opponent_roster_core: '#T1BM'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: Group Stage ⋅W1
+  team: EDward Gaming
+- date: '2025-05-12T14:30:00Z'
+  event: 'CN EVO 25: Act 2 X ACL'
+  id: '485380'
+  opponent: Titan Esports Club
+  opponent_roster_core: '#T1BM'
+  roster_core: '#YAJ'
+  score: '3:0'
+  stage: GF
+  team: EDward Gaming
+- date: '2025-05-10T14:30:00Z'
+  event: 'CN EVO 25: Act 2 X ACL'
+  id: '485378'
+  opponent: Trace Esports
+  opponent_roster_core: '#X143'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: SF
+  team: EDward Gaming
+- date: '2025-05-09T09:30:00Z'
+  event: 'CN EVO 25: Act 2 X ACL'
+  id: '485374'
+  opponent: FunPlus Phoenix
+  opponent_roster_core: '#XRB'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: QF
+  team: EDward Gaming
+- date: '2025-05-02T17:05:00Z'
+  event: 'VCT 25: CN Stage 1'
+  id: '473242'
+  opponent: Bilibili Gaming
+  opponent_roster_core: '#A15D'
+  roster_core: '#YAJ'
+  score: '1:2'
+  stage: Playoffs ⋅LR3
+  team: EDward Gaming
+- date: '2025-04-20T16:40:00Z'
+  event: 'VCT 25: CN Stage 1'
+  id: '473239'
+  opponent: Dragon Ranger Gaming
+  opponent_roster_core: '#X14V'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: Playoffs ⋅LR2
+  team: EDward Gaming
+- date: '2025-04-19T16:45:00Z'
+  event: 'VCT 25: CN Stage 1'
+  id: '473238'
+  opponent: Xi Lai Gaming
+  opponent_roster_core: '#Q1IN'
+  roster_core: '#YAJ'
+  score: 0:2
+  stage: Playoffs ⋅UBSF
+  team: EDward Gaming
+- date: '2025-04-13T16:40:00Z'
+  event: 'VCT 25: CN Stage 1'
+  id: '450076'
+  opponent: FunPlus Phoenix
+  opponent_roster_core: '#XRB'
+  roster_core: '#YAJ'
+  score: '2:0'
+  stage: Group Stage ⋅W5
+  team: EDward Gaming
+- date: '2025-04-05T17:00:00Z'
+  event: 'VCT 25: CN Stage 1'
+  id: '450068'
+  opponent: Titan Esports Club
+  opponent_roster_core: '#T1BM'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: Group Stage ⋅W4
+  team: EDward Gaming
+- date: '2025-03-29T17:45:00Z'
+  event: 'VCT 25: CN Stage 1'
+  id: '450062'
+  opponent: Dragon Ranger Gaming
+  opponent_roster_core: '#X14V'
+  roster_core: '#YAJ'
+  score: '2:1'
+  stage: Group Stage ⋅W3
+  team: EDward Gaming
+name: Zheng Yongkang (郑永康)
+past_teams:
+- id: '19874'
+  img: https://owcdn.net/img/5a3803d70cbe6.png
+  name: China
+- id: '6093'
+  img: https://owcdn.net/img/6125d7b706f63.png
+  name: Qing Jiu Club
+- id: '904'
+  img: https://owcdn.net/img/60eab4f47395b.png
+  name: CBT Gaming
+- id: '804'
+  img: https://owcdn.net/img/63eb523921a3e.png
+  name: Royal Never Give Up
+total_winnings: 315079.0
+twitch: null
+twitter: null

@@ -1,0 +1,557 @@
+bans: []
+data:
+- map: Lotus
+  members:
+  - acs: 348
+    adr: 224
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/chamber.png
+      title: Chamber
+    assists: 7
+    deaths: 7
+    first_deaths: 1
+    first_kills: 4
+    first_kills_diff: 3
+    headshot_percent: 33
+    id: '424'
+    kast: 93
+    kills: 20
+    name: Dep
+    rating: 1.8
+    team: REJECT
+  - acs: 244
+    adr: 167
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 6
+    deaths: 5
+    first_deaths: 0
+    first_kills: 1
+    first_kills_diff: 1
+    headshot_percent: 27
+    id: '4122'
+    kast: 87
+    kills: 15
+    name: Persia
+    rating: 1.69
+    team: REJECT
+  - acs: 194
+    adr: 119
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/raze.png
+      title: Raze
+    assists: 4
+    deaths: 7
+    first_deaths: 1
+    first_kills: 2
+    first_kills_diff: 1
+    headshot_percent: 24
+    id: '7405'
+    kast: 80
+    kills: 11
+    name: Jremy
+    rating: 1.28
+    team: REJECT
+  - acs: 197
+    adr: 153
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/viper.png
+      title: Viper
+    assists: 2
+    deaths: 7
+    first_deaths: 0
+    first_kills: 1
+    first_kills_diff: 1
+    headshot_percent: 31
+    id: '7745'
+    kast: 80
+    kills: 12
+    name: Yoshiii
+    rating: 1.19
+    team: REJECT
+  - acs: 209
+    adr: 149
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/fade.png
+      title: Fade
+    assists: 2
+    deaths: 9
+    first_deaths: 4
+    first_kills: 1
+    first_kills_diff: -3
+    headshot_percent: 38
+    id: '25915'
+    kast: 80
+    kills: 12
+    name: BRIAN
+    rating: 1.02
+    team: REJECT
+  - acs: 238
+    adr: 139
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/neon.png
+      title: Neon
+    assists: 2
+    deaths: 13
+    first_deaths: 5
+    first_kills: 3
+    first_kills_diff: -2
+    headshot_percent: 9
+    id: '64747'
+    kast: 60
+    kills: 12
+    name: Kylerr
+    rating: 0.97
+    team: PARON
+  - acs: 177
+    adr: 119
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/fade.png
+      title: Fade
+    assists: 2
+    deaths: 13
+    first_deaths: 0
+    first_kills: 0
+    first_kills_diff: 0
+    headshot_percent: 28
+    id: '47474'
+    kast: 67
+    kills: 9
+    name: Russeyll
+    rating: 0.85
+    team: PARON
+  - acs: 124
+    adr: 102
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/killjoy.png
+      title: Killjoy
+    assists: 1
+    deaths: 14
+    first_deaths: 0
+    first_kills: 0
+    first_kills_diff: 0
+    headshot_percent: 15
+    id: '43029'
+    kast: 53
+    kills: 6
+    name: Onyx
+    rating: 0.53
+    team: PARON
+  - acs: 132
+    adr: 97
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 4
+    deaths: 15
+    first_deaths: 1
+    first_kills: 2
+    first_kills_diff: 1
+    headshot_percent: 18
+    id: '43093'
+    kast: 67
+    kills: 5
+    name: RIFE
+    rating: 0.49
+    team: PARON
+  - acs: 74
+    adr: 56
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/viper.png
+      title: Viper
+    assists: 2
+    deaths: 15
+    first_deaths: 3
+    first_kills: 1
+    first_kills_diff: -2
+    headshot_percent: 22
+    id: '64748'
+    kast: 40
+    kills: 3
+    name: endr666
+    rating: 0.1
+    team: PARON
+  rounds:
+  - round_number: 1
+    round_score: 1-0
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 2
+    round_score: 2-0
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 3
+    round_score: 3-0
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 4
+    round_score: 4-0
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 5
+    round_score: 4-1
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 6
+    round_score: 5-1
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 7
+    round_score: 5-2
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 8
+    round_score: 6-2
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 9
+    round_score: 7-2
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 10
+    round_score: 8-2
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 11
+    round_score: 9-2
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 12
+    round_score: 10-2
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 13
+    round_score: 11-2
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 14
+    round_score: 12-2
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 15
+    round_score: 13-2
+    side: attack
+    win_type: Elimination
+    winner: team1
+  teams:
+  - name: REJECT
+    score: 13
+  - name: PARON
+    score: 2
+- map: Breeze
+  members:
+  - acs: 286
+    adr: 174
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/neon.png
+      title: Neon
+    assists: 2
+    deaths: 6
+    first_deaths: 0
+    first_kills: 5
+    first_kills_diff: 5
+    headshot_percent: 23
+    id: '424'
+    kast: 89
+    kills: 20
+    name: Dep
+    rating: 1.67
+    team: REJECT
+  - acs: 269
+    adr: 185
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/sova.png
+      title: Sova
+    assists: 5
+    deaths: 11
+    first_deaths: 1
+    first_kills: 1
+    first_kills_diff: 0
+    headshot_percent: 29
+    id: '25915'
+    kast: 72
+    kills: 18
+    name: BRIAN
+    rating: 1.4
+    team: REJECT
+  - acs: 197
+    adr: 149
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/viper.png
+      title: Viper
+    assists: 4
+    deaths: 7
+    first_deaths: 1
+    first_kills: 1
+    first_kills_diff: 0
+    headshot_percent: 41
+    id: '7745'
+    kast: 94
+    kills: 12
+    name: Yoshiii
+    rating: 1.29
+    team: REJECT
+  - acs: 227
+    adr: 160
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/phoenix.png
+      title: Phoenix
+    assists: 3
+    deaths: 10
+    first_deaths: 2
+    first_kills: 3
+    first_kills_diff: 1
+    headshot_percent: 22
+    id: '7405'
+    kast: 78
+    kills: 16
+    name: Jremy
+    rating: 1.15
+    team: REJECT
+  - acs: 170
+    adr: 112
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/harbor.png
+      title: Harbor
+    assists: 4
+    deaths: 8
+    first_deaths: 1
+    first_kills: 3
+    first_kills_diff: 2
+    headshot_percent: 27
+    id: '4122'
+    kast: 83
+    kills: 11
+    name: Persia
+    rating: 1.12
+    team: REJECT
+  - acs: 234
+    adr: 171
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/neon.png
+      title: Neon
+    assists: 3
+    deaths: 16
+    first_deaths: 7
+    first_kills: 4
+    first_kills_diff: -3
+    headshot_percent: 28
+    id: '64747'
+    kast: 61
+    kills: 13
+    name: Kylerr
+    rating: 0.97
+    team: PARON
+  - acs: 258
+    adr: 177
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/jett.png
+      title: Jett
+    assists: 2
+    deaths: 17
+    first_deaths: 2
+    first_kills: 1
+    first_kills_diff: -1
+    headshot_percent: 27
+    id: '64748'
+    kast: 72
+    kills: 16
+    name: endr666
+    rating: 0.96
+    team: PARON
+  - acs: 92
+    adr: 60
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/harbor.png
+      title: Harbor
+    assists: 4
+    deaths: 15
+    first_deaths: 1
+    first_kills: 0
+    first_kills_diff: -1
+    headshot_percent: 42
+    id: '43093'
+    kast: 50
+    kills: 6
+    name: RIFE
+    rating: 0.55
+    team: PARON
+  - acs: 85
+    adr: 61
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/sova.png
+      title: Sova
+    assists: 2
+    deaths: 13
+    first_deaths: 0
+    first_kills: 0
+    first_kills_diff: 0
+    headshot_percent: 15
+    id: '47474'
+    kast: 39
+    kills: 4
+    name: Russeyll
+    rating: 0.53
+    team: PARON
+  - acs: 54
+    adr: 36
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/viper.png
+      title: Viper
+    assists: 1
+    deaths: 16
+    first_deaths: 3
+    first_kills: 0
+    first_kills_diff: -3
+    headshot_percent: 20
+    id: '43029'
+    kast: 33
+    kills: 3
+    name: Onyx
+    rating: 0.17
+    team: PARON
+  rounds:
+  - round_number: 1
+    round_score: 0-1
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 2
+    round_score: 0-2
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 3
+    round_score: 1-2
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 4
+    round_score: 2-2
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 5
+    round_score: 3-2
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 6
+    round_score: 3-3
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 7
+    round_score: 3-4
+    side: attack
+    win_type: Spike exploded
+    winner: team2
+  - round_number: 8
+    round_score: 4-4
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 9
+    round_score: 5-4
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 10
+    round_score: 6-4
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 11
+    round_score: 7-4
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 12
+    round_score: 8-4
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 13
+    round_score: 9-4
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 14
+    round_score: 10-4
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 15
+    round_score: 11-4
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 16
+    round_score: 12-4
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 17
+    round_score: 12-5
+    side: defense
+    win_type: Elimination
+    winner: team2
+  - round_number: 18
+    round_score: 13-5
+    side: attack
+    win_type: Elimination
+    winner: team1
+  teams:
+  - name: REJECT
+    score: 13
+  - name: PARON
+    score: 5
+event:
+  date: '2026-05-11T13:00:00Z'
+  id: '2974'
+  img: https://owcdn.net/img/6964a9e385d88.png
+  patch: null
+  series: 'Challengers 2026: Japan Split 2'
+  stage: 'Advance Stage: Day 1'
+  status: final
+map_count: 2
+previous_encounters:
+- match_id: '434236'
+  teams:
+  - name: REJECT
+    score: 2
+  - name: PARON
+    score: 0
+- match_id: '420662'
+  teams:
+  - name: REJECT
+    score: 2
+  - name: PARON
+    score: 1
+teams:
+- id: '104'
+  img: https://owcdn.net/img/62a4139de7f7e.png
+  name: REJECT
+  score: 2
+- id: '16244'
+  img: https://www.vlr.gg/img/vlr/tmp/vlr.png
+  name: PARON
+  score: 0
+videos:
+  streams: []
+  vods: []

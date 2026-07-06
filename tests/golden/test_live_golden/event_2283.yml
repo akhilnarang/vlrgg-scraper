@@ -1,0 +1,486 @@
+dates: Sep 12 – Oct 6, 2025
+id: '2283'
+img: https://owcdn.net/img/63067806d167d.png
+location: Accor Arena, Paris
+matches:
+- date: '2025-09-12'
+  id: '542195'
+  round: Opening (A)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Paper Rex
+    region: sg
+    score: 2
+  - name: Xi Lai Gaming
+    region: cn
+    score: 0
+  time: '18:30:00'
+- date: '2025-09-12'
+  id: '542196'
+  round: Opening (A)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: GIANTX
+    region: eu
+    score: 2
+  - name: Sentinels
+    region: us
+    score: 1
+  time: '20:55:00'
+- date: '2025-09-13'
+  id: '542207'
+  round: Opening (C)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: NRG
+    region: us
+    score: 2
+  - name: EDward Gaming
+    region: cn
+    score: 0
+  time: '18:30:00'
+- date: '2025-09-13'
+  id: '542205'
+  round: Opening (C)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Team Liquid
+    region: eu
+    score: 0
+  - name: KIWOOM DRX
+    region: kr
+    score: 2
+  time: '21:25:00'
+- date: '2025-09-14'
+  id: '542212'
+  round: Opening (D)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Dragon Ranger Gaming
+    region: cn
+    score: 0
+  - name: T1
+    region: kr
+    score: 2
+  time: '18:30:00'
+- date: '2025-09-14'
+  id: '542211'
+  round: Opening (D)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: G2 Esports
+    region: us
+    score: 0
+  - name: Team Heretics
+    region: eu
+    score: 2
+  time: '21:50:00'
+- date: '2025-09-15'
+  id: '542200'
+  round: Opening (B)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Bilibili Gaming
+    region: cn
+    score: 0
+  - name: MIBR
+    region: br
+    score: 2
+  time: '18:30:00'
+- date: '2025-09-15'
+  id: '542201'
+  round: Opening (B)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Rex Regum Qeon
+    region: id
+    score: 0
+  - name: FNATIC
+    region: eu
+    score: 2
+  time: '20:40:00'
+- date: '2025-09-17'
+  id: '542197'
+  round: Winner's (A)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Paper Rex
+    region: sg
+    score: 2
+  - name: GIANTX
+    region: eu
+    score: 1
+  time: '18:30:00'
+- date: '2025-09-17'
+  id: '542208'
+  round: Winner's (C)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: KIWOOM DRX
+    region: kr
+    score: 1
+  - name: NRG
+    region: us
+    score: 2
+  time: '21:40:00'
+- date: '2025-09-18'
+  id: '542213'
+  round: Winner's (D)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Team Heretics
+    region: eu
+    score: 2
+  - name: T1
+    region: kr
+    score: 0
+  time: '18:30:00'
+- date: '2025-09-18'
+  id: '542202'
+  round: Winner's (B)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: MIBR
+    region: br
+    score: 1
+  - name: FNATIC
+    region: eu
+    score: 2
+  time: '20:55:00'
+- date: '2025-09-19'
+  id: '542209'
+  round: Elimination (C)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Team Liquid
+    region: eu
+    score: 2
+  - name: EDward Gaming
+    region: cn
+    score: 1
+  time: '18:30:00'
+- date: '2025-09-19'
+  id: '542198'
+  round: Elimination (A)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Xi Lai Gaming
+    region: cn
+    score: 2
+  - name: Sentinels
+    region: us
+    score: 1
+  time: '22:00:00'
+- date: '2025-09-20'
+  id: '542203'
+  round: Elimination (B)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Bilibili Gaming
+    region: cn
+    score: 1
+  - name: Rex Regum Qeon
+    region: id
+    score: 2
+  time: '18:30:00'
+- date: '2025-09-20'
+  id: '542214'
+  round: Elimination (D)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: G2 Esports
+    region: us
+    score: 2
+  - name: Dragon Ranger Gaming
+    region: cn
+    score: 0
+  time: '21:30:00'
+- date: '2025-09-21'
+  id: '542210'
+  round: Decider (C)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: KIWOOM DRX
+    region: kr
+    score: 2
+  - name: Team Liquid
+    region: eu
+    score: 0
+  time: '18:30:00'
+- date: '2025-09-21'
+  id: '542199'
+  round: Decider (A)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: GIANTX
+    region: eu
+    score: 2
+  - name: Xi Lai Gaming
+    region: cn
+    score: 0
+  time: '20:50:00'
+- date: '2025-09-22'
+  id: '542215'
+  round: Decider (D)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: T1
+    region: kr
+    score: 0
+  - name: G2 Esports
+    region: us
+    score: 2
+  time: '18:30:00'
+- date: '2025-09-22'
+  id: '542204'
+  round: Decider (B)
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: MIBR
+    region: br
+    score: 2
+  - name: Rex Regum Qeon
+    region: id
+    score: 0
+  time: '20:45:00'
+- date: '2025-09-25'
+  id: '542265'
+  round: Upper Quarterfinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Paper Rex
+    region: sg
+    score: 2
+  - name: G2 Esports
+    region: us
+    score: 1
+  time: '18:30:00'
+- date: '2025-09-25'
+  id: '542264'
+  round: Upper Quarterfinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: FNATIC
+    region: eu
+    score: 2
+  - name: KIWOOM DRX
+    region: kr
+    score: 1
+  time: '22:20:00'
+- date: '2025-09-26'
+  id: '542266'
+  round: Upper Quarterfinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Team Heretics
+    region: eu
+    score: 0
+  - name: MIBR
+    region: br
+    score: 2
+  time: '18:30:00'
+- date: '2025-09-26'
+  id: '542267'
+  round: Upper Quarterfinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: NRG
+    region: us
+    score: 2
+  - name: GIANTX
+    region: eu
+    score: 0
+  time: '21:05:00'
+- date: '2025-09-27'
+  id: '542273'
+  round: Lower Round 1
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: KIWOOM DRX
+    region: kr
+    score: 2
+  - name: G2 Esports
+    region: us
+    score: 1
+  time: '18:30:00'
+- date: '2025-09-27'
+  id: '542274'
+  round: Lower Round 1
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Team Heretics
+    region: eu
+    score: 2
+  - name: GIANTX
+    region: eu
+    score: 1
+  time: '21:50:00'
+- date: '2025-09-28'
+  id: '542268'
+  round: Upper Semifinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: FNATIC
+    region: eu
+    score: 2
+  - name: Paper Rex
+    region: sg
+    score: 1
+  time: '18:30:00'
+- date: '2025-09-28'
+  id: '542269'
+  round: Upper Semifinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: MIBR
+    region: br
+    score: 1
+  - name: NRG
+    region: us
+    score: 2
+  time: '21:50:00'
+- date: '2025-09-29'
+  id: '542277'
+  round: Lower Round 2
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Paper Rex
+    region: sg
+    score: 2
+  - name: Team Heretics
+    region: eu
+    score: 1
+  time: '18:30:00'
+- date: '2025-09-29'
+  id: '542276'
+  round: Lower Round 2
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: MIBR
+    region: br
+    score: 1
+  - name: KIWOOM DRX
+    region: kr
+    score: 2
+  time: '21:50:00'
+- date: '2025-10-03'
+  id: '542270'
+  round: Upper Final
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: FNATIC
+    region: eu
+    score: 0
+  - name: NRG
+    region: us
+    score: 2
+  time: '16:30:00'
+- date: '2025-10-03'
+  id: '542278'
+  round: Lower Round 3
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: KIWOOM DRX
+    region: kr
+    score: 2
+  - name: Paper Rex
+    region: sg
+    score: 0
+  time: '19:05:00'
+- date: '2025-10-04'
+  id: '542279'
+  round: Lower Final
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: FNATIC
+    region: eu
+    score: 3
+  - name: KIWOOM DRX
+    region: kr
+    score: 1
+  time: '16:30:00'
+- date: '2025-10-05'
+  id: '542272'
+  round: Grand Final
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: NRG
+    region: us
+    score: 3
+  - name: FNATIC
+    region: eu
+    score: 2
+  time: '16:30:00'
+prize: $2,250,000
+prizes: []
+standings: []
+status: completed
+subtitle: The final event of the Valorant Champions Tour, Riot's 2025 tournament circuit
+teams:
+- id: '624'
+  img: https://owcdn.net/img/62bbeba74d5cb.png
+  name: Paper Rex
+  seed: Group A (#1)
+- id: '14419'
+  img: https://owcdn.net/img/657b2f3fcd199.png
+  name: GIANTX
+  seed: Group A (#2)
+- id: '2593'
+  img: https://owcdn.net/img/62a40cc2b5e29.png
+  name: FNATIC
+  seed: Group B (#1)
+- id: '7386'
+  img: https://owcdn.net/img/632be7626d6d9.png
+  name: MIBR
+  seed: Group B (#2)
+- id: '1034'
+  img: https://owcdn.net/img/6610f026c1a9e.png
+  name: NRG
+  seed: Group C (#1)
+- id: '8185'
+  img: https://owcdn.net/img/6a353ee73ab25.png
+  name: KIWOOM DRX
+  seed: Group C (#2)
+- id: '1001'
+  img: https://owcdn.net/img/637b755224c12.png
+  name: Team Heretics
+  seed: Group D (#1)
+- id: '11058'
+  img: https://owcdn.net/img/633822848a741.png
+  name: G2 Esports
+  seed: Group D (#2)
+title: Valorant Champions 2025

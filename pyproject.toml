@@ -28,6 +28,7 @@ dev = [
     "pre-commit",
     "pytest",
     "pytest-asyncio",
+    "pytest-regressions",
     "ruff>=0.15.20",
     "ty>=0.0.56",
 ]
@@ -38,3 +39,6 @@ exclude = ["__init__.py"]
 
 [tool.pytest.ini_options]
 pythonpath = "."
+markers = [
+    "live_golden: live VLR parser golden regression tests",
+]

@@ -1,0 +1,470 @@
+dates: Apr 4 – May 13, 2026
+id: '2842'
+img: https://owcdn.net/img/63a1b6db0a21a.png
+location: fr
+matches:
+- date: '2026-04-04'
+  id: '649758'
+  round: Week 1
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Mandatory
+    region: fr
+    score: 1
+  - name: Galions
+    region: fr
+    score: 2
+  time: '18:30:00'
+- date: '2026-04-04'
+  id: '649759'
+  round: Week 1
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Esprit Shōnen
+    region: fr
+    score: 1
+  - name: Caldya Esport
+    region: fr
+    score: 2
+  time: '21:30:00'
+- date: '2026-04-05'
+  id: '649760'
+  round: Week 1
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: WIP Esports
+    region: eu
+    score: 2
+  - name: Nuxeria Esport
+    region: fr
+    score: 1
+  time: 01:00:00
+- date: '2026-04-05'
+  id: '649761'
+  round: Week 1
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Esprit Shōnen
+    region: fr
+    score: 0
+  - name: Mandatory
+    region: fr
+    score: 2
+  time: '18:30:00'
+- date: '2026-04-05'
+  id: '649762'
+  round: Week 1
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: F9 EICAR
+    region: fr
+    score: 2
+  - name: Joblife
+    region: eu
+    score: 1
+  time: '20:30:00'
+- date: '2026-04-06'
+  id: '649763'
+  round: Week 1
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Galions
+    region: fr
+    score: 0
+  - name: WIP Esports
+    region: eu
+    score: 2
+  time: 00:00:00
+- date: '2026-04-06'
+  id: '649764'
+  round: Week 1
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Joblife
+    region: eu
+    score: 2
+  - name: Caldya Esport
+    region: fr
+    score: 1
+  time: '21:30:00'
+- date: '2026-04-07'
+  id: '649765'
+  round: Week 1
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Nuxeria Esport
+    region: fr
+    score: 2
+  - name: F9 EICAR
+    region: fr
+    score: 0
+  time: 00:05:00
+- date: '2026-04-11'
+  id: '649766'
+  round: Week 2
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Nuxeria Esport
+    region: fr
+    score: 0
+  - name: Mandatory
+    region: fr
+    score: 2
+  time: '18:30:00'
+- date: '2026-04-11'
+  id: '649767'
+  round: Week 2
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Caldya Esport
+    region: fr
+    score: 1
+  - name: F9 EICAR
+    region: fr
+    score: 2
+  time: '21:30:00'
+- date: '2026-04-11'
+  id: '649768'
+  round: Week 2
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Esprit Shōnen
+    region: fr
+    score: 2
+  - name: Galions
+    region: fr
+    score: 1
+  time: '23:30:00'
+- date: '2026-04-12'
+  id: '649769'
+  round: Week 2
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Caldya Esport
+    region: fr
+    score: 2
+  - name: Nuxeria Esport
+    region: fr
+    score: 1
+  time: '18:30:00'
+- date: '2026-04-12'
+  id: '649770'
+  round: Week 2
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Joblife
+    region: eu
+    score: 1
+  - name: WIP Esports
+    region: eu
+    score: 2
+  time: '21:15:00'
+- date: '2026-04-13'
+  id: '649771'
+  round: Week 2
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: F9 EICAR
+    region: fr
+    score: 2
+  - name: Galions
+    region: fr
+    score: 0
+  time: 00:30:00
+- date: '2026-04-13'
+  id: '649772'
+  round: Week 2
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: WIP Esports
+    region: eu
+    score: 2
+  - name: Mandatory
+    region: fr
+    score: 1
+  time: '21:30:00'
+- date: '2026-04-14'
+  id: '649773'
+  round: Week 2
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Esprit Shōnen
+    region: fr
+    score: 2
+  - name: Joblife
+    region: eu
+    score: 0
+  time: 01:00:00
+- date: '2026-04-18'
+  id: '649774'
+  round: Week 3
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Esprit Shōnen
+    region: fr
+    score: 1
+  - name: Nuxeria Esport
+    region: fr
+    score: 2
+  time: '18:30:00'
+- date: '2026-04-18'
+  id: '649775'
+  round: Week 3
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: F9 EICAR
+    region: fr
+    score: 0
+  - name: WIP Esports
+    region: eu
+    score: 2
+  time: '21:30:00'
+- date: '2026-04-19'
+  id: '649776'
+  round: Week 3
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Galions
+    region: fr
+    score: 2
+  - name: Caldya Esport
+    region: fr
+    score: 0
+  time: 00:30:00
+- date: '2026-04-19'
+  id: '649777'
+  round: Week 3
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Esprit Shōnen
+    region: fr
+    score: 1
+  - name: WIP Esports
+    region: eu
+    score: 2
+  time: '18:30:00'
+- date: '2026-04-19'
+  id: '649778'
+  round: Week 3
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Nuxeria Esport
+    region: fr
+    score: 0
+  - name: Joblife
+    region: eu
+    score: 2
+  time: '21:55:00'
+- date: '2026-04-20'
+  id: '649779'
+  round: Week 3
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Mandatory
+    region: fr
+    score: 2
+  - name: F9 EICAR
+    region: fr
+    score: 1
+  time: 00:30:00
+- date: '2026-04-25'
+  id: '649780'
+  round: Week 4
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Caldya Esport
+    region: fr
+    score: 0
+  - name: Mandatory
+    region: fr
+    score: 2
+  time: '18:30:00'
+- date: '2026-04-25'
+  id: '649781'
+  round: Week 4
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Esprit Shōnen
+    region: fr
+    score: 1
+  - name: F9 EICAR
+    region: fr
+    score: 2
+  time: '21:30:00'
+- date: '2026-04-26'
+  id: '649782'
+  round: Week 4
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Joblife
+    region: eu
+    score: 2
+  - name: Galions
+    region: fr
+    score: 1
+  time: 00:30:00
+- date: '2026-04-26'
+  id: '649783'
+  round: Week 4
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: WIP Esports
+    region: eu
+    score: 2
+  - name: Caldya Esport
+    region: fr
+    score: 0
+  time: '18:30:00'
+- date: '2026-04-26'
+  id: '649784'
+  round: Week 4
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Galions
+    region: fr
+    score: 2
+  - name: Nuxeria Esport
+    region: fr
+    score: 0
+  time: '20:30:00'
+- date: '2026-04-26'
+  id: '649785'
+  round: Week 4
+  stage: Group Stage
+  status: completed
+  teams:
+  - name: Mandatory
+    region: fr
+    score: 2
+  - name: Joblife
+    region: eu
+    score: 1
+  time: '22:30:00'
+- date: '2026-05-03'
+  id: '649786'
+  round: Upper Semifinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: WIP Esports
+    region: eu
+    score: 1
+  - name: Joblife
+    region: eu
+    score: 2
+  time: '21:30:00'
+- date: '2026-05-04'
+  id: '649787'
+  round: Upper Semifinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Mandatory
+    region: fr
+    score: 2
+  - name: F9 EICAR
+    region: fr
+    score: 1
+  time: 00:30:00
+- date: '2026-05-04'
+  id: '649788'
+  round: Upper Final
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Joblife
+    region: eu
+    score: 2
+  - name: Mandatory
+    region: fr
+    score: 1
+  time: '21:30:00'
+- date: '2026-05-05'
+  id: '649790'
+  round: Lower Round 1
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: WIP Esports
+    region: eu
+    score: 2
+  - name: F9 EICAR
+    region: fr
+    score: 0
+  time: 00:30:00
+- date: '2026-05-05'
+  id: '649791'
+  round: Lower Final
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Mandatory
+    region: fr
+    score: 1
+  - name: WIP Esports
+    region: eu
+    score: 3
+  time: '21:30:00'
+- date: '2026-05-12'
+  id: '649789'
+  round: Grand Final
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Joblife
+    region: eu
+    score: 3
+  - name: WIP Esports
+    region: eu
+    score: 1
+  time: '21:30:00'
+prize: €10,000 EUR~ $11,825
+prizes: []
+standings: []
+status: completed
+subtitle: Part of the Valorant Champions Tour, Riot's official 2026 tournament circuit.
+teams:
+- id: '19391'
+  img: https://owcdn.net/img/695c9c861fe80.png
+  name: WIP Esports
+  seed: 'Group Stage #1'
+- id: '7967'
+  img: https://owcdn.net/img/695c961fbab82.png
+  name: Mandatory
+  seed: 'Group Stage #2'
+- id: '18494'
+  img: https://owcdn.net/img/6873c999c300f.png
+  name: F9 EICAR
+  seed: 'Group Stage #3'
+- id: '11232'
+  img: https://owcdn.net/img/63a944e6cbe49.png
+  name: Joblife
+  seed: 'Group Stage #4'
+title: 'Challengers 2026: France Revolution Stage 2'

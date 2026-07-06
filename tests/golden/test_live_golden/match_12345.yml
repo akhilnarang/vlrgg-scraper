@@ -1,0 +1,312 @@
+bans: []
+data:
+- map: Bind
+  members:
+  - acs: 346
+    adr: 188
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/raze.png
+      title: Raze
+    assists: 3
+    deaths: 13
+    first_deaths: 3
+    first_kills: 5
+    first_kills_diff: 2
+    headshot_percent: 22
+    id: '2114'
+    kast: 0
+    kills: 29
+    name: Kinguyen
+    rating: 0.0
+    team: ky5
+  - acs: 244
+    adr: 158
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 4
+    deaths: 15
+    first_deaths: 1
+    first_kills: 0
+    first_kills_diff: -1
+    headshot_percent: 42
+    id: '2115'
+    kast: 0
+    kills: 21
+    name: b2kk
+    rating: 0.0
+    team: ky5
+  - acs: 241
+    adr: 137
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/jett.png
+      title: Jett
+    assists: 1
+    deaths: 17
+    first_deaths: 3
+    first_kills: 3
+    first_kills_diff: 0
+    headshot_percent: 17
+    id: '2111'
+    kast: 0
+    kills: 18
+    name: Aegis
+    rating: 0.0
+    team: ky5
+  - acs: 166
+    adr: 112
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/skye.png
+      title: Skye
+    assists: 9
+    deaths: 17
+    first_deaths: 5
+    first_kills: 1
+    first_kills_diff: -4
+    headshot_percent: 9
+    id: '6889'
+    kast: 0
+    kills: 11
+    name: NeskaaS
+    rating: 0.0
+    team: ky5
+  - acs: 131
+    adr: 80
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/killjoy.png
+      title: Killjoy
+    assists: 3
+    deaths: 17
+    first_deaths: 1
+    first_kills: 0
+    first_kills_diff: -1
+    headshot_percent: 11
+    id: '2112'
+    kast: 0
+    kills: 11
+    name: dathuaaN
+    rating: 0.0
+    team: ky5
+  - acs: 341
+    adr: 226
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/raze.png
+      title: Raze
+    assists: 5
+    deaths: 20
+    first_deaths: 1
+    first_kills: 3
+    first_kills_diff: 2
+    headshot_percent: 25
+    id: '10887'
+    kast: 0
+    kills: 24
+    name: Dimaoneshot
+    rating: 0.0
+    team: IMBAPEEK
+  - acs: 285
+    adr: 186
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 3
+    deaths: 15
+    first_deaths: 0
+    first_kills: 4
+    first_kills_diff: 4
+    headshot_percent: 21
+    id: '4951'
+    kast: 0
+    kills: 22
+    name: Hardy
+    rating: 0.0
+    team: IMBAPEEK
+  - acs: 151
+    adr: 73
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/breach.png
+      title: Breach
+    assists: 4
+    deaths: 19
+    first_deaths: 3
+    first_kills: 3
+    first_kills_diff: 0
+    headshot_percent: 37
+    id: ''
+    kast: 0
+    kills: 14
+    name: RAiLWAY
+    rating: 0.0
+    team: IMBAPEEK
+  - acs: 150
+    adr: 93
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/sage.png
+      title: Sage
+    assists: 21
+    deaths: 19
+    first_deaths: 2
+    first_kills: 2
+    first_kills_diff: 0
+    headshot_percent: 29
+    id: '7106'
+    kast: 0
+    kills: 7
+    name: diseased
+    rating: 0.0
+    team: IMBAPEEK
+  - acs: 137
+    adr: 95
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/cypher.png
+      title: Cypher
+    assists: 3
+    deaths: 17
+    first_deaths: 3
+    first_kills: 1
+    first_kills_diff: -2
+    headshot_percent: 18
+    id: '222'
+    kast: 0
+    kills: 12
+    name: 0nuqtive
+    rating: 0.0
+    team: IMBAPEEK
+  rounds:
+  - round_number: 1
+    round_score: 1-0
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 2
+    round_score: 2-0
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 3
+    round_score: 3-0
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 4
+    round_score: 3-1
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 5
+    round_score: 3-2
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 6
+    round_score: 4-2
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 7
+    round_score: 5-2
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 8
+    round_score: 5-3
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 9
+    round_score: 5-4
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 10
+    round_score: 6-4
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 11
+    round_score: 6-5
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 12
+    round_score: 7-5
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 13
+    round_score: 8-5
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 14
+    round_score: 9-5
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 15
+    round_score: 9-6
+    side: defense
+    win_type: Elimination
+    winner: team2
+  - round_number: 16
+    round_score: 10-6
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 17
+    round_score: 10-7
+    side: defense
+    win_type: Elimination
+    winner: team2
+  - round_number: 18
+    round_score: 11-7
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 19
+    round_score: 12-7
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 20
+    round_score: 12-8
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 21
+    round_score: 12-9
+    side: defense
+    win_type: Elimination
+    winner: team2
+  - round_number: 22
+    round_score: 13-9
+    side: attack
+    win_type: Elimination
+    winner: team1
+  teams:
+  - name: keepYOURskill
+    score: 13
+  - name: IMBAPEEK
+    score: 9
+event:
+  date: '2021-03-01T00:30:00Z'
+  id: '315'
+  img: https://owcdn.net/img/5f232a98d2c26.png
+  patch: null
+  series: Nicecactus February Trophy
+  stage: 'Qualifier #4: Quarterfinals'
+  status: final
+map_count: 1
+previous_encounters: []
+teams:
+- id: '556'
+  img: https://www.vlr.gg/img/vlr/tmp/vlr.png
+  name: keepYOURskill
+  score: 1
+- id: '3333'
+  img: https://www.vlr.gg/img/vlr/tmp/vlr.png
+  name: IMBAPEEK
+  score: 0
+videos:
+  streams: []
+  vods: []
