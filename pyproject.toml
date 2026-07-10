@@ -28,8 +28,8 @@ dev = [
     "pre-commit",
     "pytest",
     "pytest-asyncio",
-    "ruff>=0.15.20",
-    "ty>=0.0.56",
+    "ruff>=0.15.21",
+    "ty>=0.0.58",
 ]
 
 [tool.ruff]
