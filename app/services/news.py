@@ -41,6 +41,7 @@ def _collapse_link_quote_padding(text: str) -> str:
 
 def normalize_article_text(text: str) -> str:
     text = re.sub(r'\s+([.,;:!?])', r'\1', text)
+    text = re.sub(r"({{link_\d+}})\s+(['’]s)\b", r"\1\2", text)
     return _collapse_link_quote_padding(text)
 
 
