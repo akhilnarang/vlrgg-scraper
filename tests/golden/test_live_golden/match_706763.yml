@@ -861,4 +861,10 @@ videos:
     url: https://www.twitch.tv/EWC_STCArena_EN
   - name: EWC (YT)
     url: https://www.youtube.com/@ewc/live
-  vods: []
+  vods:
+  - name: Map 1
+    url: https://youtu.be/U2jvIM6sinc?t=10434
+  - name: Map 2
+    url: https://youtu.be/U2jvIM6sinc?t=13795
+  - name: Map 3
+    url: https://youtu.be/U2jvIM6sinc?t=17634

@@ -100,26 +100,45 @@ def parse_agent_data(agent_data: ResultSet) -> dict:
     """
     img = agent_data[0].find("img")
     count, percent = agent_data[1].get_text().strip().split(" ")
+    rounds = clean_number_string(agent_data[2].get_text())
+
+    # VLR replaced the separate FKPR/FDPR columns with FK:FD and swapped KAST/ADR.
+    # Keep the API's existing per-round fields by deriving them from the raw totals.
+    if len(agent_data) == 16:
+        adr_index, kast_index = 7, 6
+        k_index, d_index, a_index, fk_index, fd_index = 11, 12, 13, 14, 15
+        fk = clean_number_string(agent_data[fk_index].get_text())
+        fd = clean_number_string(agent_data[fd_index].get_text())
+        fkpr = round(fk / rounds, 2) if rounds else 0
+        fdpr = round(fd / rounds, 2) if rounds else 0
+    else:
+        adr_index, kast_index = 6, 7
+        k_index, d_index, a_index, fk_index, fd_index = 12, 13, 14, 15, 16
+        fkpr = clean_number_string(agent_data[10].get_text())
+        fdpr = clean_number_string(agent_data[11].get_text())
+        fk = clean_number_string(agent_data[fk_index].get_text())
+        fd = clean_number_string(agent_data[fd_index].get_text())
+
     response = {
         "name": img["alt"],
         "img": get_image_url(img["src"]),
         "count": count.replace("(", "").replace(")", ""),
         "percent": percent[:-1],
-        "rounds": clean_number_string(agent_data[2].get_text()),
+        "rounds": rounds,
         "rating": clean_number_string(agent_data[3].get_text()),
         "acs": clean_number_string(agent_data[4].get_text()),
         "kd": clean_number_string(agent_data[5].get_text()),
-        "adr": clean_number_string(agent_data[6].get_text()),
-        "kast": clean_number_string(agent_data[7].get_text()),
+        "adr": clean_number_string(agent_data[adr_index].get_text()),
+        "kast": clean_number_string(agent_data[kast_index].get_text()),
         "kpr": clean_number_string(agent_data[8].get_text()),
         "apr": clean_number_string(agent_data[9].get_text()),
-        "fkpr": clean_number_string(agent_data[10].get_text()),
-        "fdpr": clean_number_string(agent_data[11].get_text()),
-        "k": clean_number_string(agent_data[12].get_text()),
-        "d": clean_number_string(agent_data[13].get_text()),
-        "a": clean_number_string(agent_data[14].get_text()),
-        "fk": clean_number_string(agent_data[15].get_text()),
-        "fd": clean_number_string(agent_data[16].get_text()),
+        "fkpr": fkpr,
+        "fdpr": fdpr,
+        "k": clean_number_string(agent_data[k_index].get_text()),
+        "d": clean_number_string(agent_data[d_index].get_text()),
+        "a": clean_number_string(agent_data[a_index].get_text()),
+        "fk": fk,
+        "fd": fd,
     }
 
     return response

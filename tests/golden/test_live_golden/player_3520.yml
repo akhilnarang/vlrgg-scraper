@@ -6,9 +6,9 @@ agents:
   count: 277
   d: 4353
   fd: 846
-  fdpr: 0.17
+  fdpr: 0.14
   fk: 1185
-  fkpr: 0.24
+  fkpr: 0.2
   img: https://www.vlr.gg/img/vlr/game/agents/jett.png
   k: 5619
   kast: 71.0
@@ -25,9 +25,9 @@ agents:
   count: 118
   d: 1918
   fd: 291
-  fdpr: 0.17
+  fdpr: 0.12
   fk: 332
-  fkpr: 0.19
+  fkpr: 0.13
   img: https://www.vlr.gg/img/vlr/game/agents/raze.png
   k: 2277
   kast: 71.0
@@ -44,9 +44,9 @@ agents:
   count: 104
   d: 1456
   fd: 230
-  fdpr: 0.12
+  fdpr: 0.11
   fk: 411
-  fkpr: 0.21
+  fkpr: 0.19
   img: https://www.vlr.gg/img/vlr/game/agents/chamber.png
   k: 2017
   kast: 72.0
@@ -63,9 +63,9 @@ agents:
   count: 77
   d: 1219
   fd: 230
-  fdpr: 0.2
+  fdpr: 0.14
   fk: 271
-  fkpr: 0.22
+  fkpr: 0.17
   img: https://www.vlr.gg/img/vlr/game/agents/neon.png
   k: 1446
   kast: 71.0
@@ -101,9 +101,9 @@ agents:
   count: 11
   d: 168
   fd: 30
-  fdpr: 0.16
+  fdpr: 0.13
   fk: 36
-  fkpr: 0.19
+  fkpr: 0.16
   img: https://www.vlr.gg/img/vlr/game/agents/waylay.png
   k: 216
   kast: 74.0
@@ -120,9 +120,9 @@ agents:
   count: 7
   d: 127
   fd: 16
-  fdpr: 0.14
+  fdpr: 0.1
   fk: 12
-  fkpr: 0.11
+  fkpr: 0.08
   img: https://www.vlr.gg/img/vlr/game/agents/iso.png
   k: 144
   kast: 72.0
@@ -160,7 +160,7 @@ agents:
   fd: 0
   fdpr: 0.0
   fk: 3
-  fkpr: 0.14
+  fkpr: 0.03
   img: https://www.vlr.gg/img/vlr/game/agents/kayo.png
   k: 76
   kast: 77.0
@@ -177,9 +177,9 @@ agents:
   count: 4
   d: 64
   fd: 4
-  fdpr: 0.17
+  fdpr: 0.04
   fk: 3
-  fkpr: 0.13
+  fkpr: 0.03
   img: https://www.vlr.gg/img/vlr/game/agents/omen.png
   k: 72
   kast: 0.0
@@ -196,9 +196,9 @@ agents:
   count: 4
   d: 58
   fd: 3
-  fdpr: 0.08
+  fdpr: 0.04
   fk: 10
-  fkpr: 0.26
+  fkpr: 0.13
   img: https://www.vlr.gg/img/vlr/game/agents/phoenix.png
   k: 57
   kast: 69.0
@@ -215,9 +215,9 @@ agents:
   count: 2
   d: 36
   fd: 1
-  fdpr: 0.04
+  fdpr: 0.02
   fk: 7
-  fkpr: 0.29
+  fkpr: 0.14
   img: https://www.vlr.gg/img/vlr/game/agents/reyna.png
   k: 52
   kast: 75.0
