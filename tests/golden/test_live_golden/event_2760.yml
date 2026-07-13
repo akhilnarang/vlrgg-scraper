@@ -1,0 +1,356 @@
+dates: Feb 28 – Mar 16, 2026
+id: '2760'
+img: https://owcdn.net/img/692fc18a04f4a.png
+location: Espacio Riesco, Santiago
+matches:
+- date: '2026-02-28'
+  id: '625788'
+  round: Round 1
+  stage: Swiss Stage
+  status: completed
+  teams:
+  - name: Gentle Mates
+    region: eu
+    score: 2
+  - name: EDward Gaming
+    region: cn
+    score: 0
+  time: '22:30:00'
+- date: '2026-03-01'
+  id: '625791'
+  round: Round 1
+  stage: Swiss Stage
+  status: completed
+  teams:
+  - name: Xi Lai Gaming
+    region: cn
+    score: 0
+  - name: NRG
+    region: us
+    score: 2
+  time: 01:00:00
+- date: '2026-03-01'
+  id: '625790'
+  round: Round 1
+  stage: Swiss Stage
+  status: completed
+  teams:
+  - name: G2 Esports
+    region: us
+    score: 0
+  - name: Paper Rex
+    region: sg
+    score: 2
+  time: '22:30:00'
+- date: '2026-03-02'
+  id: '625789'
+  round: Round 1
+  stage: Swiss Stage
+  status: completed
+  teams:
+  - name: T1
+    region: kr
+    score: 0
+  - name: Team Liquid
+    region: eu
+    score: 2
+  time: 00:35:00
+- date: '2026-03-02'
+  id: '626529'
+  round: Round 2 (1-0)
+  stage: Swiss Stage
+  status: completed
+  teams:
+  - name: Paper Rex
+    region: sg
+    score: 2
+  - name: NRG
+    region: us
+    score: 1
+  time: '23:30:00'
+- date: '2026-03-03'
+  id: '626530'
+  round: Round 2 (1-0)
+  stage: Swiss Stage
+  status: completed
+  teams:
+  - name: Gentle Mates
+    region: eu
+    score: 2
+  - name: Team Liquid
+    region: eu
+    score: 0
+  time: 03:00:00
+- date: '2026-03-03'
+  id: '626532'
+  round: Round 2 (0-1)
+  stage: Swiss Stage
+  status: completed
+  teams:
+  - name: EDward Gaming
+    region: cn
+    score: 0
+  - name: T1
+    region: kr
+    score: 2
+  time: '23:30:00'
+- date: '2026-03-04'
+  id: '626533'
+  round: Round 2 (0-1)
+  stage: Swiss Stage
+  status: completed
+  teams:
+  - name: Xi Lai Gaming
+    region: cn
+    score: 0
+  - name: G2 Esports
+    region: us
+    score: 2
+  time: 01:40:00
+- date: '2026-03-04'
+  id: '626535'
+  round: Round 3
+  stage: Swiss Stage
+  status: completed
+  teams:
+  - name: NRG
+    region: us
+    score: 2
+  - name: Team Liquid
+    region: eu
+    score: 0
+  time: '23:30:00'
+- date: '2026-03-05'
+  id: '626534'
+  round: Round 3
+  stage: Swiss Stage
+  status: completed
+  teams:
+  - name: G2 Esports
+    region: us
+    score: 2
+  - name: T1
+    region: kr
+    score: 0
+  time: 01:50:00
+- date: '2026-03-06'
+  id: '626539'
+  round: Upper Quarterfinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: FURIA
+    region: br
+    score: 1
+  - name: Paper Rex
+    region: sg
+    score: 2
+  time: '23:30:00'
+- date: '2026-03-07'
+  id: '626537'
+  round: Upper Quarterfinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Nongshim RedForce
+    region: kr
+    score: 2
+  - name: Gentle Mates
+    region: eu
+    score: 0
+  time: 02:30:00
+- date: '2026-03-07'
+  id: '626540'
+  round: Upper Quarterfinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: BBL Esports
+    region: tr
+    score: 1
+  - name: NRG
+    region: us
+    score: 2
+  time: '22:30:00'
+- date: '2026-03-08'
+  id: '626538'
+  round: Upper Quarterfinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: All Gamers
+    region: cn
+    score: 0
+  - name: G2 Esports
+    region: us
+    score: 2
+  time: 02:00:00
+- date: '2026-03-08'
+  id: '626546'
+  round: Lower Round 1
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: FURIA
+    region: br
+    score: 1
+  - name: BBL Esports
+    region: tr
+    score: 2
+  time: '22:30:00'
+- date: '2026-03-09'
+  id: '626545'
+  round: Lower Round 1
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Gentle Mates
+    region: eu
+    score: 1
+  - name: All Gamers
+    region: cn
+    score: 2
+  time: 02:00:00
+- date: '2026-03-09'
+  id: '626541'
+  round: Upper Semifinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Nongshim RedForce
+    region: kr
+    score: 2
+  - name: G2 Esports
+    region: us
+    score: 1
+  time: '23:30:00'
+- date: '2026-03-10'
+  id: '626542'
+  round: Upper Semifinals
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Paper Rex
+    region: sg
+    score: 0
+  - name: NRG
+    region: us
+    score: 2
+  time: 02:50:00
+- date: '2026-03-10'
+  id: '626548'
+  round: Lower Round 2
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: G2 Esports
+    region: us
+    score: 2
+  - name: BBL Esports
+    region: tr
+    score: 0
+  time: '23:30:00'
+- date: '2026-03-11'
+  id: '626547'
+  round: Lower Round 2
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Paper Rex
+    region: sg
+    score: 2
+  - name: All Gamers
+    region: cn
+    score: 1
+  time: 01:40:00
+- date: '2026-03-13'
+  id: '626543'
+  round: Upper Final
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Nongshim RedForce
+    region: kr
+    score: 2
+  - name: NRG
+    region: us
+    score: 0
+  time: '22:30:00'
+- date: '2026-03-14'
+  id: '626549'
+  round: Lower Round 3
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Paper Rex
+    region: sg
+    score: 2
+  - name: G2 Esports
+    region: us
+    score: 1
+  time: 00:55:00
+- date: '2026-03-14'
+  id: '626550'
+  round: Lower Final
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: NRG
+    region: us
+    score: 1
+  - name: Paper Rex
+    region: sg
+    score: 3
+  time: '22:30:00'
+- date: '2026-03-15'
+  id: '626544'
+  round: Grand Final
+  stage: Playoffs
+  status: completed
+  teams:
+  - name: Nongshim RedForce
+    region: kr
+    score: 3
+  - name: Paper Rex
+    region: sg
+    score: 0
+  time: '23:30:00'
+prize: $1,000,000
+prizes: []
+standings: []
+status: completed
+subtitle: Part of the Valorant Champions Tour, Riot's official 2026 tournament circuit.
+teams:
+- id: '2406'
+  img: https://owcdn.net/img/632be843b7d51.png
+  name: FURIA
+  seed: Americas Kickoff (#1)
+- id: '1119'
+  img: https://owcdn.net/img/6549c2b905061.png
+  name: All Gamers
+  seed: China Kickoff (#1)
+- id: '397'
+  img: https://owcdn.net/img/65b8ccef5e273.png
+  name: BBL Esports
+  seed: EMEA Kickoff (#1)
+- id: '11060'
+  img: https://owcdn.net/img/6399bb707aacb.png
+  name: Nongshim RedForce
+  seed: Pacific Kickoff (#1)
+- id: '624'
+  img: https://owcdn.net/img/62bbeba74d5cb.png
+  name: Paper Rex
+  seed: Swiss Stage (2-0)
+- id: '12694'
+  img: https://owcdn.net/img/6670153fa9120.png
+  name: Gentle Mates
+  seed: Swiss Stage (2-0)
+- id: '1034'
+  img: https://owcdn.net/img/6610f026c1a9e.png
+  name: NRG
+  seed: Swiss Stage (2-1)
+- id: '11058'
+  img: https://owcdn.net/img/633822848a741.png
+  name: G2 Esports
+  seed: Swiss Stage (2-1)
+title: Valorant Masters Santiago 2026

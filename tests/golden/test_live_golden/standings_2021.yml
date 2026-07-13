@@ -1,0 +1,762 @@
+circuits:
+- region: North America Circuit
+  teams:
+  - country: United States
+    id: 2
+    logo: https://owcdn.net/img/62875027c8e06.png
+    name: Sentinels
+    points: 775
+    rank: 1
+  - country: United States
+    id: 427
+    logo: https://owcdn.net/img/5f3ca822464a3.png
+    name: ENVY
+    points: 450
+    rank: 2
+  - country: United States
+    id: 120
+    logo: https://owcdn.net/img/603c00d5c5a08.png
+    name: 100 Thieves
+    points: 375
+    rank: 3
+  - country: Canada
+    id: 2815
+    logo: https://owcdn.net/img/62bc0b2763a8a.png
+    name: Version1
+    points: 200
+    rank: 4
+  - country: United States
+    id: 337
+    logo: https://owcdn.net/img/6450a2348b298.png
+    name: FaZe Clan
+    points: 120
+    rank: 5
+  - country: United States
+    id: 533
+    logo: https://owcdn.net/img/62874ec8a2b0c.png
+    name: XSET
+    points: 90
+    rank: 6
+  - country: United States
+    id: 642
+    logo: https://owcdn.net/img/5f36ec1f4ab21.png
+    name: Luminosity
+    points: 60
+    rank: 7
+  - country: South Korea
+    id: 17
+    logo: https://owcdn.net/img/6970c986eddc6.png
+    name: Gen.G
+    points: 50
+    rank: 8
+  - country: United States
+    id: 188
+    logo: https://owcdn.net/img/628addcbd509e.png
+    name: Cloud9
+    points: 50
+    rank: 9
+  - country: United States
+    id: 637
+    logo: https://owcdn.net/img/5f3874cbd2156.png
+    name: Rise
+    points: 50
+    rank: 10
+  - country: United States
+    id: 106
+    logo: https://owcdn.net/img/60aeaad44872e.png
+    name: TSM
+    points: 40
+    rank: 11
+  - country: United States
+    id: 1034
+    logo: https://owcdn.net/img/6610f026c1a9e.png
+    name: NRG
+    points: 30
+    rank: 12
+  - country: United States
+    id: 8370
+    logo: https://owcdn.net/img/623baeabf3432.png
+    name: NYFU
+    points: 20
+    rank: 13
+  - country: United States
+    id: 103
+    logo: https://owcdn.net/img/602e1b45e079f.png
+    name: Immortals
+    points: 10
+    rank: 14
+- region: EMEA Circuit
+  teams:
+  - country: Europe
+    id: 3531
+    logo: https://owcdn.net/img/62a4157412b4f.png
+    name: Acend
+    points: 375
+    rank: 1
+  - country: Europe
+    id: 2593
+    logo: https://owcdn.net/img/62a40cc2b5e29.png
+    name: FNATIC
+    points: 350
+    rank: 2
+  - country: Europe
+    id: 257
+    logo: https://owcdn.net/img/633822848a741.png
+    name: G2 Esports
+    points: 325
+    rank: 3
+  - country: Europe
+    id: 474
+    logo: https://owcdn.net/img/640c381f0603f.png
+    name: Team Liquid
+    points: 300
+    rank: 4
+  - country: Türkiye
+    id: 4567
+    logo: https://owcdn.net/img/651ef7628e347.png
+    name: Papara SuperMassive
+    points: 225
+    rank: 5
+  - country: Russia
+    id: 8326
+    logo: https://owcdn.net/img/623a7205494a6.png
+    name: M3 Champions
+    points: 145
+    rank: 6
+  - country: Türkiye
+    id: 1184
+    logo: https://owcdn.net/img/632be9976b8fe.png
+    name: FUT Esports
+    points: 120
+    rank: 7
+  - country: Türkiye
+    id: 921
+    logo: https://owcdn.net/img/61732742e090a.png
+    name: Oxygen Esports
+    points: 120
+    rank: 8
+  - country: Sweden
+    id: 1209
+    logo: https://owcdn.net/img/6279315a0b968.png
+    name: Guild Esports
+    points: 115
+    rank: 9
+  - country: Russia
+    id: 108
+    logo: https://owcdn.net/img/5f0cb321874ec.png
+    name: forZe
+    points: 110
+    rank: 10
+  - country: Europe
+    id: 628
+    logo: https://owcdn.net/img/5feab33100c1d.png
+    name: FunPlus Phoenix
+    points: 105
+    rank: 11
+  - country: Türkiye
+    id: 397
+    logo: https://owcdn.net/img/65b8ccef5e273.png
+    name: BBL Esports
+    points: 90
+    rank: 12
+  - country: Europe
+    id: 2304
+    logo: https://owcdn.net/img/61dfcae52b0d8.png
+    name: Giants Gaming
+    points: 50
+    rank: 13
+  - country: Türkiye
+    id: 1913
+    logo: https://owcdn.net/img/604301554b8af.png
+    name: RARE Esports
+    points: 45
+    rank: 14
+  - country: Italy
+    id: 10094
+    logo: https://owcdn.net/img/639aff092a1ee.png
+    name: GMT Esports
+    points: 45
+    rank: 15
+  - country: Europe
+    id: 4915
+    logo: https://owcdn.net/img/62a4109ddbd7f.png
+    name: Natus Vincere
+    points: 30
+    rank: 16
+  - country: Türkiye
+    id: 20085
+    logo: https://owcdn.net/img/68e6e1bcca45d.png
+    name: Fire Flux Esports
+    points: 30
+    rank: 17
+  - country: Russia
+    id: 6267
+    logo: https://owcdn.net/img/61d243abe6e7f.png
+    name: One Breath Gaming
+    points: 20
+    rank: 18
+  - country: Russia
+    id: 1341
+    logo: https://owcdn.net/img/5f9c620010fec.png
+    name: Team Singularity
+    points: 20
+    rank: 19
+  - country: Türkiye
+    id: 6132
+    logo: https://owcdn.net/img/664cd7811305d.png
+    name: İstanbul Wildcats
+    points: 20
+    rank: 20
+  - country: Türkiye
+    id: 2416
+    logo: https://owcdn.net/img/60295d4841d69.png
+    name: Cyber Skull Esports
+    points: 20
+    rank: 21
+  - country: Europe
+    id: 3
+    logo: https://owcdn.net/img/62b947039ec5e.png
+    name: Ninjas in Pyjamas
+    points: 20
+    rank: 22
+  - country: France
+    id: 3908
+    logo: https://owcdn.net/img/61be14c08f001.png
+    name: Team BDS
+    points: 20
+    rank: 23
+  - country: Türkiye
+    id: 1453
+    logo: https://owcdn.net/img/5fee6347c2239.png
+    name: OtherSide
+    points: 10
+    rank: 24
+  - country: Russia
+    id: 2049
+    logo: https://owcdn.net/img/637daa87e7d50.png
+    name: Team Divinity
+    points: 10
+    rank: 25
+  - country: Russia
+    id: 488
+    logo: https://owcdn.net/img/604546fadb09d.png
+    name: tyeasy
+    points: 10
+    rank: 26
+  - country: Poland
+    id: 4750
+    logo: https://www.vlr.gg/img/vlr/tmp/vlr.png
+    name: Need4Food
+    points: 10
+    rank: 27
+  - country: Denmark
+    id: 2533
+    logo: https://owcdn.net/img/62a0d8c6cfef5.png
+    name: Alliance
+    points: 10
+    rank: 28
+  - country: Türkiye
+    id: 1675
+    logo: https://owcdn.net/img/60490613c6bd5.png
+    name: Zero Zone
+    points: 10
+    rank: 29
+- region: Brazil Circuit
+  teams:
+  - country: Brazil
+    id: 420
+    logo: https://owcdn.net/img/609c8ce618abd.png
+    name: Team Vikings
+    points: 350
+    rank: 1
+  - country: Brazil
+    id: 4894
+    logo: https://owcdn.net/img/636c7e9c014ab.png
+    name: Keyd Stars
+    points: 225
+    rank: 2
+  - country: Brazil
+    id: 3512
+    logo: https://owcdn.net/img/60443f8490b7f.png
+    name: Sharks Esports
+    points: 215
+    rank: 3
+  - country: Brazil
+    id: 581
+    logo: https://owcdn.net/img/60cecd6a853ad.png
+    name: Liberty
+    points: 210
+    rank: 4
+  - country: Brazil
+    id: 2406
+    logo: https://owcdn.net/img/632be843b7d51.png
+    name: FURIA
+    points: 145
+    rank: 5
+  - country: Brazil
+    id: 243
+    logo: https://owcdn.net/img/61b993d51442e.png
+    name: Gamelanders Blue
+    points: 135
+    rank: 6
+  - country: Brazil
+    id: 203
+    logo: https://owcdn.net/img/5f10ece309947.png
+    name: paiN Gaming
+    points: 65
+    rank: 7
+  - country: Brazil
+    id: 7013
+    logo: https://owcdn.net/img/60553b94737fa.png
+    name: Stars Horizon
+    points: 45
+    rank: 8
+  - country: Brazil
+    id: 2428
+    logo: https://owcdn.net/img/605cc279bfc1a.png
+    name: SLICK
+    points: 40
+    rank: 9
+  - country: Brazil
+    id: 1311
+    logo: https://owcdn.net/img/6014ba13ca0d0.png
+    name: Galaxy Carrots
+    points: 40
+    rank: 10
+  - country: Brazil
+    id: 1916
+    logo: https://owcdn.net/img/61e3c143b140d.png
+    name: INGAMING Esports
+    points: 25
+    rank: 11
+  - country: Brazil
+    id: 1830
+    logo: https://owcdn.net/img/5fb5ed172d759.png
+    name: Vorax
+    points: 20
+    rank: 12
+  - country: Brazil
+    id: 3290
+    logo: https://owcdn.net/img/60ce2ba9c5924.png
+    name: Extenzy Gaming
+    points: 20
+    rank: 13
+- region: Japan Circuit
+  teams:
+  - country: Japan
+    id: 277
+    logo: https://owcdn.net/img/654cc95339f53.png
+    name: Crazy Raccoon
+    points: 475
+    rank: 1
+  - country: Japan
+    id: 5448
+    logo: https://owcdn.net/img/62a411783d94d.png
+    name: ZETA DIVISION
+    points: 175
+    rank: 2
+  - country: Japan
+    id: 104
+    logo: https://owcdn.net/img/62a4139de7f7e.png
+    name: REJECT
+    points: 140
+    rank: 3
+  - country: Japan
+    id: 2988
+    logo: https://owcdn.net/img/649905216b9e3.png
+    name: NORTHEPTION
+    points: 90
+    rank: 4
+  - country: Japan
+    id: 2934
+    logo: https://owcdn.net/img/60d3986152cd4.png
+    name: FENNEL
+    points: 80
+    rank: 5
+  - country: Japan
+    id: 2987
+    logo: https://owcdn.net/img/60e16e8c196ea.png
+    name: Feeling
+    points: 45
+    rank: 6
+  - country: Japan
+    id: 513
+    logo: https://owcdn.net/img/60ea7c21e067c.png
+    name: BlackBird Ignis
+    points: 40
+    rank: 7
+  - country: Japan
+    id: 282
+    logo: https://owcdn.net/img/60693f9ee7109.png
+    name: SCARZ
+    points: 30
+    rank: 8
+  - country: Japan
+    id: 1734
+    logo: https://owcdn.net/img/5fb1d8735bf02.png
+    name: FIRST Gaming
+    points: 20
+    rank: 9
+  - country: Japan
+    id: 2108
+    logo: https://owcdn.net/img/62a4128bd26f3.png
+    name: BLUE BEES.ESP
+    points: 10
+    rank: 10
+- region: Korea Circuit
+  teams:
+  - country: South Korea
+    id: 198
+    logo: https://owcdn.net/img/6217116c87b89.png
+    name: Vision Strikers
+    points: 415
+    rank: 1
+  - country: South Korea
+    id: 2328
+    logo: https://owcdn.net/img/615425fac2c84.png
+    name: NUTURN
+    points: 410
+    rank: 2
+  - country: South Korea
+    id: 1670
+    logo: https://owcdn.net/img/613869ba6886b.png
+    name: F4Q
+    points: 245
+    rank: 3
+  - country: South Korea
+    id: 2542
+    logo: https://owcdn.net/img/601b3c37a5221.png
+    name: DAMWON Gaming
+    points: 160
+    rank: 4
+  - country: South Korea
+    id: 1970
+    logo: https://owcdn.net/img/5fcea18229911.png
+    name: TNL Esports
+    points: 75
+    rank: 5
+  - country: South Korea
+    id: 2806
+    logo: https://owcdn.net/img/61e0e1e1a2ca7.png
+    name: GoNGo Prince
+    points: 60
+    rank: 6
+  - country: South Korea
+    id: 2933
+    logo: https://www.vlr.gg/img/vlr/tmp/vlr.png
+    name: MUYAHO
+    points: 45
+    rank: 7
+  - country: South Korea
+    id: 3945
+    logo: https://owcdn.net/img/63c3ee9a80f4f.png
+    name: Rio Company
+    points: 40
+    rank: 8
+  - country: South Korea
+    id: 5355
+    logo: https://www.vlr.gg/img/vlr/tmp/vlr.png
+    name: GochuGaru
+    points: 40
+    rank: 9
+  - country: South Korea
+    id: 2554
+    logo: https://owcdn.net/img/629d978f8c5d1.png
+    name: World Game Star
+    points: 40
+    rank: 10
+  - country: South Korea
+    id: 2558
+    logo: https://www.vlr.gg/img/vlr/tmp/vlr.png
+    name: LFS
+    points: 20
+    rank: 11
+- region: Latin America Circuit
+  teams:
+  - country: Argentina
+    id: 2355
+    logo: https://owcdn.net/img/63976677069e1.png
+    name: KRÜ Esports
+    points: 495
+    rank: 1
+  - country: Mexico
+    id: 4094
+    logo: https://owcdn.net/img/660ce5b12cb5c.png
+    name: Six Karma
+    points: 200
+    rank: 2
+  - country: Chile
+    id: 719
+    logo: https://owcdn.net/img/6055063c3a691.png
+    name: Australs
+    points: 175
+    rank: 3
+  - country: Chile
+    id: 363
+    logo: https://owcdn.net/img/6394460b00078.png
+    name: INFINITY
+    points: 170
+    rank: 4
+  - country: Colombia
+    id: 724
+    logo: https://owcdn.net/img/61b99c67aebb0.png
+    name: E-Xolos LAZER
+    points: 150
+    rank: 5
+  - country: Colombia
+    id: 3322
+    logo: https://owcdn.net/img/627a0a834b5f1.png
+    name: Border Monsters
+    points: 115
+    rank: 6
+  - country: Chile
+    id: 644
+    logo: https://owcdn.net/img/5f24845da0f74.png
+    name: Wygers Argentina
+    points: 70
+    rank: 7
+  - country: Chile
+    id: 367
+    logo: https://owcdn.net/img/65e447b0c2415.png
+    name: 9z Globant
+    points: 70
+    rank: 8
+  - country: Argentina
+    id: 361
+    logo: https://owcdn.net/img/639441ed93cc5.png
+    name: Furious Gaming
+    points: 45
+    rank: 9
+  - country: Chile
+    id: 3942
+    logo: https://owcdn.net/img/5f47adf9ca9a1.png
+    name: Meta Gaming
+    points: 45
+    rank: 10
+  - country: International
+    id: 4353
+    logo: https://owcdn.net/img/60886aa413230.png
+    name: ATROPELADOS
+    points: 40
+    rank: 11
+  - country: Mexico
+    id: 1991
+    logo: https://owcdn.net/img/61da5f0488060.png
+    name: Akave Esports
+    points: 20
+    rank: 12
+  - country: Mexico
+    id: 3129
+    logo: https://owcdn.net/img/602deaccd495c.png
+    name: Reven Esports
+    points: 20
+    rank: 13
+  - country: Chile
+    id: 2358
+    logo: https://owcdn.net/img/600b1b1006759.png
+    name: Stampede Gaming
+    points: 20
+    rank: 14
+  - country: Mexico
+    id: 3125
+    logo: https://owcdn.net/img/6047126993483.png
+    name: Funkboings
+    points: 10
+    rank: 15
+  - country: Colombia
+    id: 777
+    logo: https://owcdn.net/img/5f614c5dd787c.png
+    name: Kaizen Esports
+    points: 10
+    rank: 16
+  - country: Chile
+    id: 2354
+    logo: https://owcdn.net/img/60787e6f8df4c.png
+    name: Optix
+    points: 10
+    rank: 17
+- region: Southeast Asia Circuit
+  teams:
+  - country: Singapore
+    id: 2112
+    logo: https://owcdn.net/img/62bd90e55f45a.png
+    name: X10 Esports
+    points: 295
+    rank: 1
+  - country: Philippines
+    id: 6389
+    logo: https://owcdn.net/img/613869798a53f.png
+    name: Bren Esports
+    points: 225
+    rank: 2
+  - country: Singapore
+    id: 624
+    logo: https://owcdn.net/img/62bbeba74d5cb.png
+    name: Paper Rex
+    points: 225
+    rank: 3
+  - country: Thailand
+    id: 4050
+    logo: https://owcdn.net/img/6537a7954d915.png
+    name: FULL SENSE
+    points: 140
+    rank: 4
+  - country: Indonesia
+    id: 466
+    logo: https://owcdn.net/img/629f1bdae82ab.png
+    name: BOOM Esports
+    points: 115
+    rank: 5
+  - country: Singapore
+    id: 617
+    logo: https://owcdn.net/img/6205db7e02c2a.png
+    name: Team SMG
+    points: 70
+    rank: 6
+  - country: Taiwan
+    id: 904
+    logo: https://owcdn.net/img/60eab4f47395b.png
+    name: CBT Gaming
+    points: 60
+    rank: 7
+  - country: Vietnam
+    id: 5931
+    logo: https://owcdn.net/img/622c9ef0ac739.png
+    name: Team Big BAAM
+    points: 50
+    rank: 8
+  - country: Vietnam
+    id: 4325
+    logo: https://owcdn.net/img/629f1a2f52c78.png
+    name: CERBERUS Esports
+    points: 50
+    rank: 9
+  - country: Thailand
+    id: 623
+    logo: https://owcdn.net/img/698dc40a29cda.png
+    name: Sharper Esports
+    points: 20
+    rank: 10
+  - country: Indonesia
+    id: 2032
+    logo: https://owcdn.net/img/621b04181f4b1.png
+    name: ONIC G
+    points: 20
+    rank: 11
+  - country: Singapore
+    id: 5413
+    logo: https://owcdn.net/img/60e0225b874d1.png
+    name: UwU
+    points: 20
+    rank: 12
+  - country: Vietnam
+    id: 4329
+    logo: https://owcdn.net/img/607bb72f0ae7c.png
+    name: EGO
+    points: 10
+    rank: 13
+  - country: Taiwan
+    id: 6397
+    logo: https://owcdn.net/img/65b9de7b1882b.png
+    name: Five Ace Esports
+    points: 10
+    rank: 14
+  - country: Philippines
+    id: 6262
+    logo: https://owcdn.net/img/614985375154c.png
+    name: Nigma Galaxy
+    points: 10
+    rank: 15
+  - country: Philippines
+    id: 3136
+    logo: https://owcdn.net/img/629f15187dd71.png
+    name: Oasis Gaming
+    points: 10
+    rank: 16
+  - country: Vietnam
+    id: 4324
+    logo: https://owcdn.net/img/607bb692905ea.png
+    name: FEARUS
+    points: 10
+    rank: 17
+- region: Oceania Tour
+  teams:
+  - country: Australia
+    id: 1208
+    logo: https://owcdn.net/img/62a99588164f7.png
+    name: ORDER
+    points: 285
+    rank: 1
+  - country: Australia
+    id: 1696
+    logo: https://owcdn.net/img/5fadf9cbc2b78.png
+    name: Wildcard Gaming
+    points: 205
+    rank: 2
+  - country: Australia
+    id: 591
+    logo: https://owcdn.net/img/5f2e15bde14dd.png
+    name: Mindfreak
+    points: 170
+    rank: 3
+  - country: Australia
+    id: 6126
+    logo: https://owcdn.net/img/5f8f909e71815.png
+    name: Legacy Esports
+    points: 130
+    rank: 4
+  - country: Australia
+    id: 1323
+    logo: https://owcdn.net/img/5faf8fdb3bf70.png
+    name: Nebula
+    points: 85
+    rank: 5
+  - country: Australia
+    id: 4963
+    logo: https://owcdn.net/img/60d3967260467.png
+    name: PEACE
+    points: 85
+    rank: 6
+  - country: Australia
+    id: 4468
+    logo: https://www.vlr.gg/img/vlr/tmp/vlr.png
+    name: McBTSMac
+    points: 70
+    rank: 7
+  - country: Australia
+    id: 1352
+    logo: https://owcdn.net/img/60b70f18a25f2.png
+    name: Dire Wolves
+    points: 60
+    rank: 8
+  - country: Australia
+    id: 4036
+    logo: https://owcdn.net/img/6072b875eda3e.png
+    name: Team Bliss
+    points: 60
+    rank: 9
+  - country: Australia
+    id: 1319
+    logo: https://owcdn.net/img/5fba3c30b5887.png
+    name: Funcrew
+    points: 55
+    rank: 10
+  - country: Australia
+    id: 2826
+    logo: https://owcdn.net/img/5a870c58146c7.png
+    name: Kanga Esports
+    points: 30
+    rank: 11
+  - country: Australia
+    id: 435
+    logo: https://www.vlr.gg/img/vlr/tmp/vlr.png
+    name: OverPalaStrike
+    points: 30
+    rank: 12
+  - country: Australia
+    id: 6047
+    logo: https://owcdn.net/img/6114e24b3911c.png
+    name: VERTEX
+    points: 30
+    rank: 13
+year: 2021

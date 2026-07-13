@@ -1,0 +1,887 @@
+dates: May 11 – Jul 26, 2026
+id: '2974'
+img: https://owcdn.net/img/6964a9e385d88.png
+location: jp
+matches:
+- date: '2026-05-11'
+  id: '673178'
+  round: Day 1
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: REJECT
+    region: jp
+    score: 2
+  - name: PARON
+    region: jp
+    score: 0
+  time: '13:00:00'
+- date: '2026-05-11'
+  id: '673179'
+  round: Day 1
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: ALESTAR
+    region: jp
+    score: 0
+  - name: AGELITE
+    region: jp
+    score: 2
+  time: '13:00:00'
+- date: '2026-05-11'
+  id: '673180'
+  round: Day 1
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: SCARZ
+    region: jp
+    score: 2
+  - name: REIGNITE FOXX
+    region: jp
+    score: 0
+  time: '13:00:00'
+- date: '2026-05-11'
+  id: '673181'
+  round: Day 1
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: RIDDLE ORDER
+    region: jp
+    score: 2
+  - name: Kirihana Academy
+    region: jp
+    score: 0
+  time: '13:00:00'
+- date: '2026-05-11'
+  id: '673182'
+  round: Day 1
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: IGZIST
+    region: jp
+    score: 2
+  - name: Murash Gaming
+    region: jp
+    score: 0
+  time: '13:00:00'
+- date: '2026-05-11'
+  id: '673183'
+  round: Day 1
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: KING GUY
+    region: jp
+    score: 1
+  - name: WEC C
+    region: jp
+    score: 2
+  time: '13:00:00'
+- date: '2026-05-12'
+  id: '673187'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: REJECT
+    region: jp
+    score: 2
+  - name: ALESTAR
+    region: jp
+    score: 0
+  time: '13:00:00'
+- date: '2026-05-12'
+  id: '673188'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: AGELITE
+    region: jp
+    score: 2
+  - name: SCARZ
+    region: jp
+    score: 1
+  time: '13:00:00'
+- date: '2026-05-12'
+  id: '673189'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: REIGNITE FOXX
+    region: jp
+    score: 1
+  - name: PARON
+    region: jp
+    score: 2
+  time: '13:00:00'
+- date: '2026-05-12'
+  id: '673190'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: RIDDLE ORDER
+    region: jp
+    score: 2
+  - name: IGZIST
+    region: jp
+    score: 0
+  time: '13:00:00'
+- date: '2026-05-12'
+  id: '673191'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: Murash Gaming
+    region: jp
+    score: 2
+  - name: KING GUY
+    region: jp
+    score: 0
+  time: '13:00:00'
+- date: '2026-05-12'
+  id: '673192'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: WEC C
+    region: jp
+    score: 1
+  - name: Kirihana Academy
+    region: jp
+    score: 2
+  time: '13:00:00'
+- date: '2026-05-12'
+  id: '673193'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: REJECT
+    region: jp
+    score: 2
+  - name: AGELITE
+    region: jp
+    score: 1
+  time: '16:00:00'
+- date: '2026-05-12'
+  id: '673194'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: ALESTAR
+    region: jp
+    score: 0
+  - name: REIGNITE FOXX
+    region: jp
+    score: 2
+  time: '16:00:00'
+- date: '2026-05-12'
+  id: '673195'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: SCARZ
+    region: jp
+    score: 2
+  - name: PARON
+    region: jp
+    score: 0
+  time: '16:00:00'
+- date: '2026-05-12'
+  id: '673196'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: RIDDLE ORDER
+    region: jp
+    score: 1
+  - name: Murash Gaming
+    region: jp
+    score: 2
+  time: '16:00:00'
+- date: '2026-05-12'
+  id: '673197'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: IGZIST
+    region: jp
+    score: 2
+  - name: WEC C
+    region: jp
+    score: 1
+  time: '16:00:00'
+- date: '2026-05-12'
+  id: '673198'
+  round: Day 2
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: KING GUY
+    region: jp
+    score: 0
+  - name: Kirihana Academy
+    region: jp
+    score: 2
+  time: '16:00:00'
+- date: '2026-05-13'
+  id: '673205'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: REJECT
+    region: jp
+    score: 2
+  - name: SCARZ
+    region: jp
+    score: 0
+  time: '13:00:00'
+- date: '2026-05-13'
+  id: '673206'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: ALESTAR
+    region: jp
+    score: 2
+  - name: PARON
+    region: jp
+    score: 0
+  time: '13:00:00'
+- date: '2026-05-13'
+  id: '673207'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: AGELITE
+    region: jp
+    score: 2
+  - name: REIGNITE FOXX
+    region: jp
+    score: 0
+  time: '13:00:00'
+- date: '2026-05-13'
+  id: '673211'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: RIDDLE ORDER
+    region: jp
+    score: 2
+  - name: KING GUY
+    region: jp
+    score: 1
+  time: '13:00:00'
+- date: '2026-05-13'
+  id: '673212'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: IGZIST
+    region: jp
+    score: 2
+  - name: Kirihana Academy
+    region: jp
+    score: 0
+  time: '13:00:00'
+- date: '2026-05-13'
+  id: '673213'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: Murash Gaming
+    region: jp
+    score: 1
+  - name: WEC C
+    region: jp
+    score: 2
+  time: '13:00:00'
+- date: '2026-05-13'
+  id: '673209'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: ALESTAR
+    region: jp
+    score: 1
+  - name: SCARZ
+    region: jp
+    score: 2
+  time: '14:45:00'
+- date: '2026-05-13'
+  id: '673208'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: REJECT
+    region: jp
+    score: 2
+  - name: REIGNITE FOXX
+    region: jp
+    score: 0
+  time: '15:25:00'
+- date: '2026-05-13'
+  id: '673210'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: AGELITE
+    region: jp
+    score: 2
+  - name: PARON
+    region: jp
+    score: 1
+  time: '15:25:00'
+- date: '2026-05-13'
+  id: '673214'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: RIDDLE ORDER
+    region: jp
+    score: 2
+  - name: WEC C
+    region: jp
+    score: 0
+  time: '16:00:00'
+- date: '2026-05-13'
+  id: '673215'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: IGZIST
+    region: jp
+    score: 0
+  - name: KING GUY
+    region: jp
+    score: 2
+  time: '16:00:00'
+- date: '2026-05-13'
+  id: '673216'
+  round: Day 3
+  stage: Advance Stage
+  status: completed
+  teams:
+  - name: Murash Gaming
+    region: jp
+    score: 2
+  - name: Kirihana Academy
+    region: jp
+    score: 0
+  time: '16:00:00'
+- date: '2026-05-23'
+  id: '681780'
+  round: Week 1
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: CREST GAMING Zst
+    region: jp
+    score: 2
+  - name: IGZIST
+    region: jp
+    score: 0
+  time: '12:30:00'
+- date: '2026-05-23'
+  id: '681781'
+  round: Week 1
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: AGELITE
+    region: jp
+    score: 0
+  - name: FENNEL
+    region: jp
+    score: 2
+  time: '15:15:00'
+- date: '2026-05-24'
+  id: '681782'
+  round: Week 1
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: QT DIG∞
+    region: jp
+    score: 2
+  - name: RIDDLE ORDER
+    region: jp
+    score: 1
+  time: '12:30:00'
+- date: '2026-05-24'
+  id: '681783'
+  round: Week 1
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: Insomnia
+    region: jp
+    score: 1
+  - name: REJECT
+    region: jp
+    score: 2
+  time: '16:00:00'
+- date: '2026-05-25'
+  id: '681784'
+  round: Week 1
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: CREST GAMING Zst
+    region: jp
+    score: 1
+  - name: FENNEL
+    region: jp
+    score: 2
+  time: '12:30:00'
+- date: '2026-05-25'
+  id: '681785'
+  round: Week 1
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: IGZIST
+    region: jp
+    score: 1
+  - name: RIDDLE ORDER
+    region: jp
+    score: 2
+  time: '15:30:00'
+- date: '2026-05-29'
+  id: '681786'
+  round: Week 2
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: AGELITE
+    region: jp
+    score: 0
+  - name: REJECT
+    region: jp
+    score: 2
+  time: '12:30:00'
+- date: '2026-05-29'
+  id: '681787'
+  round: Week 2
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: QT DIG∞
+    region: jp
+    score: 2
+  - name: Insomnia
+    region: jp
+    score: 0
+  time: '15:30:00'
+- date: '2026-05-30'
+  id: '681788'
+  round: Week 2
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: FENNEL
+    region: jp
+    score: 0
+  - name: REJECT
+    region: jp
+    score: 2
+  time: '12:30:00'
+- date: '2026-05-30'
+  id: '681789'
+  round: Week 2
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: CREST GAMING Zst
+    region: jp
+    score: 1
+  - name: RIDDLE ORDER
+    region: jp
+    score: 2
+  time: '15:15:00'
+- date: '2026-05-31'
+  id: '681790'
+  round: Week 2
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: IGZIST
+    region: jp
+    score: 2
+  - name: Insomnia
+    region: jp
+    score: 1
+  time: '12:30:00'
+- date: '2026-05-31'
+  id: '681791'
+  round: Week 2
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: AGELITE
+    region: jp
+    score: 0
+  - name: QT DIG∞
+    region: jp
+    score: 2
+  time: '15:30:00'
+- date: '2026-06-03'
+  id: '681792'
+  round: Week 3
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: RIDDLE ORDER
+    region: jp
+    score: 1
+  - name: Insomnia
+    region: jp
+    score: 2
+  time: '12:30:00'
+- date: '2026-06-03'
+  id: '681793'
+  round: Week 3
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: CREST GAMING Zst
+    region: jp
+    score: 0
+  - name: REJECT
+    region: jp
+    score: 2
+  time: '16:10:00'
+- date: '2026-06-04'
+  id: '681794'
+  round: Week 3
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: FENNEL
+    region: jp
+    score: 0
+  - name: QT DIG∞
+    region: jp
+    score: 2
+  time: '12:30:00'
+- date: '2026-06-04'
+  id: '681795'
+  round: Week 3
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: IGZIST
+    region: jp
+    score: 2
+  - name: AGELITE
+    region: jp
+    score: 0
+  time: '15:30:00'
+- date: '2026-06-23'
+  id: '681796'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: REJECT
+    region: jp
+    score: 2
+  - name: QT DIG∞
+    region: jp
+    score: 0
+  time: '12:30:00'
+- date: '2026-06-23'
+  id: '681797'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: CREST GAMING Zst
+    region: jp
+    score: 2
+  - name: Insomnia
+    region: jp
+    score: 0
+  time: '15:15:00'
+- date: '2026-06-24'
+  id: '681798'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: RIDDLE ORDER
+    region: jp
+    score: 2
+  - name: AGELITE
+    region: jp
+    score: 1
+  time: '12:30:00'
+- date: '2026-06-24'
+  id: '681799'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: FENNEL
+    region: jp
+    score: 2
+  - name: IGZIST
+    region: jp
+    score: 0
+  time: '16:00:00'
+- date: '2026-06-25'
+  id: '681800'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: CREST GAMING Zst
+    region: jp
+    score: 2
+  - name: QT DIG∞
+    region: jp
+    score: 0
+  time: '12:30:00'
+- date: '2026-06-25'
+  id: '681801'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: Insomnia
+    region: jp
+    score: 1
+  - name: AGELITE
+    region: jp
+    score: 2
+  time: '15:30:00'
+- date: '2026-06-26'
+  id: '681802'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: REJECT
+    region: jp
+    score: 2
+  - name: IGZIST
+    region: jp
+    score: 0
+  time: '12:30:00'
+- date: '2026-06-26'
+  id: '681803'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: RIDDLE ORDER
+    region: jp
+    score: 2
+  - name: FENNEL
+    region: jp
+    score: 0
+  time: '15:30:00'
+- date: '2026-06-27'
+  id: '681804'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: CREST GAMING Zst
+    region: jp
+    score: 2
+  - name: AGELITE
+    region: jp
+    score: 0
+  time: '12:30:00'
+- date: '2026-06-27'
+  id: '681805'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: QT DIG∞
+    region: jp
+    score: 2
+  - name: IGZIST
+    region: jp
+    score: 1
+  time: '15:30:00'
+- date: '2026-06-28'
+  id: '681806'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: Insomnia
+    region: jp
+    score: 0
+  - name: FENNEL
+    region: jp
+    score: 2
+  time: '12:30:00'
+- date: '2026-06-28'
+  id: '681807'
+  round: Week 4
+  stage: Main Stage
+  status: completed
+  teams:
+  - name: REJECT
+    region: jp
+    score: 2
+  - name: RIDDLE ORDER
+    region: jp
+    score: 0
+  time: '15:30:00'
+prize: ¥3,600,000 JPY~ $22,633
+prizes:
+- position: ''
+  prize: REJECTJapanSpoiler hidden
+  team: null
+- position: ''
+  prize: QT DIG∞JapanSpoiler hidden
+  team: null
+- position: ''
+  prize: RIDDLE ORDERJapanSpoiler hidden
+  team: null
+standings:
+- country: Japan
+  group: null
+  logo: https://owcdn.net/img/62a4139de7f7e.png
+  losses: 7
+  map_difference: 0
+  round_delta: 0
+  round_difference: 0
+  team: REJECT
+  ties: 0
+  wins: 0
+- country: Japan
+  group: null
+  logo: https://owcdn.net/img/67f4e2e7b3802.png
+  losses: 5
+  map_difference: 0
+  round_delta: 0
+  round_difference: 0
+  team: QT DIG∞
+  ties: 2
+  wins: 0
+- country: Japan
+  group: null
+  logo: https://owcdn.net/img/6569a81625295.png
+  losses: 4
+  map_difference: 0
+  round_delta: 0
+  round_difference: 0
+  team: RIDDLE ORDER
+  ties: 3
+  wins: 0
+- country: Japan
+  group: null
+  logo: https://owcdn.net/img/60d3986152cd4.png
+  losses: 4
+  map_difference: 0
+  round_delta: 0
+  round_difference: 0
+  team: FENNEL
+  ties: 3
+  wins: 0
+- country: Japan
+  group: null
+  logo: https://owcdn.net/img/63a33a790ae62.png
+  losses: 4
+  map_difference: 0
+  round_delta: 0
+  round_difference: 0
+  team: CREST GAMING Zst
+  ties: 3
+  wins: 0
+- country: Japan
+  group: null
+  logo: https://owcdn.net/img/61b3107a6a139.png
+  losses: 2
+  map_difference: 0
+  round_delta: 0
+  round_difference: 0
+  team: IGZIST
+  ties: 5
+  wins: 0
+- country: Japan
+  group: null
+  logo: https://owcdn.net/img/698354a79aa30.png
+  losses: 1
+  map_difference: 0
+  round_delta: 0
+  round_difference: 0
+  team: AGELITE
+  ties: 6
+  wins: 0
+- country: Japan
+  group: null
+  logo: https://owcdn.net/img/6a1be9015b7b5.png
+  losses: 1
+  map_difference: 0
+  round_delta: 0
+  round_difference: 0
+  team: Insomnia
+  ties: 6
+  wins: 0
+status: completed
+subtitle: Part of the Valorant Champions Tour, Riot's official 2026 tournament circuit.
+teams:
+- id: '294'
+  img: https://owcdn.net/img/63a33a790ae62.png
+  name: CREST GAMING Zst
+  seed: Split 1 (#1)
+- id: '2934'
+  img: https://owcdn.net/img/60d3986152cd4.png
+  name: FENNEL
+  seed: Split 1 (#2)
+- id: '5148'
+  img: https://owcdn.net/img/6a1be9015b7b5.png
+  name: Insomnia
+  seed: Split 1 (#3)
+- id: '18299'
+  img: https://owcdn.net/img/67f4e2e7b3802.png
+  name: QT DIG∞
+  seed: Split 1 (#4)
+- id: '104'
+  img: https://owcdn.net/img/62a4139de7f7e.png
+  name: REJECT
+  seed: 'Advance Stage: Group A (#1)'
+- id: '21338'
+  img: https://owcdn.net/img/698354a79aa30.png
+  name: AGELITE
+  seed: 'Advance Stage: Group A (#2)'
+- id: '14375'
+  img: https://owcdn.net/img/6569a81625295.png
+  name: RIDDLE ORDER
+  seed: 'Advance Stage: Group B (#1)'
+- id: '6869'
+  img: https://owcdn.net/img/61b3107a6a139.png
+  name: IGZIST
+  seed: 'Advance Stage: Group B (#2)'
+title: 'Challengers 2026: Japan Split 2'

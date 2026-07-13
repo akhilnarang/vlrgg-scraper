@@ -1,0 +1,1531 @@
+bans:
+- NRG ban Haven
+- NRG ban Bind
+- NRG pick Corrode
+- FNC pick Lotus
+- NRG pick Abyss
+- FNC pick Ascent
+- Sunset remains
+data:
+- map: Corrode
+  members:
+  - acs: 375
+    adr: 212
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/sova.png
+      title: Sova
+    assists: 2
+    deaths: 7
+    first_deaths: 1
+    first_kills: 1
+    first_kills_diff: 0
+    headshot_percent: 19
+    id: '2172'
+    kast: 94
+    kills: 24
+    name: brawk
+    rating: 1.93
+    team: NRG
+  - acs: 295
+    adr: 169
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/waylay.png
+      title: Waylay
+    assists: 6
+    deaths: 10
+    first_deaths: 3
+    first_kills: 6
+    first_kills_diff: 3
+    headshot_percent: 19
+    id: '5132'
+    kast: 81
+    kills: 17
+    name: mada
+    rating: 1.41
+    team: NRG
+  - acs: 178
+    adr: 121
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/kayo.png
+      title: Kayo
+    assists: 4
+    deaths: 7
+    first_deaths: 1
+    first_kills: 2
+    first_kills_diff: 1
+    headshot_percent: 37
+    id: '11225'
+    kast: 75
+    kills: 11
+    name: Ethan
+    rating: 1.22
+    team: NRG
+  - acs: 190
+    adr: 116
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 10
+    deaths: 8
+    first_deaths: 0
+    first_kills: 1
+    first_kills_diff: 1
+    headshot_percent: 19
+    id: '4164'
+    kast: 88
+    kills: 10
+    name: s0m
+    rating: 1.11
+    team: NRG
+  - acs: 162
+    adr: 116
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/viper.png
+      title: Viper
+    assists: 4
+    deaths: 8
+    first_deaths: 1
+    first_kills: 0
+    first_kills_diff: -1
+    headshot_percent: 24
+    id: '11118'
+    kast: 94
+    kills: 10
+    name: skuba
+    rating: 0.98
+    team: NRG
+  - acs: 184
+    adr: 128
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/yoru.png
+      title: Yoru
+    assists: 0
+    deaths: 13
+    first_deaths: 1
+    first_kills: 1
+    first_kills_diff: 0
+    headshot_percent: 59
+    id: '9554'
+    kast: 56
+    kills: 11
+    name: kaajak
+    rating: 1.03
+    team: FNATIC
+  - acs: 168
+    adr: 114
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/fade.png
+      title: Fade
+    assists: 6
+    deaths: 13
+    first_deaths: 4
+    first_kills: 1
+    first_kills_diff: -3
+    headshot_percent: 23
+    id: '4'
+    kast: 63
+    kills: 9
+    name: crashies
+    rating: 0.75
+    team: FNATIC
+  - acs: 112
+    adr: 74
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/viper.png
+      title: Viper
+    assists: 3
+    deaths: 15
+    first_deaths: 1
+    first_kills: 1
+    first_kills_diff: 0
+    headshot_percent: 32
+    id: '458'
+    kast: 38
+    kills: 6
+    name: Chronicle
+    rating: 0.54
+    team: FNATIC
+  - acs: 121
+    adr: 73
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/astra.png
+      title: Astra
+    assists: 4
+    deaths: 15
+    first_deaths: 2
+    first_kills: 2
+    first_kills_diff: 0
+    headshot_percent: 9
+    id: '438'
+    kast: 56
+    kills: 6
+    name: Boaster
+    rating: 0.44
+    team: FNATIC
+  - acs: 144
+    adr: 102
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/vyse.png
+      title: Vyse
+    assists: 2
+    deaths: 16
+    first_deaths: 2
+    first_kills: 1
+    first_kills_diff: -1
+    headshot_percent: 45
+    id: '9810'
+    kast: 50
+    kills: 8
+    name: Alfajer
+    rating: 0.41
+    team: FNATIC
+  rounds:
+  - round_number: 1
+    round_score: 0-1
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 2
+    round_score: 0-2
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 3
+    round_score: 1-2
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 4
+    round_score: 2-2
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 5
+    round_score: 3-2
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 6
+    round_score: 4-2
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 7
+    round_score: 5-2
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 8
+    round_score: 6-2
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 9
+    round_score: 7-2
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 10
+    round_score: 8-2
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 11
+    round_score: 8-3
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 12
+    round_score: 9-3
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 13
+    round_score: 10-3
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 14
+    round_score: 11-3
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 15
+    round_score: 12-3
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 16
+    round_score: 13-3
+    side: attack
+    win_type: Elimination
+    winner: team1
+  teams:
+  - name: NRG
+    score: 13
+  - name: FNATIC
+    score: 3
+- map: Lotus
+  members:
+  - acs: 275
+    adr: 170
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/raze.png
+      title: Raze
+    assists: 4
+    deaths: 13
+    first_deaths: 4
+    first_kills: 5
+    first_kills_diff: 1
+    headshot_percent: 40
+    id: '5132'
+    kast: 79
+    kills: 20
+    name: mada
+    rating: 1.27
+    team: NRG
+  - acs: 175
+    adr: 103
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/viper.png
+      title: Viper
+    assists: 4
+    deaths: 9
+    first_deaths: 2
+    first_kills: 1
+    first_kills_diff: -1
+    headshot_percent: 39
+    id: '11118'
+    kast: 84
+    kills: 13
+    name: skuba
+    rating: 1.2
+    team: NRG
+  - acs: 203
+    adr: 117
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/vyse.png
+      title: Vyse
+    assists: 8
+    deaths: 13
+    first_deaths: 2
+    first_kills: 1
+    first_kills_diff: -1
+    headshot_percent: 8
+    id: '2172'
+    kast: 74
+    kills: 14
+    name: brawk
+    rating: 1.04
+    team: NRG
+  - acs: 158
+    adr: 93
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/fade.png
+      title: Fade
+    assists: 4
+    deaths: 12
+    first_deaths: 0
+    first_kills: 0
+    first_kills_diff: 0
+    headshot_percent: 19
+    id: '11225'
+    kast: 74
+    kills: 13
+    name: Ethan
+    rating: 0.89
+    team: NRG
+  - acs: 160
+    adr: 101
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 6
+    deaths: 13
+    first_deaths: 2
+    first_kills: 2
+    first_kills_diff: 0
+    headshot_percent: 15
+    id: '4164'
+    kast: 68
+    kills: 10
+    name: s0m
+    rating: 0.88
+    team: NRG
+  - acs: 313
+    adr: 198
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/raze.png
+      title: Raze
+    assists: 4
+    deaths: 15
+    first_deaths: 4
+    first_kills: 6
+    first_kills_diff: 2
+    headshot_percent: 38
+    id: '9554'
+    kast: 79
+    kills: 21
+    name: kaajak
+    rating: 1.34
+    team: FNATIC
+  - acs: 186
+    adr: 131
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/viper.png
+      title: Viper
+    assists: 5
+    deaths: 12
+    first_deaths: 2
+    first_kills: 1
+    first_kills_diff: -1
+    headshot_percent: 30
+    id: '458'
+    kast: 58
+    kills: 12
+    name: Chronicle
+    rating: 1.05
+    team: FNATIC
+  - acs: 173
+    adr: 117
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/killjoy.png
+      title: Killjoy
+    assists: 1
+    deaths: 13
+    first_deaths: 1
+    first_kills: 1
+    first_kills_diff: 0
+    headshot_percent: 27
+    id: '9810'
+    kast: 58
+    kills: 11
+    name: Alfajer
+    rating: 0.88
+    team: FNATIC
+  - acs: 163
+    adr: 110
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 7
+    deaths: 14
+    first_deaths: 0
+    first_kills: 1
+    first_kills_diff: 1
+    headshot_percent: 12
+    id: '438'
+    kast: 79
+    kills: 9
+    name: Boaster
+    rating: 0.82
+    team: FNATIC
+  - acs: 107
+    adr: 78
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/fade.png
+      title: Fade
+    assists: 7
+    deaths: 16
+    first_deaths: 2
+    first_kills: 1
+    first_kills_diff: -1
+    headshot_percent: 28
+    id: '4'
+    kast: 58
+    kills: 7
+    name: crashies
+    rating: 0.49
+    team: FNATIC
+  rounds:
+  - round_number: 1
+    round_score: 1-0
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 2
+    round_score: 2-0
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 3
+    round_score: 3-0
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 4
+    round_score: 3-1
+    side: defense
+    win_type: Elimination
+    winner: team2
+  - round_number: 5
+    round_score: 4-1
+    side: attack
+    win_type: Spike exploded
+    winner: team1
+  - round_number: 6
+    round_score: 5-1
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 7
+    round_score: 6-1
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 8
+    round_score: 7-1
+    side: attack
+    win_type: Spike exploded
+    winner: team1
+  - round_number: 9
+    round_score: 8-1
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 10
+    round_score: 8-2
+    side: defense
+    win_type: Elimination
+    winner: team2
+  - round_number: 11
+    round_score: 9-2
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 12
+    round_score: 9-3
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 13
+    round_score: 9-4
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 14
+    round_score: 9-5
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 15
+    round_score: 10-5
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 16
+    round_score: 11-5
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 17
+    round_score: 12-5
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 18
+    round_score: 12-6
+    side: attack
+    win_type: Spike exploded
+    winner: team2
+  - round_number: 19
+    round_score: 13-6
+    side: defense
+    win_type: Time out
+    winner: team1
+  teams:
+  - name: NRG
+    score: 13
+  - name: FNATIC
+    score: 6
+- map: Abyss
+  members:
+  - acs: 216
+    adr: 131
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/vyse.png
+      title: Vyse
+    assists: 4
+    deaths: 15
+    first_deaths: 2
+    first_kills: 3
+    first_kills_diff: 1
+    headshot_percent: 32
+    id: '11118'
+    kast: 75
+    kills: 22
+    name: skuba
+    rating: 1.2
+    team: NRG
+  - acs: 222
+    adr: 151
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/sova.png
+      title: Sova
+    assists: 9
+    deaths: 17
+    first_deaths: 1
+    first_kills: 3
+    first_kills_diff: 2
+    headshot_percent: 26
+    id: '2172'
+    kast: 71
+    kills: 20
+    name: brawk
+    rating: 1.18
+    team: NRG
+  - acs: 183
+    adr: 118
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 10
+    deaths: 16
+    first_deaths: 2
+    first_kills: 1
+    first_kills_diff: -1
+    headshot_percent: 25
+    id: '11225'
+    kast: 71
+    kills: 17
+    name: Ethan
+    rating: 1.0
+    team: NRG
+  - acs: 153
+    adr: 113
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/yoru.png
+      title: Yoru
+    assists: 3
+    deaths: 18
+    first_deaths: 5
+    first_kills: 5
+    first_kills_diff: 0
+    headshot_percent: 41
+    id: '5132'
+    kast: 64
+    kills: 15
+    name: mada
+    rating: 0.82
+    team: NRG
+  - acs: 129
+    adr: 87
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/harbor.png
+      title: Harbor
+    assists: 5
+    deaths: 22
+    first_deaths: 6
+    first_kills: 0
+    first_kills_diff: -6
+    headshot_percent: 28
+    id: '4164'
+    kast: 64
+    kills: 13
+    name: s0m
+    rating: 0.53
+    team: NRG
+  - acs: 221
+    adr: 139
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/sova.png
+      title: Sova
+    assists: 7
+    deaths: 15
+    first_deaths: 3
+    first_kills: 3
+    first_kills_diff: 0
+    headshot_percent: 29
+    id: '4'
+    kast: 61
+    kills: 22
+    name: crashies
+    rating: 1.38
+    team: FNATIC
+  - acs: 247
+    adr: 160
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/waylay.png
+      title: Waylay
+    assists: 4
+    deaths: 19
+    first_deaths: 4
+    first_kills: 7
+    first_kills_diff: 3
+    headshot_percent: 30
+    id: '9554'
+    kast: 64
+    kills: 24
+    name: kaajak
+    rating: 1.12
+    team: FNATIC
+  - acs: 167
+    adr: 117
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/breach.png
+      title: Breach
+    assists: 8
+    deaths: 19
+    first_deaths: 1
+    first_kills: 2
+    first_kills_diff: 1
+    headshot_percent: 27
+    id: '458'
+    kast: 61
+    kills: 17
+    name: Chronicle
+    rating: 0.91
+    team: FNATIC
+  - acs: 136
+    adr: 87
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/cypher.png
+      title: Cypher
+    assists: 5
+    deaths: 17
+    first_deaths: 2
+    first_kills: 3
+    first_kills_diff: 1
+    headshot_percent: 18
+    id: '9810'
+    kast: 61
+    kills: 14
+    name: Alfajer
+    rating: 0.86
+    team: FNATIC
+  - acs: 130
+    adr: 87
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/astra.png
+      title: Astra
+    assists: 10
+    deaths: 17
+    first_deaths: 2
+    first_kills: 1
+    first_kills_diff: -1
+    headshot_percent: 28
+    id: '438'
+    kast: 71
+    kills: 11
+    name: Boaster
+    rating: 0.85
+    team: FNATIC
+  rounds:
+  - round_number: 1
+    round_score: 1-0
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 2
+    round_score: 2-0
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 3
+    round_score: 3-0
+    side: defense
+    win_type: Time out
+    winner: team1
+  - round_number: 4
+    round_score: 3-1
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 5
+    round_score: 4-1
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 6
+    round_score: 5-1
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 7
+    round_score: 6-1
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 8
+    round_score: 7-1
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 9
+    round_score: 8-1
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 10
+    round_score: 9-1
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 11
+    round_score: 10-1
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 12
+    round_score: 11-1
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 13
+    round_score: 11-2
+    side: defense
+    win_type: Elimination
+    winner: team2
+  - round_number: 14
+    round_score: 11-3
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 15
+    round_score: 11-4
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 16
+    round_score: 11-5
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 17
+    round_score: 11-6
+    side: defense
+    win_type: Time out
+    winner: team2
+  - round_number: 18
+    round_score: 12-6
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 19
+    round_score: 12-7
+    side: defense
+    win_type: Elimination
+    winner: team2
+  - round_number: 20
+    round_score: 12-8
+    side: defense
+    win_type: Elimination
+    winner: team2
+  - round_number: 21
+    round_score: 12-9
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 22
+    round_score: 12-10
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 23
+    round_score: 12-11
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 24
+    round_score: 12-12
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 25
+    round_score: 12-13
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 26
+    round_score: 13-13
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 27
+    round_score: 13-14
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 28
+    round_score: 13-15
+    side: defense
+    win_type: Elimination
+    winner: team2
+  teams:
+  - name: NRG
+    score: 13
+  - name: FNATIC
+    score: 15
+- map: Ascent
+  members:
+  - acs: 218
+    adr: 140
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/sova.png
+      title: Sova
+    assists: 10
+    deaths: 13
+    first_deaths: 1
+    first_kills: 2
+    first_kills_diff: 1
+    headshot_percent: 26
+    id: '2172'
+    kast: 76
+    kills: 15
+    name: brawk
+    rating: 1.22
+    team: NRG
+  - acs: 246
+    adr: 146
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 7
+    deaths: 18
+    first_deaths: 2
+    first_kills: 4
+    first_kills_diff: 2
+    headshot_percent: 25
+    id: '4164'
+    kast: 76
+    kills: 17
+    name: s0m
+    rating: 1.0
+    team: NRG
+  - acs: 164
+    adr: 96
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/kayo.png
+      title: Kayo
+    assists: 8
+    deaths: 15
+    first_deaths: 4
+    first_kills: 0
+    first_kills_diff: -4
+    headshot_percent: 14
+    id: '11225'
+    kast: 71
+    kills: 13
+    name: Ethan
+    rating: 0.91
+    team: NRG
+  - acs: 204
+    adr: 119
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/vyse.png
+      title: Vyse
+    assists: 2
+    deaths: 19
+    first_deaths: 1
+    first_kills: 2
+    first_kills_diff: 1
+    headshot_percent: 29
+    id: '11118'
+    kast: 71
+    kills: 16
+    name: skuba
+    rating: 0.81
+    team: NRG
+  - acs: 145
+    adr: 94
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/jett.png
+      title: Jett
+    assists: 4
+    deaths: 14
+    first_deaths: 4
+    first_kills: 1
+    first_kills_diff: -3
+    headshot_percent: 16
+    id: '5132'
+    kast: 62
+    kills: 10
+    name: mada
+    rating: 0.8
+    team: NRG
+  - acs: 299
+    adr: 200
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/sage.png
+      title: Sage
+    assists: 4
+    deaths: 14
+    first_deaths: 1
+    first_kills: 5
+    first_kills_diff: 4
+    headshot_percent: 46
+    id: '9810'
+    kast: 76
+    kills: 23
+    name: Alfajer
+    rating: 1.44
+    team: FNATIC
+  - acs: 222
+    adr: 138
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/yoru.png
+      title: Yoru
+    assists: 4
+    deaths: 13
+    first_deaths: 2
+    first_kills: 6
+    first_kills_diff: 4
+    headshot_percent: 40
+    id: '9554'
+    kast: 71
+    kills: 18
+    name: kaajak
+    rating: 1.18
+    team: FNATIC
+  - acs: 202
+    adr: 137
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/sova.png
+      title: Sova
+    assists: 10
+    deaths: 16
+    first_deaths: 2
+    first_kills: 1
+    first_kills_diff: -1
+    headshot_percent: 23
+    id: '4'
+    kast: 76
+    kills: 14
+    name: crashies
+    rating: 1.04
+    team: FNATIC
+  - acs: 221
+    adr: 137
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/vyse.png
+      title: Vyse
+    assists: 7
+    deaths: 16
+    first_deaths: 2
+    first_kills: 0
+    first_kills_diff: -2
+    headshot_percent: 21
+    id: '458'
+    kast: 71
+    kills: 18
+    name: Chronicle
+    rating: 0.98
+    team: FNATIC
+  - acs: 103
+    adr: 76
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 9
+    deaths: 12
+    first_deaths: 2
+    first_kills: 0
+    first_kills_diff: -2
+    headshot_percent: 17
+    id: '438'
+    kast: 76
+    kills: 6
+    name: Boaster
+    rating: 0.66
+    team: FNATIC
+  rounds:
+  - round_number: 1
+    round_score: 1-0
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 2
+    round_score: 2-0
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 3
+    round_score: 3-0
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 4
+    round_score: 3-1
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 5
+    round_score: 3-2
+    side: attack
+    win_type: Spike exploded
+    winner: team2
+  - round_number: 6
+    round_score: 3-3
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 7
+    round_score: 3-4
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 8
+    round_score: 3-5
+    side: attack
+    win_type: Spike exploded
+    winner: team2
+  - round_number: 9
+    round_score: 3-6
+    side: attack
+    win_type: Spike exploded
+    winner: team2
+  - round_number: 10
+    round_score: 4-6
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 11
+    round_score: 4-7
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 12
+    round_score: 4-8
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 13
+    round_score: 4-9
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 14
+    round_score: 4-10
+    side: defense
+    win_type: Elimination
+    winner: team2
+  - round_number: 15
+    round_score: 5-10
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 16
+    round_score: 5-11
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 17
+    round_score: 6-11
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 18
+    round_score: 7-11
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 19
+    round_score: 8-11
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 20
+    round_score: 8-12
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 21
+    round_score: 8-13
+    side: defense
+    win_type: Time out
+    winner: team2
+  teams:
+  - name: NRG
+    score: 8
+  - name: FNATIC
+    score: 13
+- map: Sunset
+  members:
+  - acs: 355
+    adr: 223
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/breach.png
+      title: Breach
+    assists: 9
+    deaths: 12
+    first_deaths: 2
+    first_kills: 2
+    first_kills_diff: 0
+    headshot_percent: 27
+    id: '11225'
+    kast: 83
+    kills: 23
+    name: Ethan
+    rating: 1.71
+    team: NRG
+  - acs: 201
+    adr: 140
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/cypher.png
+      title: Cypher
+    assists: 2
+    deaths: 9
+    first_deaths: 0
+    first_kills: 3
+    first_kills_diff: 3
+    headshot_percent: 18
+    id: '11118'
+    kast: 83
+    kills: 15
+    name: skuba
+    rating: 1.19
+    team: NRG
+  - acs: 203
+    adr: 145
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/sova.png
+      title: Sova
+    assists: 11
+    deaths: 11
+    first_deaths: 0
+    first_kills: 0
+    first_kills_diff: 0
+    headshot_percent: 31
+    id: '2172'
+    kast: 100
+    kills: 11
+    name: brawk
+    rating: 1.12
+    team: NRG
+  - acs: 160
+    adr: 103
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 9
+    deaths: 12
+    first_deaths: 2
+    first_kills: 2
+    first_kills_diff: 0
+    headshot_percent: 17
+    id: '4164'
+    kast: 83
+    kills: 13
+    name: s0m
+    rating: 1.0
+    team: NRG
+  - acs: 191
+    adr: 126
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/neon.png
+      title: Neon
+    assists: 5
+    deaths: 14
+    first_deaths: 3
+    first_kills: 4
+    first_kills_diff: 1
+    headshot_percent: 26
+    id: '5132'
+    kast: 67
+    kills: 12
+    name: mada
+    rating: 0.74
+    team: NRG
+  - acs: 227
+    adr: 152
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/yoru.png
+      title: Yoru
+    assists: 2
+    deaths: 15
+    first_deaths: 1
+    first_kills: 3
+    first_kills_diff: 2
+    headshot_percent: 27
+    id: '9554'
+    kast: 67
+    kills: 16
+    name: kaajak
+    rating: 1.12
+    team: FNATIC
+  - acs: 253
+    adr: 160
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/neon.png
+      title: Neon
+    assists: 5
+    deaths: 15
+    first_deaths: 4
+    first_kills: 3
+    first_kills_diff: -1
+    headshot_percent: 19
+    id: '9810'
+    kast: 72
+    kills: 16
+    name: Alfajer
+    rating: 1.04
+    team: FNATIC
+  - acs: 197
+    adr: 131
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/cypher.png
+      title: Cypher
+    assists: 5
+    deaths: 15
+    first_deaths: 3
+    first_kills: 1
+    first_kills_diff: -2
+    headshot_percent: 24
+    id: '458'
+    kast: 78
+    kills: 13
+    name: Chronicle
+    rating: 1.0
+    team: FNATIC
+  - acs: 141
+    adr: 98
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/fade.png
+      title: Fade
+    assists: 6
+    deaths: 14
+    first_deaths: 3
+    first_kills: 0
+    first_kills_diff: -3
+    headshot_percent: 40
+    id: '4'
+    kast: 72
+    kills: 7
+    name: crashies
+    rating: 0.57
+    team: FNATIC
+  - acs: 113
+    adr: 65
+    agents:
+    - img: https://www.vlr.gg/img/vlr/game/agents/omen.png
+      title: Omen
+    assists: 9
+    deaths: 15
+    first_deaths: 0
+    first_kills: 0
+    first_kills_diff: 0
+    headshot_percent: 10
+    id: '438'
+    kast: 61
+    kills: 6
+    name: Boaster
+    rating: 0.49
+    team: FNATIC
+  rounds:
+  - round_number: 1
+    round_score: 0-1
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 2
+    round_score: 0-2
+    side: defense
+    win_type: Elimination
+    winner: team2
+  - round_number: 3
+    round_score: 1-2
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 4
+    round_score: 2-2
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 5
+    round_score: 3-2
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 6
+    round_score: 4-2
+    side: attack
+    win_type: Spike exploded
+    winner: team1
+  - round_number: 7
+    round_score: 5-2
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 8
+    round_score: 6-2
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 9
+    round_score: 7-2
+    side: attack
+    win_type: Elimination
+    winner: team1
+  - round_number: 10
+    round_score: 7-3
+    side: defense
+    win_type: Defused
+    winner: team2
+  - round_number: 11
+    round_score: 8-3
+    side: attack
+    win_type: Spike exploded
+    winner: team1
+  - round_number: 12
+    round_score: 9-3
+    side: attack
+    win_type: Spike exploded
+    winner: team1
+  - round_number: 13
+    round_score: 9-4
+    side: attack
+    win_type: Elimination
+    winner: team2
+  - round_number: 14
+    round_score: 9-5
+    side: attack
+    win_type: Spike exploded
+    winner: team2
+  - round_number: 15
+    round_score: 10-5
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 16
+    round_score: 11-5
+    side: defense
+    win_type: Defused
+    winner: team1
+  - round_number: 17
+    round_score: 12-5
+    side: defense
+    win_type: Elimination
+    winner: team1
+  - round_number: 18
+    round_score: 13-5
+    side: defense
+    win_type: Defused
+    winner: team1
+  teams:
+  - name: NRG
+    score: 13
+  - name: FNATIC
+    score: 5
+event:
+  date: '2025-10-05T16:30:00Z'
+  id: '2283'
+  img: https://owcdn.net/img/63067806d167d.png
+  patch: null
+  series: Valorant Champions 2025
+  stage: 'Playoffs: Grand Final'
+  status: final
+map_count: 5
+previous_encounters:
+- match_id: '542270'
+  teams:
+  - name: NRG
+    score: 2
+  - name: FNATIC
+    score: 0
+- match_id: '220442'
+  teams:
+  - name: NRG
+    score: 0
+  - name: FNATIC
+    score: 2
+teams:
+- id: '1034'
+  img: https://owcdn.net/img/6610f026c1a9e.png
+  name: NRG
+  score: 3
+- id: '2593'
+  img: https://owcdn.net/img/62a40cc2b5e29.png
+  name: FNATIC
+  score: 2
+videos:
+  streams:
+  - name: Valorant
+    url: https://www.twitch.tv/valorant
+  - name: Valorant Brazil
+    url: https://www.twitch.tv/valorant_br
+  - name: Valorant LATAM
+    url: https://www.twitch.tv/valorant_la
+  - name: Valorant FR
+    url: https://www.twitch.tv/valorant_fr
+  - name: Valorant Spain
+    url: https://www.twitch.tv/valorant_es
+  - name: Valorant TR
+    url: https://www.twitch.tv/valorant_tur
+  - name: Esports Finland
+    url: https://www.twitch.tv/esportsfinland
+  - name: Valorant ID
+    url: https://www.twitch.tv/valorant_id
+  - name: Valorant Japan
+    url: https://www.twitch.tv/valorant_jpn
+  - name: Valorant PH
+    url: https://www.twitch.tv/valorant_ph
+  - name: Valorant TW
+    url: https://www.twitch.tv/valorant_tw
+  - name: Valorant TH
+    url: https://www.twitch.tv/valorant_th
+  - name: Valorant Esports CN
+    url: https://www.twitch.tv/valorantesports_cn
+  - name: Maincast
+    url: https://www.twitch.tv/valorant_maincast
+  - name: hitpointcz
+    url: https://www.twitch.tv/hitpointcz2
+  - name: VCT (YT)
+    url: https://www.youtube.com/@ValorantEsports/live
+  - name: VAL Esports BR (YT)
+    url: https://www.youtube.com/@valesportsbr/live
+  - name: VAL Esports LA (YT)
+    url: https://www.youtube.com/@VALORANTEsportsLA/live
+  - name: VCL FR (YT)
+    url: https://www.youtube.com/@valorantchallengersfr/live
+  - name: Valorant Spain (YT)
+    url: https://www.youtube.com/@VALORANTes/live
+  - name: Valorant TR (YT)
+    url: https://www.youtube.com/@VALORANTtr/live
+  - name: VAL Esports ID (YT)
+    url: https://www.youtube.com/@VALORANTEsportsIndonesia/live
+  - name: Valorant INSA (YT)
+    url: https://www.youtube.com/@VALORANTinsa/live
+  - name: Valorant Japan (YT)
+    url: https://www.youtube.com/@VALORANTjp/live
+  - name: VAL Esports KR (YT)
+    url: https://www.youtube.com/@ValorantEsportsKR/live
+  - name: VAL Esports PH (YT)
+    url: https://www.youtube.com/@VALORANTEsportsPH/live
+  - name: VAL Esports TW (YT)
+    url: https://www.youtube.com/@VALORANTEsportsTW/live
+  - name: VAL Esports TH (YT)
+    url: https://www.youtube.com/@VALORANTEsportsTH/live
+  - name: VCT Vietnam (YT)
+    url: https://www.youtube.com/@VALORANTChampionsTourVietnam/live
+  - name: Valorant (SOOP)
+    url: https://play.sooplive.co.kr/valoranten
+  - name: Valorant ID (SOOP)
+    url: https://play.sooplive.co.kr/valorantid
+  - name: Valorant KR (SOOP)
+    url: https://play.sooplive.co.kr/valorant
+  - name: Valorant TH (SOOP)
+    url: https://play.sooplive.co.kr/valorantth
+  - name: Valorant VN (ONLive)
+    url: https://play.onlive.vn/valorant
+  - name: Valorant KR (CHZZK)
+    url: https://chzzk.naver.com/live/4e10683fd32d6fb6d38924cb9bf483a3
+  - name: VCT (Bilibili)
+    url: https://live.bilibili.com/22908869
+  - name: VCT (Douyu)
+    url: https://www.douyu.com/602
+  - name: VCT (Huya)
+    url: https://www.huya.com/660679
+  vods:
+  - name: Full Match
+    url: https://www.twitch.tv/videos/2583785366?t=2h14m17s
+  - name: Map 1
+    url: https://youtu.be/WPm6FMkZ3Qo?t=132
+  - name: Map 2
+    url: https://youtu.be/mprs8anB6mQ?t=128
+  - name: Map 3
+    url: https://youtu.be/vuSp2mbOaGQ?t=136
+  - name: Map 4
+    url: https://youtu.be/NvegnTMDSkQ?t=128
+  - name: Map 5
+    url: https://youtu.be/ax9WdIO7wtg?si=AX4j8Za8wG2rvrTE&t=135

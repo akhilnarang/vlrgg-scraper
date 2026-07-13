@@ -281,6 +281,152 @@ def test_parse_event_standings_with_logo_first_column_fixture():
     assert all(standing["team"] != "Spoiler hidden" for standing in result)
 
 
+def test_parse_prizes_from_current_prize_distribution_grid():
+    html = """
+    <html><body>
+      <div class="wf-label mod-large">Prize Distribution</div>
+      <div class="wf-card mod-dark">
+        <div class="wf-ptable wf-ptable--standings" role="table">
+          <div class="row" role="row">
+            <div class="cell" role="cell">Place</div>
+            <div class="cell" role="cell">Prize</div>
+            <div class="cell" role="cell">Team</div>
+            <div class="cell" role="cell">Note</div>
+          </div>
+          <div class="row" role="row">
+            <div class="cell" role="cell">1<sup>st</sup></div>
+            <div class="cell" role="cell">¥800,000</div>
+            <div class="cell" role="cell">
+              <a href="/team/104/reject">
+                <img src="//owcdn.net/img/62a4139de7f7e.png">
+                <div>REJECT</div>
+                <div class="ge-text-light">Japan</div>
+              </a>
+            </div>
+            <div class="cell" role="cell">Season Finals</div>
+          </div>
+          <div class="row" role="row">
+            <div class="cell" role="cell">2<sup>nd</sup></div>
+            <div class="cell" role="cell">¥700,000</div>
+            <div class="cell" role="cell">
+              <a href="/team/18299/qt-dig">
+                <img src="//owcdn.net/img/67f4e2e7b3802.png">
+                <div>QT DIG∞</div>
+                <div class="ge-text-light">Japan</div>
+              </a>
+            </div>
+            <div class="cell" role="cell">Season Finals</div>
+          </div>
+        </div>
+      </div>
+      <table class="wf-table">
+        <tbody>
+          <tr><td></td><td>REJECT<div>Spoiler hidden</div></td><td>7</td></tr>
+        </tbody>
+      </table>
+    </body></html>
+    """
+
+    result = events.parse_prizes(BeautifulSoup(html, "lxml"))
+
+    assert result == [
+        {
+            "position": "1st",
+            "prize": "¥800,000",
+            "team": {
+                "name": "REJECT",
+                "id": "104",
+                "country": "Japan",
+                "img": "https://owcdn.net/img/62a4139de7f7e.png",
+            },
+        },
+        {
+            "position": "2nd",
+            "prize": "¥700,000",
+            "team": {
+                "name": "QT DIG∞",
+                "id": "18299",
+                "country": "Japan",
+                "img": "https://owcdn.net/img/67f4e2e7b3802.png",
+            },
+        },
+    ]
+
+
+def test_parse_prize_team_preserves_name_that_matches_country():
+    html = """
+    <div role="cell">
+      <a href="/team/22522/argentina">
+        <img src="//owcdn.net/img/6a3b649ed96b4.png">
+        <div class="text-of">
+          Argentina
+          <div class="ge-text-light">Argentina</div>
+        </div>
+      </a>
+    </div>
+    """
+
+    team_cell = BeautifulSoup(html, "lxml").find("div", attrs={"role": "cell"})
+
+    assert events.parse_prize_team(team_cell) == {
+        "name": "Argentina",
+        "id": "22522",
+        "country": "Argentina",
+        "img": "https://owcdn.net/img/6a3b649ed96b4.png",
+    }
+
+
+def test_parse_prizes_from_legacy_table_before_unrelated_grid():
+    html = """
+    <html><body>
+      <div class="wf-label mod-large">Prize Distribution</div>
+      <table class="wf-table">
+        <tbody>
+          <tr>
+            <td>1st</td>
+            <td>$10,000</td>
+            <td>
+              <a href="/team/104/reject">
+                <img src="//owcdn.net/img/62a4139de7f7e.png">
+                <div class="standing-item-team-name">REJECT</div>
+                <div class="ge-text-light">Japan</div>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="wf-label mod-large">Other Section</div>
+      <div class="wf-ptable" role="table">
+        <div class="row" role="row">
+          <div class="cell" role="cell">Place</div>
+          <div class="cell" role="cell">Prize</div>
+          <div class="cell" role="cell">Team</div>
+        </div>
+        <div class="row" role="row">
+          <div class="cell" role="cell">9th</div>
+          <div class="cell" role="cell">Wrong</div>
+          <div class="cell" role="cell">Wrong</div>
+        </div>
+      </div>
+    </body></html>
+    """
+
+    result = events.parse_prizes(BeautifulSoup(html, "lxml"))
+
+    assert result == [
+        {
+            "position": "1st",
+            "prize": "$10,000",
+            "team": {
+                "name": "REJECT",
+                "id": "104",
+                "country": "Japan",
+                "img": "https://owcdn.net/img/62a4139de7f7e.png",
+            },
+        }
+    ]
+
+
 @pytest.mark.asyncio
 async def test_get_events_default_single_page():
     mock_redis = AsyncMock()

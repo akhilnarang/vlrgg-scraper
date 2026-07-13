@@ -1,5 +1,6 @@
 import asyncio
 import http
+import re
 
 import dateutil.parser
 from bs4 import BeautifulSoup, Tag
@@ -15,6 +16,33 @@ from app.utils import expand_url, fix_datetime_tz, get_image_url
 # VLR returns 30 news cards per page. When fetching "all" pages we request them in
 # batches of this size and stop as soon as a page yields no cards.
 NEWS_PAGE_BATCH_SIZE = 5
+
+
+def _collapse_link_quote_padding(text: str) -> str:
+    result = []
+    last_end = 0
+    for match in re.finditer(r"\s+({{link_\d+}})\s+", text):
+        prev_char = text[match.start() - 1] if match.start() > 0 else ""
+        next_char = text[match.end()] if match.end() < len(text) else ""
+        is_quoted_link = (prev_char == next_char == '"') or (prev_char == "“" and next_char == "”")
+        if not is_quoted_link:
+            continue
+
+        result.append(text[last_end : match.start()])
+        result.append(match.group(1))
+        last_end = match.end()
+
+    if not result:
+        return text
+
+    result.append(text[last_end:])
+    return "".join(result)
+
+
+def normalize_article_text(text: str) -> str:
+    text = re.sub(r'\s+([.,;:!?])', r'\1', text)
+    text = re.sub(r"({{link_\d+}})\s+(['’]s)\b", r"\1\2", text)
+    return _collapse_link_quote_padding(text)
 
 
 def extract_text_and_links(element: Tag, counter: int) -> tuple[str, list[dict[str, str]], int]:
@@ -49,8 +77,7 @@ def extract_text_and_links(element: Tag, counter: int) -> tuple[str, list[dict[s
                 t = " ".join(child.get_text().strip().split())
                 if t:
                     text_parts.append(t)
-    full_text = " ".join(text_parts)
-    return full_text, local_links, counter
+    return normalize_article_text(" ".join(text_parts)), local_links, counter
 
 
 def news_url(page: int) -> str:

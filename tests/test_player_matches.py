@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from bs4 import BeautifulSoup
 
 import app.constants as constants
 from app import schemas
@@ -11,6 +12,42 @@ from app.constants import MAX_PAGINATION_PAGES
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 PLAYER_ID = "45"
+
+
+def test_parse_agent_data_with_combined_first_kill_death_ratio():
+    html = """
+    <tr>
+      <td><img alt="sage" src="/img/vlr/game/agents/sage.png"></td>
+      <td>(131) 38%</td><td>2709</td><td>1.15</td><td>226.0</td><td>1.28</td>
+      <td>74%</td><td>139.9</td><td>0.81</td><td>0.31</td><td>1.98</td>
+      <td>2202</td><td>1719</td><td>847</td><td>293</td><td>148</td>
+    </tr>
+    """
+    cells = BeautifulSoup(html, "lxml").find("tr").find_all("td")
+
+    result = player.parse_agent_data(cells)
+
+    assert result == {
+        "name": "sage",
+        "img": "https://www.vlr.gg/img/vlr/game/agents/sage.png",
+        "count": "131",
+        "percent": "38",
+        "rounds": 2709,
+        "rating": 1.15,
+        "acs": 226.0,
+        "kd": 1.28,
+        "adr": 139.9,
+        "kast": 74,
+        "kpr": 0.81,
+        "apr": 0.31,
+        "fkpr": 0.11,
+        "fdpr": 0.05,
+        "k": 2202,
+        "d": 1719,
+        "a": 847,
+        "fk": 293,
+        "fd": 148,
+    }
 
 
 def _mock_response(url: str, content: bytes) -> AsyncMock:

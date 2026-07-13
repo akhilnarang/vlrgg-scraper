@@ -2,6 +2,8 @@ import pytest
 from unittest.mock import AsyncMock, patch
 from pathlib import Path
 
+from bs4 import BeautifulSoup, Tag
+
 import app.constants as constants
 from app.services import news
 
@@ -14,6 +16,40 @@ def _mock_response(url: str, content: bytes) -> AsyncMock:
     response.content = content
     response.url = url
     return response
+
+
+def test_normalize_article_text_collapses_only_wrapped_link_quote_padding():
+    assert news.normalize_article_text('Tang " {{link_2}} " Shijun') == 'Tang "{{link_2}}" Shijun'
+    assert news.normalize_article_text('Tang “ {{link_2}} ” Shijun') == 'Tang “{{link_2}}” Shijun'
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ('He said "hi" {{link_0}}', 'He said "hi" {{link_0}}'),
+        ('{{link_0}} "duelist"', '{{link_0}} "duelist"'),
+        ('before " {{link_0}} after', 'before " {{link_0}} after'),
+        ('before {{link_0}} " after', 'before {{link_0}} " after'),
+    ],
+)
+def test_normalize_article_text_preserves_non_wrapper_quote_spacing(raw: str, expected: str):
+    assert news.normalize_article_text(raw) == expected
+
+
+@pytest.mark.parametrize("apostrophe", ["'", "’"])
+def test_extract_text_and_links_preserves_linked_possessive(apostrophe: str):
+    soup = BeautifulSoup(
+        f'<p><span><a href="/team/6392/eternal-fire">Eternal Fire</a></span>{apostrophe}s full roster</p>',
+        "lxml",
+    )
+    element = soup.find("p")
+    assert isinstance(element, Tag)
+
+    text, links, counter = news.extract_text_and_links(element, 0)
+
+    assert text == f"{{{{link_0}}}}{apostrophe}s full roster"
+    assert links == [{"text": "Eternal Fire", "url": "https://www.vlr.gg/team/6392/eternal-fire"}]
+    assert counter == 1
 
 
 def _build_mock_get():
@@ -182,6 +218,10 @@ async def test_news_by_id_562934():
     assert result.title == "EDward Gaming bids farewell to head coach Muggle"
     assert isinstance(result.content, str)
     assert "Muggle" in result.content
+    assert 'Tang "{{link_2}}" Shijun' in result.content
+    assert '" {{link_2}} "' not in result.content
+    assert "}} ." not in result.content
+    assert "}} ," not in result.content
     assert isinstance(result.links, list)
     assert len(result.links) == 21
     assert isinstance(result.images, list)

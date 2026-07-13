@@ -2,10 +2,66 @@ from unittest.mock import AsyncMock, patch
 from pathlib import Path
 
 import pytest
+from bs4 import BeautifulSoup
 
 import app.constants as constants
 from app.constants import MAX_PAGINATION_PAGES
 from app.services import matches
+
+
+def test_parse_div_based_overview_scoreboard():
+    html = """
+    <div class="vm-stats-game">
+      <div class="ovw-row mod-head"></div>
+      <div class="ovw-row">
+        <div class="ovw-cell mod-player">
+          <div class="ovw-player">
+            <a href="/player/2114/kinguyen">
+              <div class="ovw-player-name">Kinguyen</div>
+              <div class="ovw-player-tag">ky5</div>
+            </a>
+          </div>
+          <div class="ovw-agents">
+            <img src="/img/vlr/game/agents/raze.png" title="Raze">
+          </div>
+        </div>
+        <div data-col="rating2"><span class="side mod-both">1.42</span></div>
+        <div data-col="acs"><span class="side mod-both">346</span></div>
+        <div data-col="kills"><span class="side mod-both">29</span></div>
+        <div data-col="deaths"><span class="side mod-both">13</span></div>
+        <div data-col="assists"><span class="side mod-both">3</span></div>
+        <div data-col="kast"><span class="side mod-both">74%</span></div>
+        <div data-col="adr"><span class="side mod-both">188</span></div>
+        <div data-col="hsp"><span class="side mod-both">22%</span></div>
+        <div data-col="fb"><span class="side mod-both">5</span></div>
+        <div data-col="fd"><span class="side mod-both">3</span></div>
+        <div data-col="fk-diff"><span class="side mod-both">+2</span></div>
+      </div>
+    </div>
+    """
+    scoreboard = BeautifulSoup(html, "lxml").select_one("div.vm-stats-game")
+
+    result = matches.parse_overview_scoreboard(scoreboard, {"ky5": "keepYOURskill"})
+
+    assert result == [
+        {
+            "id": "2114",
+            "name": "Kinguyen",
+            "team": "keepYOURskill",
+            "agents": [{"title": "Raze", "img": "https://www.vlr.gg/img/vlr/game/agents/raze.png"}],
+            "rating": 1.42,
+            "acs": 346,
+            "kills": 29,
+            "deaths": 13,
+            "assists": 3,
+            "kast": 74,
+            "adr": 188,
+            "headshot_percent": 22,
+            "first_kills": 5,
+            "first_deaths": 3,
+            "first_kills_diff": 2,
+        }
+    ]
 
 
 @pytest.mark.asyncio
