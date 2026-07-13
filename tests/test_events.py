@@ -353,6 +353,29 @@ def test_parse_prizes_from_current_prize_distribution_grid():
     ]
 
 
+def test_parse_prize_team_preserves_name_that_matches_country():
+    html = """
+    <div role="cell">
+      <a href="/team/22522/argentina">
+        <img src="//owcdn.net/img/6a3b649ed96b4.png">
+        <div class="text-of">
+          Argentina
+          <div class="ge-text-light">Argentina</div>
+        </div>
+      </a>
+    </div>
+    """
+
+    team_cell = BeautifulSoup(html, "lxml").find("div", attrs={"role": "cell"})
+
+    assert events.parse_prize_team(team_cell) == {
+        "name": "Argentina",
+        "id": "22522",
+        "country": "Argentina",
+        "img": "https://owcdn.net/img/6a3b649ed96b4.png",
+    }
+
+
 def test_parse_prizes_from_legacy_table_before_unrelated_grid():
     html = """
     <html><body>

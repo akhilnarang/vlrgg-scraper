@@ -433,7 +433,7 @@ def parse_prize_team(team_cell: Tag) -> dict[str, str] | None:
 
     country = clean_string(country_tag.get_text()) if (country_tag := team_anchor.find(class_="ge-text-light")) else ""
     text_values = [clean_string(value) for value in team_anchor.stripped_strings]
-    text_values = [value for value in text_values if value and value != country]
+    text_values = [value for value in text_values if value]
     if not text_values:
         return None
 
