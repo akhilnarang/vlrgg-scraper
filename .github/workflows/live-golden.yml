@@ -12,7 +12,7 @@ jobs:
     env:
       REDIS_HOST: localhost
       REDIS_PASSWORD: ""
-      TIMEZONE: Asia/Kolkata
+      TIMEZONE: UTC
       ENABLE_CACHE: "false"
       ENABLE_ID_MAP_DB: "false"
 

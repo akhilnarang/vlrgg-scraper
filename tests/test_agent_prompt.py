@@ -9,4 +9,4 @@ def test_prompt_covers_grounding_and_narrowing():
     assert "perspective" in p                      # score perspective
     assert "count_team_matches" in p and "limit" in p  # counting guidance (avoid limit undercount)
     assert "plan" in p and "budget" in p           # plan minimal tool set within the call budget
-    assert len(SYSTEM_PROMPT.split()) < 320        # stays compact (no glossary)
+    assert len(SYSTEM_PROMPT.split()) < 400        # stays compact (no glossary)

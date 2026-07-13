@@ -6,7 +6,7 @@ agents:
   count: 131
   d: 1719
   fd: 148
-  fdpr: 0.09
+  fdpr: 0.05
   fk: 293
   fkpr: 0.11
   img: https://www.vlr.gg/img/vlr/game/agents/sage.png

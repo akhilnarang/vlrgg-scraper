@@ -290,16 +290,13 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
                     }
                 )
 
-        map_ret.append(
-            {
-                "map": maps.get(match_map_id),
-                "teams": teams,
-                "members": list(
-                    chain(*(parse_scoreboard(element, team_name_mapping) for element in map_data.find_all("tbody")))
-                ),
-                "rounds": rounds,
-            }
+        scoreboards = map_data.find_all("tbody")
+        members = (
+            list(chain(*(parse_scoreboard(element, team_name_mapping) for element in scoreboards)))
+            if scoreboards
+            else parse_overview_scoreboard(map_data, team_name_mapping)
         )
+        map_ret.append({"map": maps.get(match_map_id), "teams": teams, "members": members, "rounds": rounds})
     return map_ret, map_count
 
 
@@ -333,6 +330,49 @@ def parse_scoreboard(data: Tag, team_name_mapping: dict[str, str]) -> list:
                 "first_kills": clean_number_string(stats[9].find("span", class_="side mod-both").get_text()),
                 "first_deaths": clean_number_string(stats[10].find("span", class_="side mod-both").get_text().strip()),
                 "first_kills_diff": clean_number_string(stats[11].find("span", class_="mod-both").get_text().strip()),
+            }
+        )
+    return ret
+
+
+def parse_overview_scoreboard(data: Tag, team_name_mapping: dict[str, str]) -> list:
+    """Parse VLR's div-based overview scoreboard layout."""
+
+    def overall_stat(row: Tag, column: str) -> int | float:
+        if (cell := row.find(attrs={"data-col": column})) and (value := cell.select_one("span.side.mod-both")):
+            return clean_number_string(value.get_text())
+        return 0
+
+    ret = []
+    for player in data.select("div.ovw-row:not(.mod-head)"):
+        if not (player_data := player.select_one("div.ovw-cell.mod-player")):
+            continue
+
+        player_id = ""
+        if (player_link := player_data.find("a")) and (href := player_link.get("href")):
+            player_id = get_href(href).split("/")[-2]
+
+        team_name_short = clean_string(player_data.select_one("div.ovw-player-tag").get_text())
+        ret.append(
+            {
+                "id": player_id,
+                "name": clean_string(player_data.select_one("div.ovw-player-name").get_text()),
+                "team": team_name_mapping.get(team_name_short, team_name_short),
+                "agents": [
+                    {"title": agent["title"], "img": get_image_url(agent["src"])}
+                    for agent in player_data.select("div.ovw-agents img")
+                ],
+                "rating": overall_stat(player, "rating2"),
+                "acs": overall_stat(player, "acs"),
+                "kills": overall_stat(player, "kills"),
+                "deaths": overall_stat(player, "deaths"),
+                "assists": overall_stat(player, "assists"),
+                "kast": overall_stat(player, "kast"),
+                "adr": overall_stat(player, "adr"),
+                "headshot_percent": overall_stat(player, "hsp"),
+                "first_kills": overall_stat(player, "fb"),
+                "first_deaths": overall_stat(player, "fd"),
+                "first_kills_diff": overall_stat(player, "fk-diff"),
             }
         )
     return ret
