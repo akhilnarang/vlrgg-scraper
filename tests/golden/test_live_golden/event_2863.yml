@@ -3,7 +3,7 @@ id: '2863'
 img: https://owcdn.net/img/65ab59620a233.png
 location: Riot Games Arena, Berlin
 matches:
-- date: '2026-04-01'
+- date: <date>
   id: '644709'
   round: Week 1
   stage: Group Stage
@@ -15,8 +15,8 @@ matches:
   - name: Eternal Fire
     region: tr
     score: 1
-  time: '20:30:00'
-- date: '2026-04-02'
+  time: <time>
+- date: <date>
   id: '644710'
   round: Week 1
   stage: Group Stage
@@ -28,8 +28,8 @@ matches:
   - name: Karmine Corp
     region: eu
     score: 0
-  time: 00:05:00
-- date: '2026-04-02'
+  time: <time>
+- date: <date>
   id: '644711'
   round: Week 1
   stage: Group Stage
@@ -41,8 +41,8 @@ matches:
   - name: GIANTX
     region: eu
     score: 0
-  time: '20:30:00'
-- date: '2026-04-02'
+  time: <time>
+- date: <date>
   id: '644712'
   round: Week 1
   stage: Group Stage
@@ -54,8 +54,8 @@ matches:
   - name: FUT Esports
     region: tr
     score: 2
-  time: '22:35:00'
-- date: '2026-04-03'
+  time: <time>
+- date: <date>
   id: '644713'
   round: Week 1
   stage: Group Stage
@@ -67,8 +67,8 @@ matches:
   - name: Natus Vincere
     region: eu
     score: 2
-  time: '20:30:00'
-- date: '2026-04-04'
+  time: <time>
+- date: <date>
   id: '644714'
   round: Week 1
   stage: Group Stage
@@ -80,8 +80,8 @@ matches:
   - name: PCIFIC Esports
     region: tr
     score: 0
-  time: 00:25:00
-- date: '2026-04-08'
+  time: <time>
+- date: <date>
   id: '644716'
   round: Week 2
   stage: Group Stage
@@ -93,8 +93,8 @@ matches:
   - name: GIANTX
     region: eu
     score: 2
-  time: '20:30:00'
-- date: '2026-04-08'
+  time: <time>
+- date: <date>
   id: '644717'
   round: Week 2
   stage: Group Stage
@@ -106,8 +106,8 @@ matches:
   - name: Eternal Fire
     region: tr
     score: 2
-  time: '23:55:00'
-- date: '2026-04-09'
+  time: <time>
+- date: <date>
   id: '644718'
   round: Week 2
   stage: Group Stage
@@ -119,8 +119,8 @@ matches:
   - name: Team Vitality
     region: eu
     score: 0
-  time: '20:30:00'
-- date: '2026-04-09'
+  time: <time>
+- date: <date>
   id: '644719'
   round: Week 2
   stage: Group Stage
@@ -132,8 +132,8 @@ matches:
   - name: Team Heretics
     region: eu
     score: 0
-  time: '23:00:00'
-- date: '2026-04-10'
+  time: <time>
+- date: <date>
   id: '644720'
   round: Week 2
   stage: Group Stage
@@ -145,8 +145,8 @@ matches:
   - name: Natus Vincere
     region: eu
     score: 1
-  time: '20:30:00'
-- date: '2026-04-10'
+  time: <time>
+- date: <date>
   id: '644721'
   round: Week 2
   stage: Group Stage
@@ -158,8 +158,8 @@ matches:
   - name: Karmine Corp
     region: eu
     score: 1
-  time: '23:50:00'
-- date: '2026-04-15'
+  time: <time>
+- date: <date>
   id: '644722'
   round: Week 3
   stage: Group Stage
@@ -171,8 +171,8 @@ matches:
   - name: GIANTX
     region: eu
     score: 2
-  time: '20:30:00'
-- date: '2026-04-15'
+  time: <time>
+- date: <date>
   id: '644723'
   round: Week 3
   stage: Group Stage
@@ -184,8 +184,8 @@ matches:
   - name: Natus Vincere
     region: eu
     score: 0
-  time: '23:50:00'
-- date: '2026-04-16'
+  time: <time>
+- date: <date>
   id: '644724'
   round: Week 3
   stage: Group Stage
@@ -197,8 +197,8 @@ matches:
   - name: Team Vitality
     region: eu
     score: 0
-  time: '20:30:00'
-- date: '2026-04-16'
+  time: <time>
+- date: <date>
   id: '644725'
   round: Week 3
   stage: Group Stage
@@ -210,8 +210,8 @@ matches:
   - name: Team Heretics
     region: eu
     score: 2
-  time: '23:00:00'
-- date: '2026-04-17'
+  time: <time>
+- date: <date>
   id: '644726'
   round: Week 3
   stage: Group Stage
@@ -223,8 +223,8 @@ matches:
   - name: Team Liquid
     region: eu
     score: 0
-  time: '20:30:00'
-- date: '2026-04-17'
+  time: <time>
+- date: <date>
   id: '644727'
   round: Week 3
   stage: Group Stage
@@ -236,8 +236,8 @@ matches:
   - name: FNATIC
     region: eu
     score: 2
-  time: '23:10:00'
-- date: '2026-04-22'
+  time: <time>
+- date: <date>
   id: '644728'
   round: Week 4
   stage: Group Stage
@@ -249,8 +249,8 @@ matches:
   - name: PCIFIC Esports
     region: tr
     score: 1
-  time: '20:30:00'
-- date: '2026-04-22'
+  time: <time>
+- date: <date>
   id: '644729'
   round: Week 4
   stage: Group Stage
@@ -262,8 +262,8 @@ matches:
   - name: Team Liquid
     region: eu
     score: 2
-  time: '23:40:00'
-- date: '2026-04-23'
+  time: <time>
+- date: <date>
   id: '644730'
   round: Week 4
   stage: Group Stage
@@ -275,8 +275,8 @@ matches:
   - name: FNATIC
     region: eu
     score: 2
-  time: '20:30:00'
-- date: '2026-04-23'
+  time: <time>
+- date: <date>
   id: '644731'
   round: Week 4
   stage: Group Stage
@@ -288,8 +288,8 @@ matches:
   - name: FUT Esports
     region: tr
     score: 2
-  time: '23:30:00'
-- date: '2026-04-24'
+  time: <time>
+- date: <date>
   id: '644732'
   round: Week 4
   stage: Group Stage
@@ -301,8 +301,8 @@ matches:
   - name: Team Heretics
     region: eu
     score: 2
-  time: '20:30:00'
-- date: '2026-04-24'
+  time: <time>
+- date: <date>
   id: '644733'
   round: Week 4
   stage: Group Stage
@@ -314,8 +314,8 @@ matches:
   - name: Team Vitality
     region: eu
     score: 1
-  time: '22:40:00'
-- date: '2026-04-29'
+  time: <time>
+- date: <date>
   id: '644734'
   round: Week 5
   stage: Group Stage
@@ -327,8 +327,8 @@ matches:
   - name: FUT Esports
     region: tr
     score: 0
-  time: '20:30:00'
-- date: '2026-04-29'
+  time: <time>
+- date: <date>
   id: '644735'
   round: Week 5
   stage: Group Stage
@@ -340,8 +340,8 @@ matches:
   - name: PCIFIC Esports
     region: tr
     score: 0
-  time: '22:40:00'
-- date: '2026-04-30'
+  time: <time>
+- date: <date>
   id: '644736'
   round: Week 5
   stage: Group Stage
@@ -353,8 +353,8 @@ matches:
   - name: Karmine Corp
     region: eu
     score: 0
-  time: '20:30:00'
-- date: '2026-04-30'
+  time: <time>
+- date: <date>
   id: '644737'
   round: Week 5
   stage: Group Stage
@@ -366,8 +366,8 @@ matches:
   - name: FNATIC
     region: eu
     score: 2
-  time: '22:40:00'
-- date: '2026-05-01'
+  time: <time>
+- date: <date>
   id: '644738'
   round: Week 5
   stage: Group Stage
@@ -379,8 +379,8 @@ matches:
   - name: Eternal Fire
     region: tr
     score: 2
-  time: '20:30:00'
-- date: '2026-05-01'
+  time: <time>
+- date: <date>
   id: '644739'
   round: Week 5
   stage: Group Stage
@@ -392,8 +392,8 @@ matches:
   - name: Team Liquid
     region: eu
     score: 2
-  time: '22:35:00'
-- date: '2026-05-07'
+  time: <time>
+- date: <date>
   id: '660381'
   round: Upper Round 1
   stage: Playoffs
@@ -405,8 +405,8 @@ matches:
   - name: Team Heretics
     region: eu
     score: 1
-  time: '20:30:00'
-- date: '2026-05-07'
+  time: <time>
+- date: <date>
   id: '660382'
   round: Upper Round 1
   stage: Playoffs
@@ -418,8 +418,8 @@ matches:
   - name: Team Vitality
     region: eu
     score: 2
-  time: '23:25:00'
-- date: '2026-05-08'
+  time: <time>
+- date: <date>
   id: '660383'
   round: Upper Semifinals
   stage: Playoffs
@@ -431,8 +431,8 @@ matches:
   - name: Eternal Fire
     region: tr
     score: 1
-  time: '20:30:00'
-- date: '2026-05-08'
+  time: <time>
+- date: <date>
   id: '660384'
   round: Upper Semifinals
   stage: Playoffs
@@ -444,8 +444,8 @@ matches:
   - name: Team Vitality
     region: eu
     score: 2
-  time: '23:25:00'
-- date: '2026-05-09'
+  time: <time>
+- date: <date>
   id: '660387'
   round: Lower Round 1
   stage: Playoffs
@@ -457,8 +457,8 @@ matches:
   - name: BBL Esports
     region: tr
     score: 0
-  time: '20:30:00'
-- date: '2026-05-09'
+  time: <time>
+- date: <date>
   id: '660388'
   round: Lower Round 1
   stage: Playoffs
@@ -470,8 +470,8 @@ matches:
   - name: Gentle Mates
     region: eu
     score: 2
-  time: '23:00:00'
-- date: '2026-05-10'
+  time: <time>
+- date: <date>
   id: '660389'
   round: Lower Round 2
   stage: Playoffs
@@ -483,8 +483,8 @@ matches:
   - name: Team Heretics
     region: eu
     score: 2
-  time: '20:30:00'
-- date: '2026-05-11'
+  time: <time>
+- date: <date>
   id: '660390'
   round: Lower Round 2
   stage: Playoffs
@@ -496,8 +496,8 @@ matches:
   - name: Gentle Mates
     region: eu
     score: 0
-  time: 00:05:00
-- date: '2026-05-15'
+  time: <time>
+- date: <date>
   id: '660385'
   round: Upper Final
   stage: Playoffs
@@ -509,8 +509,8 @@ matches:
   - name: Team Vitality
     region: eu
     score: 2
-  time: '20:30:00'
-- date: '2026-05-16'
+  time: <time>
+- date: <date>
   id: '660391'
   round: Lower Round 3
   stage: Playoffs
@@ -522,8 +522,8 @@ matches:
   - name: Eternal Fire
     region: tr
     score: 1
-  time: 00:15:00
-- date: '2026-05-16'
+  time: <time>
+- date: <date>
   id: '660392'
   round: Lower Final
   stage: Playoffs
@@ -535,8 +535,8 @@ matches:
   - name: Team Heretics
     region: eu
     score: 3
-  time: '21:30:00'
-- date: '2026-05-17'
+  time: <time>
+- date: <date>
   id: '660386'
   round: Grand Final
   stage: Playoffs
@@ -548,9 +548,65 @@ matches:
   - name: Team Heretics
     region: eu
     score: 3
-  time: '21:30:00'
+  time: <time>
 prize: TBD
-prizes: []
+prizes:
+- position: 1st
+  prize: '-'
+  team:
+    country: Europe
+    id: '1001'
+    img: https://owcdn.net/img/637b755224c12.png
+    name: Team Heretics
+- position: 2nd
+  prize: '-'
+  team:
+    country: Europe
+    id: '2059'
+    img: https://owcdn.net/img/6466d79e1ed40.png
+    name: Team Vitality
+- position: 3rd
+  prize: '-'
+  team:
+    country: Türkiye
+    id: '1184'
+    img: https://owcdn.net/img/632be9976b8fe.png
+    name: FUT Esports
+- position: 4th
+  prize: '-'
+  team:
+    country: Türkiye
+    id: '6392'
+    img: https://owcdn.net/img/6628980dcdaea.png
+    name: Eternal Fire
+- position: 5th–6th
+  prize: '-'
+  team:
+    country: Europe
+    id: '2593'
+    img: https://owcdn.net/img/62a40cc2b5e29.png
+    name: FNATIC
+- position: 5th–6th
+  prize: '-'
+  team:
+    country: Europe
+    id: '12694'
+    img: https://owcdn.net/img/6670153fa9120.png
+    name: Gentle Mates
+- position: 7th–8th
+  prize: '-'
+  team:
+    country: Türkiye
+    id: '397'
+    img: https://owcdn.net/img/65b8ccef5e273.png
+    name: BBL Esports
+- position: 7th–8th
+  prize: '-'
+  team:
+    country: Europe
+    id: '474'
+    img: https://owcdn.net/img/640c381f0603f.png
+    name: Team Liquid
 standings: []
 status: completed
 subtitle: Part of the Valorant Champions Tour, Riot's official 2026 tournament circuit.

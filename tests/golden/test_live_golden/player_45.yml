@@ -232,7 +232,7 @@ country: UNITED STATES
 current_team: null
 img: https://owcdn.net/img/6399a54fc4472.png
 matches:
-- date: '2022-12-05T07:30:00Z'
+- date: <date>
   event: The Lil Bro Cup
   id: '160788'
   opponent: Team Subroza
@@ -241,7 +241,7 @@ matches:
   score: 0:2
   stage: Playoffs ⋅GF
   team: Team Rossy
-- date: '2022-12-05T01:55:00Z'
+- date: <date>
   event: The Lil Bro Cup
   id: '160786'
   opponent: Team Zander
@@ -250,7 +250,7 @@ matches:
   score: '2:0'
   stage: Playoffs ⋅SF
   team: Team Rossy
-- date: '2022-05-22T04:10:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '99695'
   opponent: Evil Geniuses
@@ -259,7 +259,7 @@ matches:
   score: 0:2
   stage: Group Stage ⋅W2
   team: Sentinels
-- date: '2022-05-14T03:55:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '99687'
   opponent: Luminosity
@@ -268,7 +268,7 @@ matches:
   score: '1:2'
   stage: Group Stage ⋅W1
   team: Sentinels
-- date: '2022-05-09T05:25:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '97233'
   opponent: Akrew
@@ -277,7 +277,7 @@ matches:
   score: '2:0'
   stage: 'Open Qualifier #2 ⋅LR6'
   team: Sentinels
-- date: '2022-05-09T00:30:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '97231'
   opponent: SoaR
@@ -286,7 +286,7 @@ matches:
   score: '2:0'
   stage: 'Open Qualifier #2 ⋅LR5'
   team: Sentinels
-- date: '2022-05-08T05:35:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '97228'
   opponent: DarkZero Esports
@@ -295,7 +295,7 @@ matches:
   score: '2:0'
   stage: 'Open Qualifier #2 ⋅LR4'
   team: Sentinels
-- date: '2022-05-08T03:30:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '97224'
   opponent: Cosmic Divide
@@ -304,7 +304,7 @@ matches:
   score: '2:0'
   stage: 'Open Qualifier #2 ⋅LR3'
   team: Sentinels
-- date: '2022-05-08T00:30:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '97219'
   opponent: PUGSTARS
@@ -313,7 +313,7 @@ matches:
   score: '2:0'
   stage: 'Open Qualifier #2 ⋅LR2'
   team: Sentinels
-- date: '2022-05-07T05:35:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '97194'
   opponent: Akrew
@@ -322,7 +322,7 @@ matches:
   score: 0:2
   stage: 'Open Qualifier #2 ⋅URo16'
   team: Sentinels
-- date: '2022-05-07T03:30:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '97180'
   opponent: Clanless
@@ -331,7 +331,7 @@ matches:
   score: '2:0'
   stage: 'Open Qualifier #2 ⋅URo32'
   team: Sentinels
-- date: '2022-05-02T01:30:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '94354'
   opponent: Luminosity
@@ -340,7 +340,7 @@ matches:
   score: '1:2'
   stage: 'Open Qualifier #1 ⋅LR5'
   team: Sentinels
-- date: '2022-05-01T07:50:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '94351'
   opponent: NYFU
@@ -349,7 +349,7 @@ matches:
   score: '2:1'
   stage: 'Open Qualifier #1 ⋅LR4'
   team: Sentinels
-- date: '2022-05-01T01:30:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '94326'
   opponent: FaZe Clan
@@ -358,7 +358,7 @@ matches:
   score: '1:2'
   stage: 'Open Qualifier #1 ⋅UBQF'
   team: Sentinels
-- date: '2022-04-30T05:50:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '94321'
   opponent: Akrew
@@ -367,7 +367,7 @@ matches:
   score: '2:1'
   stage: 'Open Qualifier #1 ⋅URo16'
   team: Sentinels
-- date: '2022-04-30T03:30:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers '
   id: '94311'
   opponent: PUGSTARS
@@ -376,7 +376,7 @@ matches:
   score: '2:0'
   stage: 'Open Qualifier #1 ⋅URo32'
   team: Sentinels
-- date: '2022-03-21T04:00:00Z'
+- date: <date>
   event: 'VCT NA S1: Challengers '
   id: '77794'
   opponent: Version1
@@ -385,7 +385,7 @@ matches:
   score: '1:2'
   stage: LR1
   team: Sentinels
-- date: '2022-03-19T04:55:00Z'
+- date: <date>
   event: 'VCT NA S1: Challengers '
   id: '77788'
   opponent: The Guard
@@ -394,7 +394,7 @@ matches:
   score: 0:2
   stage: UBQF
   team: Sentinels
-- date: '2022-03-14T01:30:00Z'
+- date: <date>
   event: 'VCT NA S1: Challengers '
   id: '70078'
   opponent: Version1
@@ -403,7 +403,7 @@ matches:
   score: 0:2
   stage: Group Stage ⋅W5
   team: Sentinels
-- date: '2022-03-05T02:30:00Z'
+- date: <date>
   event: 'VCT NA S1: Challengers '
   id: '70070'
   opponent: Rise
@@ -412,7 +412,7 @@ matches:
   score: '2:1'
   stage: Group Stage ⋅W4
   team: Sentinels
-- date: '2022-02-27T02:30:00Z'
+- date: <date>
   event: 'VCT NA S1: Challengers '
   id: '70066'
   opponent: OpTic Gaming
@@ -421,7 +421,7 @@ matches:
   score: '1:2'
   stage: Group Stage ⋅W3
   team: Sentinels
-- date: '2022-02-19T02:30:00Z'
+- date: <date>
   event: 'VCT NA S1: Challengers '
   id: '70057'
   opponent: Knights
@@ -430,7 +430,7 @@ matches:
   score: '2:1'
   stage: Group Stage ⋅W2
   team: Sentinels
-- date: '2022-02-13T02:30:00Z'
+- date: <date>
   event: 'VCT NA S1: Challengers '
   id: '69879'
   opponent: NRG
@@ -439,7 +439,7 @@ matches:
   score: '2:1'
   stage: Group Stage ⋅W1
   team: Sentinels
-- date: '2021-12-07T01:10:00Z'
+- date: <date>
   event: 'VCT: Champions 2021'
   id: '51276'
   opponent: KRÜ Esports
@@ -448,7 +448,7 @@ matches:
   score: '1:2'
   stage: Group Stage ⋅Decider (B)
   team: Sentinels
-- date: '2021-12-05T00:30:00Z'
+- date: <date>
   event: 'VCT: Champions 2021'
   id: '51274'
   opponent: Team Liquid
@@ -457,7 +457,7 @@ matches:
   score: '1:2'
   stage: Group Stage ⋅Winner's (B)
   team: Sentinels
-- date: '2021-12-02T23:00:00Z'
+- date: <date>
   event: 'VCT: Champions 2021'
   id: '51273'
   opponent: FURIA
@@ -466,7 +466,7 @@ matches:
   score: '2:1'
   stage: Group Stage ⋅Opening (B)
   team: Sentinels
-- date: '2021-09-18T02:25:00Z'
+- date: <date>
   event: 'VCT S3: Masters Berlin'
   id: '34974'
   opponent: ENVY
@@ -475,7 +475,7 @@ matches:
   score: 0:2
   stage: Playoffs ⋅QF
   team: Sentinels
-- date: '2021-09-17T01:35:00Z'
+- date: <date>
   event: 'VCT S3: Masters Berlin'
   id: '35943'
   opponent: F4Q
@@ -484,7 +484,7 @@ matches:
   score: '2:1'
   stage: Group Stage ⋅Group D
   team: Sentinels
-- date: '2021-09-15T22:30:00Z'
+- date: <date>
   event: 'VCT S3: Masters Berlin'
   id: '35942'
   opponent: G2 Esports
@@ -493,7 +493,7 @@ matches:
   score: 0:2
   stage: Group Stage ⋅Group D
   team: Sentinels
-- date: '2021-09-13T23:30:00Z'
+- date: <date>
   event: 'VCT S3: Masters Berlin'
   id: '35940'
   opponent: F4Q
@@ -502,7 +502,7 @@ matches:
   score: '2:0'
   stage: Group Stage ⋅Group D
   team: Sentinels
-- date: '2021-09-12T22:20:00Z'
+- date: <date>
   event: 'VCT S3: Masters Berlin'
   id: '35939'
   opponent: G2 Esports
@@ -511,7 +511,7 @@ matches:
   score: '2:1'
   stage: Group Stage ⋅Group D
   team: Sentinels
-- date: '2021-08-16T00:30:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers Playoffs'
   id: '29398'
   opponent: 100 Thieves
@@ -520,7 +520,7 @@ matches:
   score: '3:1'
   stage: GF
   team: Sentinels
-- date: '2021-08-14T02:30:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers Playoffs'
   id: '29397'
   opponent: 100 Thieves
@@ -529,7 +529,7 @@ matches:
   score: '2:0'
   stage: UBF
   team: Sentinels
-- date: '2021-08-12T05:35:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers Playoffs'
   id: '29395'
   opponent: ENVY
@@ -538,7 +538,7 @@ matches:
   score: '2:0'
   stage: UBSF
   team: Sentinels
-- date: '2021-08-12T00:30:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers Playoffs'
   id: '29391'
   opponent: Rise
@@ -547,7 +547,7 @@ matches:
   score: '2:1'
   stage: UBQF
   team: Sentinels
-- date: '2021-07-12T00:30:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers 1'
   id: '25200'
   opponent: XSET
@@ -556,7 +556,7 @@ matches:
   score: '3:1'
   stage: GF
   team: Sentinels
-- date: '2021-07-11T05:45:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers 1'
   id: '25206'
   opponent: 100 Thieves
@@ -565,7 +565,7 @@ matches:
   score: '2:0'
   stage: LBF
   team: Sentinels
-- date: '2021-07-11T03:50:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers 1'
   id: '25205'
   opponent: ENVY
@@ -574,7 +574,7 @@ matches:
   score: '2:0'
   stage: LR3
   team: Sentinels
-- date: '2021-07-10T05:45:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers 1'
   id: '25203'
   opponent: Pioneers
@@ -583,7 +583,7 @@ matches:
   score: '2:0'
   stage: LR2
   team: Sentinels
-- date: '2021-07-10T02:30:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers 1'
   id: '25198'
   opponent: XSET
@@ -592,7 +592,7 @@ matches:
   score: '1:2'
   stage: UBSF
   team: Sentinels
-- date: '2021-07-09T05:15:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers 1'
   id: '25196'
   opponent: Gen.G
@@ -601,7 +601,7 @@ matches:
   score: '2:1'
   stage: UBQF
   team: Sentinels
-- date: '2021-07-04T00:30:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers 1'
   id: '24020'
   opponent: Soniqs
@@ -610,7 +610,7 @@ matches:
   score: '2:1'
   stage: Open Qualifier ⋅Ro16
   team: Sentinels
-- date: '2021-07-03T02:30:00Z'
+- date: <date>
   event: 'VCT NA S3: Challengers 1'
   id: '24004'
   opponent: Evil Geniuses
@@ -619,7 +619,7 @@ matches:
   score: '2:0'
   stage: Open Qualifier ⋅Ro32
   team: Sentinels
-- date: '2021-05-30T22:30:00Z'
+- date: <date>
   event: 'VCT Masters: Reykjavík'
   id: '19089'
   opponent: FNATIC
@@ -628,7 +628,7 @@ matches:
   score: '3:0'
   stage: GF
   team: Sentinels
-- date: '2021-05-29T01:00:00Z'
+- date: <date>
   event: 'VCT Masters: Reykjavík'
   id: '19080'
   opponent: NUTURN
@@ -637,7 +637,7 @@ matches:
   score: '2:0'
   stage: UBF
   team: Sentinels
-- date: '2021-05-27T01:00:00Z'
+- date: <date>
   event: 'VCT Masters: Reykjavík'
   id: '19078'
   opponent: Team Vikings
@@ -646,7 +646,7 @@ matches:
   score: '2:0'
   stage: UBSF
   team: Sentinels
-- date: '2021-05-26T03:35:00Z'
+- date: <date>
   event: 'VCT Masters: Reykjavík'
   id: '19073'
   opponent: FNATIC
@@ -655,7 +655,7 @@ matches:
   score: '2:0'
   stage: UBQF
   team: Sentinels
-- date: '2021-05-03T01:30:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers Finals'
   id: '17391'
   opponent: Version1
@@ -664,7 +664,7 @@ matches:
   score: '3:0'
   stage: GF
   team: Sentinels
-- date: '2021-05-02T01:30:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers Finals'
   id: '17384'
   opponent: Cloud9
@@ -673,7 +673,7 @@ matches:
   score: '2:1'
   stage: UBF
   team: Sentinels
-- date: '2021-05-01T01:30:00Z'
+- date: <date>
   event: 'VCT NA S2: Challengers Finals'
   id: '17382'
   opponent: 100 Thieves

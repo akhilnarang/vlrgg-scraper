@@ -289,7 +289,7 @@ data:
   - name: IMBAPEEK
     score: 9
 event:
-  date: '2021-03-01T00:30:00Z'
+  date: <date>
   id: '315'
   img: https://owcdn.net/img/5f232a98d2c26.png
   patch: null
@@ -302,11 +302,11 @@ teams:
 - id: '556'
   img: https://www.vlr.gg/img/vlr/tmp/vlr.png
   name: keepYOURskill
-  score: 1
+  score: null
 - id: '3333'
   img: https://www.vlr.gg/img/vlr/tmp/vlr.png
   name: IMBAPEEK
-  score: 0
+  score: null
 videos:
   streams: []
   vods: []

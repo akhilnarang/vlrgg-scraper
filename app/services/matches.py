@@ -33,12 +33,12 @@ _MAX_CONCURRENT_FALLBACKS = 10
 COMPLETED_PAGE_BATCH_SIZE = 5
 
 
-async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
+async def match_by_id(id: str, redis_client: Redis | None) -> schemas.MatchWithDetails:
     """
     Function to fetch a match from VLR, and return the parsed response
 
     :param id: The match ID
-    :param redis_client: A redis instance
+    :param redis_client: Shared Redis client, or ``None`` to let cache helpers manage a client
     :return: The parsed match
     """
     async with get_http_client() as client:
@@ -65,11 +65,11 @@ async def match_by_id(id: str, redis_client: Redis) -> schemas.MatchWithDetails:
     )
 
 
-async def get_team_data(data: ResultSet, client: Redis) -> list[dict]:
+async def get_team_data(data: ResultSet, client: Redis | None) -> list[dict]:
     """
     Function to parse team data
     :param data: The data
-    :param client: A redis instance
+    :param client: Shared Redis client, or ``None`` to let cache helpers manage a client
     :return: The parsed team data
     """
     # Ensure that we have team data to parse

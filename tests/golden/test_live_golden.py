@@ -1,9 +1,12 @@
 import json
+from collections.abc import Awaitable, Callable
+from datetime import datetime, time
 from enum import Enum
-from typing import Any
+from typing import Any, Literal, cast
 
 import pytest
 from pydantic import BaseModel
+from pytest_regressions.data_regression import DataRegressionFixture
 
 from app.services import events, matches, news, player, standings, team
 
@@ -11,9 +14,14 @@ from app.services import events, matches, news, player, standings, team
 pytestmark = pytest.mark.live_golden
 
 
-def serialize(value: Any) -> Any:
+type GoldenValue = None | bool | int | float | str | list[GoldenValue] | dict[str, GoldenValue]
+type TimestampKey = Literal["date", "time"]
+
+
+def serialize(value: Any) -> GoldenValue:
+    """Convert scraper results into the JSON-shaped values stored by golden tests."""
     if isinstance(value, BaseModel):
-        return json.loads(value.model_dump_json())
+        return cast(GoldenValue, json.loads(value.model_dump_json()))
     if isinstance(value, list):
         return [serialize(item) for item in value]
     if isinstance(value, tuple):
@@ -21,15 +29,44 @@ def serialize(value: Any) -> Any:
     if isinstance(value, dict):
         return {str(key): serialize(item) for key, item in value.items()}
     if isinstance(value, Enum):
-        return value.value
-    return value
+        return cast(GoldenValue, value.value)
+    return cast(GoldenValue, value)
 
 
-def strip_relative_eta(value: Any) -> Any:
+def normalize_timestamp(key: TimestampKey, value: GoldenValue) -> GoldenValue:
+    """Validate a serialized timestamp and replace its location-dependent value."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"{key} must be a string or null, got {type(value).__name__}")
+    if key == "time" and "tbd" in value.lower():
+        return "<time>"
+
+    parsers = (datetime.fromisoformat,) if key == "date" else (datetime.fromisoformat, time.fromisoformat)
+    iso_value = value.replace("Z", "+00:00")
+    for parser in parsers:
+        try:
+            parser(iso_value)
+        except ValueError:
+            continue
+        return f"<{key}>"
+    raise ValueError(f"invalid ISO {key}: {value!r}")
+
+
+def normalize_volatile_fields(value: GoldenValue) -> GoldenValue:
+    """Stabilize location-dependent timestamps while preserving response shape."""
     if isinstance(value, list):
-        return [strip_relative_eta(item) for item in value]
+        return [normalize_volatile_fields(item) for item in value]
     if isinstance(value, dict):
-        return {key: strip_relative_eta(item) for key, item in value.items() if key != "eta"}
+        normalized: dict[str, GoldenValue] = {}
+        for key, item in value.items():
+            if key == "eta":
+                continue
+            if key in {"date", "time"}:
+                normalized[key] = normalize_timestamp(cast(TimestampKey, key), item)
+            else:
+                normalized[key] = normalize_volatile_fields(item)
+        return normalized
     return value
 
 
@@ -56,6 +93,13 @@ def strip_relative_eta(value: Any) -> Any:
         ("news_562952", lambda: news.news_by_id("562952")),
     ],
 )
-async def test_live_vlr_parser_golden(case_name, loader, data_regression):
+async def test_live_vlr_parser_golden(
+    case_name: str,
+    loader: Callable[[], Awaitable[Any]],
+    data_regression: DataRegressionFixture,
+) -> None:
+    """Compare a live scraper response with its location-independent baseline."""
     parsed = await loader()
-    data_regression.check(strip_relative_eta(serialize(parsed)), basename=case_name)
+    normalized = normalize_volatile_fields(serialize(parsed))
+    assert isinstance(normalized, dict)
+    data_regression.check(normalized, basename=case_name)

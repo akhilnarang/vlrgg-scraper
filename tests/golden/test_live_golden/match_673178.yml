@@ -522,7 +522,7 @@ data:
   - name: PARON
     score: 5
 event:
-  date: '2026-05-11T13:00:00Z'
+  date: <date>
   id: '2974'
   img: https://owcdn.net/img/6964a9e385d88.png
   patch: null
@@ -547,11 +547,11 @@ teams:
 - id: '104'
   img: https://owcdn.net/img/62a4139de7f7e.png
   name: REJECT
-  score: 2
+  score: null
 - id: '16244'
   img: https://www.vlr.gg/img/vlr/tmp/vlr.png
   name: PARON
-  score: 0
+  score: null
 videos:
   streams: []
   vods: []

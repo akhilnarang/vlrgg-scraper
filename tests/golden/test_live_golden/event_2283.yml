@@ -3,7 +3,7 @@ id: '2283'
 img: https://owcdn.net/img/63067806d167d.png
 location: Accor Arena, Paris
 matches:
-- date: '2025-09-12'
+- date: <date>
   id: '542195'
   round: Opening (A)
   stage: Group Stage
@@ -15,8 +15,8 @@ matches:
   - name: Xi Lai Gaming
     region: cn
     score: 0
-  time: '18:30:00'
-- date: '2025-09-12'
+  time: <time>
+- date: <date>
   id: '542196'
   round: Opening (A)
   stage: Group Stage
@@ -28,8 +28,8 @@ matches:
   - name: Sentinels
     region: us
     score: 1
-  time: '20:55:00'
-- date: '2025-09-13'
+  time: <time>
+- date: <date>
   id: '542207'
   round: Opening (C)
   stage: Group Stage
@@ -41,8 +41,8 @@ matches:
   - name: EDward Gaming
     region: cn
     score: 0
-  time: '18:30:00'
-- date: '2025-09-13'
+  time: <time>
+- date: <date>
   id: '542205'
   round: Opening (C)
   stage: Group Stage
@@ -54,8 +54,8 @@ matches:
   - name: KIWOOM DRX
     region: kr
     score: 2
-  time: '21:25:00'
-- date: '2025-09-14'
+  time: <time>
+- date: <date>
   id: '542212'
   round: Opening (D)
   stage: Group Stage
@@ -67,8 +67,8 @@ matches:
   - name: T1
     region: kr
     score: 2
-  time: '18:30:00'
-- date: '2025-09-14'
+  time: <time>
+- date: <date>
   id: '542211'
   round: Opening (D)
   stage: Group Stage
@@ -80,8 +80,8 @@ matches:
   - name: Team Heretics
     region: eu
     score: 2
-  time: '21:50:00'
-- date: '2025-09-15'
+  time: <time>
+- date: <date>
   id: '542200'
   round: Opening (B)
   stage: Group Stage
@@ -93,8 +93,8 @@ matches:
   - name: MIBR
     region: br
     score: 2
-  time: '18:30:00'
-- date: '2025-09-15'
+  time: <time>
+- date: <date>
   id: '542201'
   round: Opening (B)
   stage: Group Stage
@@ -106,8 +106,8 @@ matches:
   - name: FNATIC
     region: eu
     score: 2
-  time: '20:40:00'
-- date: '2025-09-17'
+  time: <time>
+- date: <date>
   id: '542197'
   round: Winner's (A)
   stage: Group Stage
@@ -119,8 +119,8 @@ matches:
   - name: GIANTX
     region: eu
     score: 1
-  time: '18:30:00'
-- date: '2025-09-17'
+  time: <time>
+- date: <date>
   id: '542208'
   round: Winner's (C)
   stage: Group Stage
@@ -132,8 +132,8 @@ matches:
   - name: NRG
     region: us
     score: 2
-  time: '21:40:00'
-- date: '2025-09-18'
+  time: <time>
+- date: <date>
   id: '542213'
   round: Winner's (D)
   stage: Group Stage
@@ -145,8 +145,8 @@ matches:
   - name: T1
     region: kr
     score: 0
-  time: '18:30:00'
-- date: '2025-09-18'
+  time: <time>
+- date: <date>
   id: '542202'
   round: Winner's (B)
   stage: Group Stage
@@ -158,8 +158,8 @@ matches:
   - name: FNATIC
     region: eu
     score: 2
-  time: '20:55:00'
-- date: '2025-09-19'
+  time: <time>
+- date: <date>
   id: '542209'
   round: Elimination (C)
   stage: Group Stage
@@ -171,8 +171,8 @@ matches:
   - name: EDward Gaming
     region: cn
     score: 1
-  time: '18:30:00'
-- date: '2025-09-19'
+  time: <time>
+- date: <date>
   id: '542198'
   round: Elimination (A)
   stage: Group Stage
@@ -184,8 +184,8 @@ matches:
   - name: Sentinels
     region: us
     score: 1
-  time: '22:00:00'
-- date: '2025-09-20'
+  time: <time>
+- date: <date>
   id: '542203'
   round: Elimination (B)
   stage: Group Stage
@@ -197,8 +197,8 @@ matches:
   - name: Rex Regum Qeon
     region: id
     score: 2
-  time: '18:30:00'
-- date: '2025-09-20'
+  time: <time>
+- date: <date>
   id: '542214'
   round: Elimination (D)
   stage: Group Stage
@@ -210,8 +210,8 @@ matches:
   - name: Dragon Ranger Gaming
     region: cn
     score: 0
-  time: '21:30:00'
-- date: '2025-09-21'
+  time: <time>
+- date: <date>
   id: '542210'
   round: Decider (C)
   stage: Group Stage
@@ -223,8 +223,8 @@ matches:
   - name: Team Liquid
     region: eu
     score: 0
-  time: '18:30:00'
-- date: '2025-09-21'
+  time: <time>
+- date: <date>
   id: '542199'
   round: Decider (A)
   stage: Group Stage
@@ -236,8 +236,8 @@ matches:
   - name: Xi Lai Gaming
     region: cn
     score: 0
-  time: '20:50:00'
-- date: '2025-09-22'
+  time: <time>
+- date: <date>
   id: '542215'
   round: Decider (D)
   stage: Group Stage
@@ -249,8 +249,8 @@ matches:
   - name: G2 Esports
     region: us
     score: 2
-  time: '18:30:00'
-- date: '2025-09-22'
+  time: <time>
+- date: <date>
   id: '542204'
   round: Decider (B)
   stage: Group Stage
@@ -262,8 +262,8 @@ matches:
   - name: Rex Regum Qeon
     region: id
     score: 0
-  time: '20:45:00'
-- date: '2025-09-25'
+  time: <time>
+- date: <date>
   id: '542265'
   round: Upper Quarterfinals
   stage: Playoffs
@@ -275,8 +275,8 @@ matches:
   - name: G2 Esports
     region: us
     score: 1
-  time: '18:30:00'
-- date: '2025-09-25'
+  time: <time>
+- date: <date>
   id: '542264'
   round: Upper Quarterfinals
   stage: Playoffs
@@ -288,8 +288,8 @@ matches:
   - name: KIWOOM DRX
     region: kr
     score: 1
-  time: '22:20:00'
-- date: '2025-09-26'
+  time: <time>
+- date: <date>
   id: '542266'
   round: Upper Quarterfinals
   stage: Playoffs
@@ -301,8 +301,8 @@ matches:
   - name: MIBR
     region: br
     score: 2
-  time: '18:30:00'
-- date: '2025-09-26'
+  time: <time>
+- date: <date>
   id: '542267'
   round: Upper Quarterfinals
   stage: Playoffs
@@ -314,8 +314,8 @@ matches:
   - name: GIANTX
     region: eu
     score: 0
-  time: '21:05:00'
-- date: '2025-09-27'
+  time: <time>
+- date: <date>
   id: '542273'
   round: Lower Round 1
   stage: Playoffs
@@ -327,8 +327,8 @@ matches:
   - name: G2 Esports
     region: us
     score: 1
-  time: '18:30:00'
-- date: '2025-09-27'
+  time: <time>
+- date: <date>
   id: '542274'
   round: Lower Round 1
   stage: Playoffs
@@ -340,8 +340,8 @@ matches:
   - name: GIANTX
     region: eu
     score: 1
-  time: '21:50:00'
-- date: '2025-09-28'
+  time: <time>
+- date: <date>
   id: '542268'
   round: Upper Semifinals
   stage: Playoffs
@@ -353,8 +353,8 @@ matches:
   - name: Paper Rex
     region: sg
     score: 1
-  time: '18:30:00'
-- date: '2025-09-28'
+  time: <time>
+- date: <date>
   id: '542269'
   round: Upper Semifinals
   stage: Playoffs
@@ -366,8 +366,8 @@ matches:
   - name: NRG
     region: us
     score: 2
-  time: '21:50:00'
-- date: '2025-09-29'
+  time: <time>
+- date: <date>
   id: '542277'
   round: Lower Round 2
   stage: Playoffs
@@ -379,8 +379,8 @@ matches:
   - name: Team Heretics
     region: eu
     score: 1
-  time: '18:30:00'
-- date: '2025-09-29'
+  time: <time>
+- date: <date>
   id: '542276'
   round: Lower Round 2
   stage: Playoffs
@@ -392,8 +392,8 @@ matches:
   - name: KIWOOM DRX
     region: kr
     score: 2
-  time: '21:50:00'
-- date: '2025-10-03'
+  time: <time>
+- date: <date>
   id: '542270'
   round: Upper Final
   stage: Playoffs
@@ -405,8 +405,8 @@ matches:
   - name: NRG
     region: us
     score: 2
-  time: '16:30:00'
-- date: '2025-10-03'
+  time: <time>
+- date: <date>
   id: '542278'
   round: Lower Round 3
   stage: Playoffs
@@ -418,8 +418,8 @@ matches:
   - name: Paper Rex
     region: sg
     score: 0
-  time: '19:05:00'
-- date: '2025-10-04'
+  time: <time>
+- date: <date>
   id: '542279'
   round: Lower Final
   stage: Playoffs
@@ -431,8 +431,8 @@ matches:
   - name: KIWOOM DRX
     region: kr
     score: 1
-  time: '16:30:00'
-- date: '2025-10-05'
+  time: <time>
+- date: <date>
   id: '542272'
   round: Grand Final
   stage: Playoffs
@@ -444,9 +444,65 @@ matches:
   - name: FNATIC
     region: eu
     score: 2
-  time: '16:30:00'
+  time: <time>
 prize: $2,250,000
-prizes: []
+prizes:
+- position: 1st
+  prize: $1,000,000
+  team:
+    country: United States
+    id: '1034'
+    img: https://owcdn.net/img/6610f026c1a9e.png
+    name: NRG
+- position: 2nd
+  prize: $400,000
+  team:
+    country: Europe
+    id: '2593'
+    img: https://owcdn.net/img/62a40cc2b5e29.png
+    name: FNATIC
+- position: 3rd
+  prize: $250,000
+  team:
+    country: South Korea
+    id: '8185'
+    img: https://owcdn.net/img/6a353ee73ab25.png
+    name: KIWOOM DRX
+- position: 4th
+  prize: $130,000
+  team:
+    country: Singapore
+    id: '624'
+    img: https://owcdn.net/img/62bbeba74d5cb.png
+    name: Paper Rex
+- position: 5th–6th
+  prize: $85,000
+  team:
+    country: Brazil
+    id: '7386'
+    img: https://owcdn.net/img/632be7626d6d9.png
+    name: MIBR
+- position: 5th–6th
+  prize: $85,000
+  team:
+    country: Europe
+    id: '1001'
+    img: https://owcdn.net/img/637b755224c12.png
+    name: Team Heretics
+- position: 7th–8th
+  prize: $50,000
+  team:
+    country: United States
+    id: '11058'
+    img: https://owcdn.net/img/633822848a741.png
+    name: G2 Esports
+- position: 7th–8th
+  prize: $50,000
+  team:
+    country: Europe
+    id: '14419'
+    img: https://owcdn.net/img/657b2f3fcd199.png
+    name: GIANTX
 standings: []
 status: completed
 subtitle: The final event of the Valorant Champions Tour, Riot's 2025 tournament circuit

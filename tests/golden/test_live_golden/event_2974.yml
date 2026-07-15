@@ -3,7 +3,7 @@ id: '2974'
 img: https://owcdn.net/img/6964a9e385d88.png
 location: jp
 matches:
-- date: '2026-05-11'
+- date: <date>
   id: '673178'
   round: Day 1
   stage: Advance Stage
@@ -15,8 +15,8 @@ matches:
   - name: PARON
     region: jp
     score: 0
-  time: '13:00:00'
-- date: '2026-05-11'
+  time: <time>
+- date: <date>
   id: '673179'
   round: Day 1
   stage: Advance Stage
@@ -28,8 +28,8 @@ matches:
   - name: AGELITE
     region: jp
     score: 2
-  time: '13:00:00'
-- date: '2026-05-11'
+  time: <time>
+- date: <date>
   id: '673180'
   round: Day 1
   stage: Advance Stage
@@ -41,8 +41,8 @@ matches:
   - name: REIGNITE FOXX
     region: jp
     score: 0
-  time: '13:00:00'
-- date: '2026-05-11'
+  time: <time>
+- date: <date>
   id: '673181'
   round: Day 1
   stage: Advance Stage
@@ -54,8 +54,8 @@ matches:
   - name: Kirihana Academy
     region: jp
     score: 0
-  time: '13:00:00'
-- date: '2026-05-11'
+  time: <time>
+- date: <date>
   id: '673182'
   round: Day 1
   stage: Advance Stage
@@ -67,8 +67,8 @@ matches:
   - name: Murash Gaming
     region: jp
     score: 0
-  time: '13:00:00'
-- date: '2026-05-11'
+  time: <time>
+- date: <date>
   id: '673183'
   round: Day 1
   stage: Advance Stage
@@ -80,8 +80,8 @@ matches:
   - name: WEC C
     region: jp
     score: 2
-  time: '13:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673187'
   round: Day 2
   stage: Advance Stage
@@ -93,8 +93,8 @@ matches:
   - name: ALESTAR
     region: jp
     score: 0
-  time: '13:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673188'
   round: Day 2
   stage: Advance Stage
@@ -106,8 +106,8 @@ matches:
   - name: SCARZ
     region: jp
     score: 1
-  time: '13:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673189'
   round: Day 2
   stage: Advance Stage
@@ -119,8 +119,8 @@ matches:
   - name: PARON
     region: jp
     score: 2
-  time: '13:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673190'
   round: Day 2
   stage: Advance Stage
@@ -132,8 +132,8 @@ matches:
   - name: IGZIST
     region: jp
     score: 0
-  time: '13:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673191'
   round: Day 2
   stage: Advance Stage
@@ -145,8 +145,8 @@ matches:
   - name: KING GUY
     region: jp
     score: 0
-  time: '13:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673192'
   round: Day 2
   stage: Advance Stage
@@ -158,8 +158,8 @@ matches:
   - name: Kirihana Academy
     region: jp
     score: 2
-  time: '13:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673193'
   round: Day 2
   stage: Advance Stage
@@ -171,8 +171,8 @@ matches:
   - name: AGELITE
     region: jp
     score: 1
-  time: '16:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673194'
   round: Day 2
   stage: Advance Stage
@@ -184,8 +184,8 @@ matches:
   - name: REIGNITE FOXX
     region: jp
     score: 2
-  time: '16:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673195'
   round: Day 2
   stage: Advance Stage
@@ -197,8 +197,8 @@ matches:
   - name: PARON
     region: jp
     score: 0
-  time: '16:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673196'
   round: Day 2
   stage: Advance Stage
@@ -210,8 +210,8 @@ matches:
   - name: Murash Gaming
     region: jp
     score: 2
-  time: '16:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673197'
   round: Day 2
   stage: Advance Stage
@@ -223,8 +223,8 @@ matches:
   - name: WEC C
     region: jp
     score: 1
-  time: '16:00:00'
-- date: '2026-05-12'
+  time: <time>
+- date: <date>
   id: '673198'
   round: Day 2
   stage: Advance Stage
@@ -236,8 +236,8 @@ matches:
   - name: Kirihana Academy
     region: jp
     score: 2
-  time: '16:00:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673205'
   round: Day 3
   stage: Advance Stage
@@ -249,8 +249,8 @@ matches:
   - name: SCARZ
     region: jp
     score: 0
-  time: '13:00:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673206'
   round: Day 3
   stage: Advance Stage
@@ -262,8 +262,8 @@ matches:
   - name: PARON
     region: jp
     score: 0
-  time: '13:00:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673207'
   round: Day 3
   stage: Advance Stage
@@ -275,8 +275,8 @@ matches:
   - name: REIGNITE FOXX
     region: jp
     score: 0
-  time: '13:00:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673211'
   round: Day 3
   stage: Advance Stage
@@ -288,8 +288,8 @@ matches:
   - name: KING GUY
     region: jp
     score: 1
-  time: '13:00:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673212'
   round: Day 3
   stage: Advance Stage
@@ -301,8 +301,8 @@ matches:
   - name: Kirihana Academy
     region: jp
     score: 0
-  time: '13:00:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673213'
   round: Day 3
   stage: Advance Stage
@@ -314,8 +314,8 @@ matches:
   - name: WEC C
     region: jp
     score: 2
-  time: '13:00:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673209'
   round: Day 3
   stage: Advance Stage
@@ -327,8 +327,8 @@ matches:
   - name: SCARZ
     region: jp
     score: 2
-  time: '14:45:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673208'
   round: Day 3
   stage: Advance Stage
@@ -340,8 +340,8 @@ matches:
   - name: REIGNITE FOXX
     region: jp
     score: 0
-  time: '15:25:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673210'
   round: Day 3
   stage: Advance Stage
@@ -353,8 +353,8 @@ matches:
   - name: PARON
     region: jp
     score: 1
-  time: '15:25:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673214'
   round: Day 3
   stage: Advance Stage
@@ -366,8 +366,8 @@ matches:
   - name: WEC C
     region: jp
     score: 0
-  time: '16:00:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673215'
   round: Day 3
   stage: Advance Stage
@@ -379,8 +379,8 @@ matches:
   - name: KING GUY
     region: jp
     score: 2
-  time: '16:00:00'
-- date: '2026-05-13'
+  time: <time>
+- date: <date>
   id: '673216'
   round: Day 3
   stage: Advance Stage
@@ -392,8 +392,8 @@ matches:
   - name: Kirihana Academy
     region: jp
     score: 0
-  time: '16:00:00'
-- date: '2026-05-23'
+  time: <time>
+- date: <date>
   id: '681780'
   round: Week 1
   stage: Main Stage
@@ -405,8 +405,8 @@ matches:
   - name: IGZIST
     region: jp
     score: 0
-  time: '12:30:00'
-- date: '2026-05-23'
+  time: <time>
+- date: <date>
   id: '681781'
   round: Week 1
   stage: Main Stage
@@ -418,8 +418,8 @@ matches:
   - name: FENNEL
     region: jp
     score: 2
-  time: '15:15:00'
-- date: '2026-05-24'
+  time: <time>
+- date: <date>
   id: '681782'
   round: Week 1
   stage: Main Stage
@@ -431,8 +431,8 @@ matches:
   - name: RIDDLE ORDER
     region: jp
     score: 1
-  time: '12:30:00'
-- date: '2026-05-24'
+  time: <time>
+- date: <date>
   id: '681783'
   round: Week 1
   stage: Main Stage
@@ -444,8 +444,8 @@ matches:
   - name: REJECT
     region: jp
     score: 2
-  time: '16:00:00'
-- date: '2026-05-25'
+  time: <time>
+- date: <date>
   id: '681784'
   round: Week 1
   stage: Main Stage
@@ -457,8 +457,8 @@ matches:
   - name: FENNEL
     region: jp
     score: 2
-  time: '12:30:00'
-- date: '2026-05-25'
+  time: <time>
+- date: <date>
   id: '681785'
   round: Week 1
   stage: Main Stage
@@ -470,8 +470,8 @@ matches:
   - name: RIDDLE ORDER
     region: jp
     score: 2
-  time: '15:30:00'
-- date: '2026-05-29'
+  time: <time>
+- date: <date>
   id: '681786'
   round: Week 2
   stage: Main Stage
@@ -483,8 +483,8 @@ matches:
   - name: REJECT
     region: jp
     score: 2
-  time: '12:30:00'
-- date: '2026-05-29'
+  time: <time>
+- date: <date>
   id: '681787'
   round: Week 2
   stage: Main Stage
@@ -496,8 +496,8 @@ matches:
   - name: Insomnia
     region: jp
     score: 0
-  time: '15:30:00'
-- date: '2026-05-30'
+  time: <time>
+- date: <date>
   id: '681788'
   round: Week 2
   stage: Main Stage
@@ -509,8 +509,8 @@ matches:
   - name: REJECT
     region: jp
     score: 2
-  time: '12:30:00'
-- date: '2026-05-30'
+  time: <time>
+- date: <date>
   id: '681789'
   round: Week 2
   stage: Main Stage
@@ -522,8 +522,8 @@ matches:
   - name: RIDDLE ORDER
     region: jp
     score: 2
-  time: '15:15:00'
-- date: '2026-05-31'
+  time: <time>
+- date: <date>
   id: '681790'
   round: Week 2
   stage: Main Stage
@@ -535,8 +535,8 @@ matches:
   - name: Insomnia
     region: jp
     score: 1
-  time: '12:30:00'
-- date: '2026-05-31'
+  time: <time>
+- date: <date>
   id: '681791'
   round: Week 2
   stage: Main Stage
@@ -548,8 +548,8 @@ matches:
   - name: QT DIG∞
     region: jp
     score: 2
-  time: '15:30:00'
-- date: '2026-06-03'
+  time: <time>
+- date: <date>
   id: '681792'
   round: Week 3
   stage: Main Stage
@@ -561,8 +561,8 @@ matches:
   - name: Insomnia
     region: jp
     score: 2
-  time: '12:30:00'
-- date: '2026-06-03'
+  time: <time>
+- date: <date>
   id: '681793'
   round: Week 3
   stage: Main Stage
@@ -574,8 +574,8 @@ matches:
   - name: REJECT
     region: jp
     score: 2
-  time: '16:10:00'
-- date: '2026-06-04'
+  time: <time>
+- date: <date>
   id: '681794'
   round: Week 3
   stage: Main Stage
@@ -587,8 +587,8 @@ matches:
   - name: QT DIG∞
     region: jp
     score: 2
-  time: '12:30:00'
-- date: '2026-06-04'
+  time: <time>
+- date: <date>
   id: '681795'
   round: Week 3
   stage: Main Stage
@@ -600,8 +600,8 @@ matches:
   - name: AGELITE
     region: jp
     score: 0
-  time: '15:30:00'
-- date: '2026-06-23'
+  time: <time>
+- date: <date>
   id: '681796'
   round: Week 4
   stage: Main Stage
@@ -613,8 +613,8 @@ matches:
   - name: QT DIG∞
     region: jp
     score: 0
-  time: '12:30:00'
-- date: '2026-06-23'
+  time: <time>
+- date: <date>
   id: '681797'
   round: Week 4
   stage: Main Stage
@@ -626,8 +626,8 @@ matches:
   - name: Insomnia
     region: jp
     score: 0
-  time: '15:15:00'
-- date: '2026-06-24'
+  time: <time>
+- date: <date>
   id: '681798'
   round: Week 4
   stage: Main Stage
@@ -639,8 +639,8 @@ matches:
   - name: AGELITE
     region: jp
     score: 1
-  time: '12:30:00'
-- date: '2026-06-24'
+  time: <time>
+- date: <date>
   id: '681799'
   round: Week 4
   stage: Main Stage
@@ -652,8 +652,8 @@ matches:
   - name: IGZIST
     region: jp
     score: 0
-  time: '16:00:00'
-- date: '2026-06-25'
+  time: <time>
+- date: <date>
   id: '681800'
   round: Week 4
   stage: Main Stage
@@ -665,8 +665,8 @@ matches:
   - name: QT DIG∞
     region: jp
     score: 0
-  time: '12:30:00'
-- date: '2026-06-25'
+  time: <time>
+- date: <date>
   id: '681801'
   round: Week 4
   stage: Main Stage
@@ -678,8 +678,8 @@ matches:
   - name: AGELITE
     region: jp
     score: 2
-  time: '15:30:00'
-- date: '2026-06-26'
+  time: <time>
+- date: <date>
   id: '681802'
   round: Week 4
   stage: Main Stage
@@ -691,8 +691,8 @@ matches:
   - name: IGZIST
     region: jp
     score: 0
-  time: '12:30:00'
-- date: '2026-06-26'
+  time: <time>
+- date: <date>
   id: '681803'
   round: Week 4
   stage: Main Stage
@@ -704,8 +704,8 @@ matches:
   - name: FENNEL
     region: jp
     score: 0
-  time: '15:30:00'
-- date: '2026-06-27'
+  time: <time>
+- date: <date>
   id: '681804'
   round: Week 4
   stage: Main Stage
@@ -717,8 +717,8 @@ matches:
   - name: AGELITE
     region: jp
     score: 0
-  time: '12:30:00'
-- date: '2026-06-27'
+  time: <time>
+- date: <date>
   id: '681805'
   round: Week 4
   stage: Main Stage
@@ -730,8 +730,8 @@ matches:
   - name: IGZIST
     region: jp
     score: 1
-  time: '15:30:00'
-- date: '2026-06-28'
+  time: <time>
+- date: <date>
   id: '681806'
   round: Week 4
   stage: Main Stage
@@ -743,8 +743,8 @@ matches:
   - name: FENNEL
     region: jp
     score: 2
-  time: '12:30:00'
-- date: '2026-06-28'
+  time: <time>
+- date: <date>
   id: '681807'
   round: Week 4
   stage: Main Stage
@@ -756,18 +756,65 @@ matches:
   - name: RIDDLE ORDER
     region: jp
     score: 0
-  time: '15:30:00'
+  time: <time>
 prize: ¥3,600,000 JPY~ $22,633
 prizes:
-- position: ''
-  prize: REJECTJapanSpoiler hidden
-  team: null
-- position: ''
-  prize: QT DIG∞JapanSpoiler hidden
-  team: null
-- position: ''
-  prize: RIDDLE ORDERJapanSpoiler hidden
-  team: null
+- position: 1st
+  prize: ¥800,000
+  team:
+    country: Japan
+    id: '104'
+    img: https://owcdn.net/img/62a4139de7f7e.png
+    name: REJECT
+- position: 2nd
+  prize: ¥700,000
+  team:
+    country: Japan
+    id: '18299'
+    img: https://owcdn.net/img/67f4e2e7b3802.png
+    name: QT DIG∞
+- position: 3rd
+  prize: ¥600,000
+  team:
+    country: Japan
+    id: '14375'
+    img: https://owcdn.net/img/6569a81625295.png
+    name: RIDDLE ORDER
+- position: 4th
+  prize: ¥500,000
+  team:
+    country: Japan
+    id: '2934'
+    img: https://owcdn.net/img/60d3986152cd4.png
+    name: FENNEL
+- position: 5th
+  prize: ¥400,000
+  team:
+    country: Japan
+    id: '294'
+    img: https://owcdn.net/img/63a33a790ae62.png
+    name: CREST GAMING Zst
+- position: 6th
+  prize: ¥300,000
+  team:
+    country: Japan
+    id: '6869'
+    img: https://owcdn.net/img/61b3107a6a139.png
+    name: IGZIST
+- position: 7th
+  prize: ¥200,000
+  team:
+    country: Japan
+    id: '21338'
+    img: https://owcdn.net/img/698354a79aa30.png
+    name: AGELITE
+- position: 8th
+  prize: ¥100,000
+  team:
+    country: Japan
+    id: '5148'
+    img: https://owcdn.net/img/6a1be9015b7b5.png
+    name: Insomnia
 standings:
 - country: Japan
   group: null

@@ -1408,7 +1408,7 @@ data:
   - name: FNATIC
     score: 5
 event:
-  date: '2025-10-05T16:30:00Z'
+  date: <date>
   id: '2283'
   img: https://owcdn.net/img/63067806d167d.png
   patch: null
@@ -1433,11 +1433,11 @@ teams:
 - id: '1034'
   img: https://owcdn.net/img/6610f026c1a9e.png
   name: NRG
-  score: 3
+  score: null
 - id: '2593'
   img: https://owcdn.net/img/62a40cc2b5e29.png
   name: FNATIC
-  score: 2
+  score: null
 videos:
   streams:
   - name: Valorant

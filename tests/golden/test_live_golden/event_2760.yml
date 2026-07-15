@@ -3,7 +3,7 @@ id: '2760'
 img: https://owcdn.net/img/692fc18a04f4a.png
 location: Espacio Riesco, Santiago
 matches:
-- date: '2026-02-28'
+- date: <date>
   id: '625788'
   round: Round 1
   stage: Swiss Stage
@@ -15,8 +15,8 @@ matches:
   - name: EDward Gaming
     region: cn
     score: 0
-  time: '22:30:00'
-- date: '2026-03-01'
+  time: <time>
+- date: <date>
   id: '625791'
   round: Round 1
   stage: Swiss Stage
@@ -28,8 +28,8 @@ matches:
   - name: NRG
     region: us
     score: 2
-  time: 01:00:00
-- date: '2026-03-01'
+  time: <time>
+- date: <date>
   id: '625790'
   round: Round 1
   stage: Swiss Stage
@@ -41,8 +41,8 @@ matches:
   - name: Paper Rex
     region: sg
     score: 2
-  time: '22:30:00'
-- date: '2026-03-02'
+  time: <time>
+- date: <date>
   id: '625789'
   round: Round 1
   stage: Swiss Stage
@@ -54,8 +54,8 @@ matches:
   - name: Team Liquid
     region: eu
     score: 2
-  time: 00:35:00
-- date: '2026-03-02'
+  time: <time>
+- date: <date>
   id: '626529'
   round: Round 2 (1-0)
   stage: Swiss Stage
@@ -67,8 +67,8 @@ matches:
   - name: NRG
     region: us
     score: 1
-  time: '23:30:00'
-- date: '2026-03-03'
+  time: <time>
+- date: <date>
   id: '626530'
   round: Round 2 (1-0)
   stage: Swiss Stage
@@ -80,8 +80,8 @@ matches:
   - name: Team Liquid
     region: eu
     score: 0
-  time: 03:00:00
-- date: '2026-03-03'
+  time: <time>
+- date: <date>
   id: '626532'
   round: Round 2 (0-1)
   stage: Swiss Stage
@@ -93,8 +93,8 @@ matches:
   - name: T1
     region: kr
     score: 2
-  time: '23:30:00'
-- date: '2026-03-04'
+  time: <time>
+- date: <date>
   id: '626533'
   round: Round 2 (0-1)
   stage: Swiss Stage
@@ -106,8 +106,8 @@ matches:
   - name: G2 Esports
     region: us
     score: 2
-  time: 01:40:00
-- date: '2026-03-04'
+  time: <time>
+- date: <date>
   id: '626535'
   round: Round 3
   stage: Swiss Stage
@@ -119,8 +119,8 @@ matches:
   - name: Team Liquid
     region: eu
     score: 0
-  time: '23:30:00'
-- date: '2026-03-05'
+  time: <time>
+- date: <date>
   id: '626534'
   round: Round 3
   stage: Swiss Stage
@@ -132,8 +132,8 @@ matches:
   - name: T1
     region: kr
     score: 0
-  time: 01:50:00
-- date: '2026-03-06'
+  time: <time>
+- date: <date>
   id: '626539'
   round: Upper Quarterfinals
   stage: Playoffs
@@ -145,8 +145,8 @@ matches:
   - name: Paper Rex
     region: sg
     score: 2
-  time: '23:30:00'
-- date: '2026-03-07'
+  time: <time>
+- date: <date>
   id: '626537'
   round: Upper Quarterfinals
   stage: Playoffs
@@ -158,8 +158,8 @@ matches:
   - name: Gentle Mates
     region: eu
     score: 0
-  time: 02:30:00
-- date: '2026-03-07'
+  time: <time>
+- date: <date>
   id: '626540'
   round: Upper Quarterfinals
   stage: Playoffs
@@ -171,8 +171,8 @@ matches:
   - name: NRG
     region: us
     score: 2
-  time: '22:30:00'
-- date: '2026-03-08'
+  time: <time>
+- date: <date>
   id: '626538'
   round: Upper Quarterfinals
   stage: Playoffs
@@ -184,8 +184,8 @@ matches:
   - name: G2 Esports
     region: us
     score: 2
-  time: 02:00:00
-- date: '2026-03-08'
+  time: <time>
+- date: <date>
   id: '626546'
   round: Lower Round 1
   stage: Playoffs
@@ -197,8 +197,8 @@ matches:
   - name: BBL Esports
     region: tr
     score: 2
-  time: '22:30:00'
-- date: '2026-03-09'
+  time: <time>
+- date: <date>
   id: '626545'
   round: Lower Round 1
   stage: Playoffs
@@ -210,8 +210,8 @@ matches:
   - name: All Gamers
     region: cn
     score: 2
-  time: 02:00:00
-- date: '2026-03-09'
+  time: <time>
+- date: <date>
   id: '626541'
   round: Upper Semifinals
   stage: Playoffs
@@ -223,8 +223,8 @@ matches:
   - name: G2 Esports
     region: us
     score: 1
-  time: '23:30:00'
-- date: '2026-03-10'
+  time: <time>
+- date: <date>
   id: '626542'
   round: Upper Semifinals
   stage: Playoffs
@@ -236,8 +236,8 @@ matches:
   - name: NRG
     region: us
     score: 2
-  time: 02:50:00
-- date: '2026-03-10'
+  time: <time>
+- date: <date>
   id: '626548'
   round: Lower Round 2
   stage: Playoffs
@@ -249,8 +249,8 @@ matches:
   - name: BBL Esports
     region: tr
     score: 0
-  time: '23:30:00'
-- date: '2026-03-11'
+  time: <time>
+- date: <date>
   id: '626547'
   round: Lower Round 2
   stage: Playoffs
@@ -262,8 +262,8 @@ matches:
   - name: All Gamers
     region: cn
     score: 1
-  time: 01:40:00
-- date: '2026-03-13'
+  time: <time>
+- date: <date>
   id: '626543'
   round: Upper Final
   stage: Playoffs
@@ -275,8 +275,8 @@ matches:
   - name: NRG
     region: us
     score: 0
-  time: '22:30:00'
-- date: '2026-03-14'
+  time: <time>
+- date: <date>
   id: '626549'
   round: Lower Round 3
   stage: Playoffs
@@ -288,8 +288,8 @@ matches:
   - name: G2 Esports
     region: us
     score: 1
-  time: 00:55:00
-- date: '2026-03-14'
+  time: <time>
+- date: <date>
   id: '626550'
   round: Lower Final
   stage: Playoffs
@@ -301,8 +301,8 @@ matches:
   - name: Paper Rex
     region: sg
     score: 3
-  time: '22:30:00'
-- date: '2026-03-15'
+  time: <time>
+- date: <date>
   id: '626544'
   round: Grand Final
   stage: Playoffs
@@ -314,9 +314,65 @@ matches:
   - name: Paper Rex
     region: sg
     score: 0
-  time: '23:30:00'
+  time: <time>
 prize: $1,000,000
-prizes: []
+prizes:
+- position: 1st
+  prize: $350,000
+  team:
+    country: South Korea
+    id: '11060'
+    img: https://owcdn.net/img/6399bb707aacb.png
+    name: Nongshim RedForce
+- position: 2nd
+  prize: $200,000
+  team:
+    country: Singapore
+    id: '624'
+    img: https://owcdn.net/img/62bbeba74d5cb.png
+    name: Paper Rex
+- position: 3rd
+  prize: $125,000
+  team:
+    country: United States
+    id: '1034'
+    img: https://owcdn.net/img/6610f026c1a9e.png
+    name: NRG
+- position: 4th
+  prize: $75,000
+  team:
+    country: United States
+    id: '11058'
+    img: https://owcdn.net/img/633822848a741.png
+    name: G2 Esports
+- position: 5th–6th
+  prize: $50,000
+  team:
+    country: China
+    id: '1119'
+    img: https://owcdn.net/img/6549c2b905061.png
+    name: All Gamers
+- position: 5th–6th
+  prize: $50,000
+  team:
+    country: Türkiye
+    id: '397'
+    img: https://owcdn.net/img/65b8ccef5e273.png
+    name: BBL Esports
+- position: 7th–8th
+  prize: $35,000
+  team:
+    country: Europe
+    id: '12694'
+    img: https://owcdn.net/img/6670153fa9120.png
+    name: Gentle Mates
+- position: 7th–8th
+  prize: $35,000
+  team:
+    country: Brazil
+    id: '2406'
+    img: https://owcdn.net/img/632be843b7d51.png
+    name: FURIA
 standings: []
 status: completed
 subtitle: Part of the Valorant Champions Tour, Riot's official 2026 tournament circuit.

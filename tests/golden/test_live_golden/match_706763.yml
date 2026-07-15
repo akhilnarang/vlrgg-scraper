@@ -837,7 +837,7 @@ data:
   - name: Karmine Corp
     score: 7
 event:
-  date: '2026-07-06T18:35:00Z'
+  date: <date>
   id: '2952'
   img: https://owcdn.net/img/6814dc624bb4c.png
   patch: null
@@ -850,11 +850,11 @@ teams:
 - id: '1034'
   img: https://owcdn.net/img/6610f026c1a9e.png
   name: NRG
-  score: 2
+  score: null
 - id: '8877'
   img: https://owcdn.net/img/627403a0d9e48.png
   name: Karmine Corp
-  score: 1
+  score: null
 videos:
   streams:
   - name: EWC STC EN 1
