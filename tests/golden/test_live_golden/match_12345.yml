@@ -302,11 +302,11 @@ teams:
 - id: '556'
   img: https://www.vlr.gg/img/vlr/tmp/vlr.png
   name: keepYOURskill
-  score: null
+  score: 1
 - id: '3333'
   img: https://www.vlr.gg/img/vlr/tmp/vlr.png
   name: IMBAPEEK
-  score: null
+  score: 0
 videos:
   streams: []
   vods: []

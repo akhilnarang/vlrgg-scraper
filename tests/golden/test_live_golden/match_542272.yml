@@ -1433,11 +1433,11 @@ teams:
 - id: '1034'
   img: https://owcdn.net/img/6610f026c1a9e.png
   name: NRG
-  score: null
+  score: 3
 - id: '2593'
   img: https://owcdn.net/img/62a40cc2b5e29.png
   name: FNATIC
-  score: null
+  score: 2
 videos:
   streams:
   - name: Valorant

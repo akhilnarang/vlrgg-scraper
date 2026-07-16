@@ -9,6 +9,39 @@ from app.constants import MAX_PAGINATION_PAGES
 from app.services import matches
 
 
+@pytest.mark.asyncio
+async def test_get_team_data_parses_completed_match_score():
+    """A completed match must report each team's score from the header."""
+    html = (Path(__file__).parent / "fixtures" / "match_header_completed.html").read_text()
+    header = BeautifulSoup(html, "lxml").find_all("div", class_="match-header")
+
+    result = await matches.get_team_data(header, None)
+
+    assert [team["name"] for team in result] == ["NRG", "FNATIC"]
+    assert [team["score"] for team in result] == ["3", "2"]
+
+
+@pytest.mark.asyncio
+async def test_get_team_data_leaves_score_none_for_upcoming_match():
+    """An upcoming match has no score element, so both scores stay None."""
+    html = """
+    <div class="match-header">
+      <a class="match-header-link" href="/team/1/alpha"><img src="/img/a.png"/></a>
+      <div class="wf-title-med">Alpha</div>
+      <a class="match-header-link" href="/team/2/beta"><img src="/img/b.png"/></a>
+      <div class="wf-title-med">Beta</div>
+      <div class="match-header-vs-score">
+        <div class="match-header-vs-note">upcoming</div>
+      </div>
+    </div>
+    """
+    header = BeautifulSoup(html, "lxml").find_all("div", class_="match-header")
+
+    result = await matches.get_team_data(header, None)
+
+    assert [team["score"] for team in result] == [None, None]
+
+
 def test_parse_div_based_overview_scoreboard():
     html = """
     <div class="vm-stats-game">

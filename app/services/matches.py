@@ -83,8 +83,10 @@ async def get_team_data(data: ResultSet, client: Redis | None) -> list[dict]:
         None,
         None,
     ]  # Default to None for both teams - required for upcoming matches
+    # The score lives in a `sp-hide` div alongside an `sp-alt` sibling holding "vs.", so it must be
+    # selected directly rather than read off the surrounding `match-header-vs-score` container.
     if (match_data := match_header.find_all("div", class_="match-header-vs-score")) and (
-        match_data := match_data[0].find_all("div", class_="js-spoiler")
+        match_data := match_data[0].find_all("div", class_="sp-hide")
     ):
         match_score = (clean_string(match_data[0].get_text())).split(":")
 
