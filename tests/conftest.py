@@ -2,7 +2,7 @@ from concurrent.futures import Executor, Future
 
 import pytest
 
-from tests.live_upstream import UPSTREAM_NETWORK_ERRORS, UPSTREAM_STATUSES
+from tests.live_upstream import UPSTREAM_NETWORK_ERRORS, is_upstream_outage
 
 from app.exceptions import ScrapingError
 
@@ -25,7 +25,7 @@ def pytest_runtest_call(item):
     exc = outcome.excinfo[1] if outcome.excinfo else None
     if exc is None:
         return
-    if isinstance(exc, ScrapingError) and exc.upstream_status in UPSTREAM_STATUSES:
+    if isinstance(exc, ScrapingError) and is_upstream_outage(exc.upstream_status):
         outcome.force_exception(pytest.skip.Exception(f"VLR unreachable: HTTP {exc.upstream_status}"))
     elif isinstance(exc, UPSTREAM_NETWORK_ERRORS):
         outcome.force_exception(pytest.skip.Exception(f"VLR network error: {exc!r}"))

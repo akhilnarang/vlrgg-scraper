@@ -76,14 +76,14 @@ def _player_page(**overrides) -> SimpleNamespace:
     return SimpleNamespace(**(base | overrides))
 
 
-def _listed_match(name1: str = "SEN", name2: str = "NRG", **overrides) -> SimpleNamespace:
+def _listed_match(name1="SEN", name2="NRG", score1=2, score2=1, **overrides) -> SimpleNamespace:
     # Mirrors app.schemas.matches.Match: team1/team2, not a `teams` list.
     base = dict(
         id="1",
         event="VCT 26",
         status="completed",
-        team1=SimpleNamespace(name=name1, score=2),
-        team2=SimpleNamespace(name=name2, score=1),
+        team1=SimpleNamespace(name=name1, score=score1),
+        team2=SimpleNamespace(name=name2, score=score2),
     )
     return SimpleNamespace(**(base | overrides))
 
@@ -165,6 +165,18 @@ def test_team_with_two_player_roster_passes():
     contracts.check_team(_team(roster=[_player() for _ in range(2)]))
 
 
+def test_single_disbanded_team_roster_passes():
+    """One team fielding nobody is churn; it must not fire on its own."""
+    contracts.check_team(_team(roster=[]))
+    contracts.check_team_rosters([_team(roster=[])] + [_team() for _ in range(3)])
+
+
+def test_team_rosters_fire_when_all_empty():
+    """Every roster emptying at once is the `team-roster-item` selector breaking."""
+    with pytest.raises(ContractViolation):
+        contracts.check_team_rosters([_team(roster=[]) for _ in range(4)])
+
+
 # --- broken data must fire --------------------------------------------------
 
 
@@ -176,7 +188,6 @@ def test_team_with_two_player_roster_passes():
         ("country_empty", lambda: _team(country="")),
         ("name_empty", lambda: _team(name="")),
         ("tag_empty", lambda: _team(tag="")),
-        ("roster_empty", lambda: _team(roster=[])),
         ("roster_aliases_empty", lambda: _team(roster=[_player(alias="") for _ in range(5)])),
         ("roster_ids_empty", lambda: _team(roster=[_player(id="") for _ in range(5)])),
         ("completed_empty", lambda: _team(completed=[])),
@@ -241,12 +252,29 @@ def test_check_player_fires(case, broken):
         ("too_few", lambda: [_listed_match() for _ in range(3)]),
         ("ids_empty", lambda: [_listed_match(id="") for _ in range(15)]),
         ("events_empty", lambda: [_listed_match(event="") for _ in range(15)]),
-        ("all_teams_tbd", lambda: [_listed_match(name1="TBD", name2="TBD") for _ in range(15)]),
+        ("team_names_empty", lambda: [_listed_match(name1="", name2="") for _ in range(15)]),
     ],
 )
 def test_check_match_list_fires(case, broken):
     with pytest.raises(ContractViolation):
         contracts.check_match_list(broken())
+
+
+def test_match_list_fires_when_completed_half_returns_nothing():
+    """`match_list` chains two fetches; the upcoming half alone must not look healthy.
+
+    If `get_completed_matches` breaks and returns [], the surviving upcoming
+    matches hold the list above the length check, and a contract that treats "no
+    completed matches" as a quiet day reports green while half the parser is dead.
+    """
+    upcoming_only = [_listed_match(id=str(i), status="upcoming", score1=None, score2=None) for i in range(15)]
+    with pytest.raises(ContractViolation, match="no completed matches"):
+        contracts.check_match_list(upcoming_only, completed_status="completed")
+
+
+def test_match_list_all_tbd_bracket_passes():
+    """A full bracket of placeholders is real data VLR serves, not a parse failure."""
+    contracts.check_match_list([_listed_match(name1="TBD", name2="TBD") for _ in range(15)])
 
 
 @pytest.mark.parametrize(

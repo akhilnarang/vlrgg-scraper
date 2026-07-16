@@ -9,25 +9,18 @@ job must go red rather than report a green no-op.
 """
 
 import httpx
-import pytest
-
-from app.exceptions import ScrapingError
 
 
 UPSTREAM_NETWORK_ERRORS = (httpx.TransportError, httpx.TimeoutException)
 
-# 5xx and 429 are VLR's problem and clear on their own. Anything else -- a 404 on a
-# pinned historical ID, say -- means a URL scheme or config change we must act on,
-# so it is deliberately left to fail.
-UPSTREAM_STATUSES = frozenset({429, 500, 502, 503, 504})
+# 429 plus any 5xx: VLR's problem, and it clears on its own.
+UPSTREAM_STATUSES = frozenset({429})
 
 
-def skip_if_upstream_down(exc: BaseException) -> None:
-    """Skip the current test if `exc` is VLR being unavailable, else re-raise."""
-    if isinstance(exc, ScrapingError):
-        if exc.upstream_status in UPSTREAM_STATUSES:
-            pytest.skip(f"VLR unreachable: HTTP {exc.upstream_status}")
-        raise exc
-    if isinstance(exc, UPSTREAM_NETWORK_ERRORS):
-        pytest.skip(f"VLR network error: {exc!r}")
-    raise exc
+def is_upstream_outage(status: int) -> bool:
+    """Whether `status` means VLR is unavailable rather than the parser being wrong.
+
+    Anything else -- a 404 on a pinned historical ID, say -- means a URL scheme or
+    config change we must act on, so it is deliberately left to fail.
+    """
+    return status in UPSTREAM_STATUSES or 500 <= status <= 599

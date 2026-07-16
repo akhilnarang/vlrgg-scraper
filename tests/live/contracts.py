@@ -80,11 +80,12 @@ def check_team(team: Any) -> None:
     # `tag` silently defaults to "" when the h2 is missing (app/services/team.py).
     _require(_nonempty(team.tag), "team.tag: empty -- team-header h2 selector (app/services/team.py)")
 
-    # 2, not 3: a team mid-roster-transition legitimately drops below a full five,
-    # but the roster block vanishing entirely is a selector break.
-    _require_min_len(team.roster, 2, "team.roster", "`team-roster-item` selector")
-    _require_ratio(team.roster, lambda p: _nonempty(p.alias), 1.0, "team.roster[].alias", "`team-roster-item-name`")
-    _require_ratio(team.roster, lambda p: _nonempty(p.id), 1.0, "team.roster[].id", "`team-roster-item` link href")
+    # A single team's roster can legitimately empty out (disbanded, mid-transition),
+    # so roster *presence* is checked across the sample in `check_team_rosters`
+    # rather than per team. Here only the shape of whatever was parsed is checked.
+    if team.roster:
+        _require_ratio(team.roster, lambda p: _nonempty(p.alias), 1.0, "team.roster[].alias", "`team-roster-item-name`")
+        _require_ratio(team.roster, lambda p: _nonempty(p.id), 1.0, "team.roster[].id", "`team-roster-item` link href")
 
     _require_min_len(team.completed, 5, "team.completed", "`m-item-result` selector")
     _require_ratio(
@@ -110,6 +111,21 @@ def check_team(team: Any) -> None:
             "team.upcoming[].event/opponent",
             "`m-item-event` selector",
         )
+
+
+def check_team_rosters(teams: Sequence[Any], threshold: float = 0.75) -> None:
+    """At least `threshold` of a sample of teams must have a populated roster.
+
+    One team can legitimately field nobody -- disbanded, or mid-transition -- but
+    the `team-roster-item` selector breaking empties every roster at once.
+    """
+    _require_ratio(
+        teams,
+        lambda t: len(t.roster) >= 2,
+        threshold,
+        "team.roster",
+        "`team-roster-item` selector (app/services/team.py)",
+    )
 
 
 def check_team_ranks(teams: Sequence[Any], threshold: float = 0.75) -> None:
@@ -221,29 +237,36 @@ def check_match_list(matches: Sequence[Any], completed_status: Any = None) -> No
     _require_min_len(matches, 10, "matches", "`wf-module-item` selector")
     _require_ratio(matches, lambda m: _nonempty(m.id), 1.0, "matches[].id", "match link href")
     _require_ratio(matches, lambda m: _nonempty(m.event), 1.0, "matches[].event", "`match-item-event` selector")
-    # 80%: bracket placeholders are legitimately TBD.
+    # A full bracket of placeholders is legitimate, so team names are only checked
+    # for emptiness -- "TBD" is real data VLR serves, not a parse failure.
     _require_ratio(
         matches,
-        lambda m: m.team1.name != "TBD" and m.team2.name != "TBD",
-        0.8,
+        lambda m: _nonempty(m.team1.name) and _nonempty(m.team2.name),
+        1.0,
         "matches[].team1/team2.name",
         "`match-item-vs-team-name` selector",
     )
 
-    # `parse_score` returns None for any non-digit text, so a score-cell rename
-    # nulls every score silently. Checked only on completed matches, since an
-    # upcoming match legitimately has none -- and only when some are present, as
-    # an all-upcoming feed is a valid quiet day.
     if completed_status is not None:
         completed = [m for m in matches if m.status == completed_status]
-        if completed:
-            _require_ratio(
-                completed,
-                lambda m: m.team1.score is not None and m.team2.score is not None,
-                0.9,
-                "matches[].team1/team2.score",
-                "`match-item-vs-team-score` selector (app/services/matches.py parse_score)",
-            )
+        # `match_list` chains two independent fetches (get_upcoming_matches and
+        # get_completed_matches), so zero completed matches does not mean a quiet
+        # day -- it means that half returned [] and the surviving upcoming matches
+        # are holding the total above the length check on their own.
+        _require(
+            bool(completed),
+            "matches: no completed matches in the feed -- get_completed_matches likely "
+            "returned [] (app/services/matches.py)",
+        )
+        # `parse_score` returns None for any non-digit text, so a score-cell rename
+        # nulls every score silently.
+        _require_ratio(
+            completed,
+            lambda m: m.team1.score is not None and m.team2.score is not None,
+            0.9,
+            "matches[].team1/team2.score",
+            "`match-item-vs-team-score` selector (app/services/matches.py parse_score)",
+        )
 
 
 def check_match_details(match: Any) -> None:

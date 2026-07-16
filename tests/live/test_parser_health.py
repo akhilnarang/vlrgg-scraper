@@ -41,10 +41,11 @@ async def test_team_health(team_id):
     contracts.check_team(result)
 
 
-async def test_team_ranks_health():
-    """Checked across a sample: one team losing its rank is churn, all of them is a break."""
+async def test_team_sample_health():
+    """Checked across a sample: one team losing its rank or roster is churn, all of them is a break."""
     teams = [await team.get_team_data(team_id, completed_pages=1) for team_id in TEAM_IDS]
     contracts.check_team_ranks(teams)
+    contracts.check_team_rosters(teams)
 
 
 @pytest.mark.parametrize("player_id", PLAYER_IDS)
