@@ -547,11 +547,11 @@ teams:
 - id: '104'
   img: https://owcdn.net/img/62a4139de7f7e.png
   name: REJECT
-  score: null
+  score: 2
 - id: '16244'
   img: https://www.vlr.gg/img/vlr/tmp/vlr.png
   name: PARON
-  score: null
+  score: 0
 videos:
   streams: []
   vods: []
