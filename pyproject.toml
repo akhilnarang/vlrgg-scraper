@@ -39,6 +39,10 @@ exclude = ["__init__.py"]
 
 [tool.pytest.ini_options]
 pythonpath = "."
+# --strict-markers: an unregistered or typo'd marker must be a hard error, never a
+# silent zero-match pass that leaves a scheduled job green while testing nothing.
+addopts = "--strict-markers"
 markers = [
-    "live_golden: live VLR parser golden regression tests",
+    "live_golden: snapshot tests for frozen entities, fetched live from VLR",
+    "live_health: structural-health checks for windowed VLR endpoints",
 ]

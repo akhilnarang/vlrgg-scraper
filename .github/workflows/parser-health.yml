@@ -1,0 +1,49 @@
+name: Live Parser Health
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  parser-health:
+    runs-on: ubuntu-latest
+
+    env:
+      REDIS_HOST: localhost
+      REDIS_PASSWORD: ""
+      TIMEZONE: UTC
+      ENABLE_CACHE: "false"
+      ENABLE_ID_MAP_DB: "false"
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.14"
+
+    - name: Install uv
+      run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Generate internal API key
+      run: echo "INTERNAL_API_KEY=$(openssl rand -hex 16)" >> $GITHUB_ENV
+
+    # Structural checks on windowed endpoints + exact snapshots on frozen ones.
+    # Upstream 5xx/429 becomes a skip (see tests/live/conftest.py), so a red run
+    # means the parser is broken, not that VLR had a bad night.
+    - name: Run live parser checks
+      run: >
+        uv run pytest -m "live_health or live_golden" tests/live tests/golden
+        -v --tb=short --junitxml=health.xml
+
+    # A job where everything skipped is the failure mode this suite was built to
+    # end: green while testing nothing. Skips must not be able to mask the run.
+    - name: Fail if every check was skipped
+      if: always()
+      run: uv run python -m tests.live.check_executed health.xml

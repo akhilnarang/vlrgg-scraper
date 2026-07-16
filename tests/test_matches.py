@@ -243,6 +243,10 @@ async def test_match_by_id():
     # Assertions — verify all fields parsed via find() (Phase 6 conversion)
     assert result.teams is not None
     assert isinstance(result.teams, list)
+    # Assert the values, not just the shape: `teams is not None` passes on a list
+    # of nulls, which is exactly how the `js-spoiler` -> `sp-hide` rename shipped.
+    assert [team.name for team in result.teams] == ["Team A", "Team B"]
+    assert [team.score for team in result.teams] == [2, 1]
 
     # Event data (get_event_data uses find() for series, stage, img)
     assert result.event is not None
