@@ -20,7 +20,7 @@ def _mock_response(url: str, content: bytes) -> AsyncMock:
 
 def test_normalize_article_text_collapses_only_wrapped_link_quote_padding():
     assert news.normalize_article_text('Tang " {{link_2}} " Shijun') == 'Tang "{{link_2}}" Shijun'
-    assert news.normalize_article_text('Tang “ {{link_2}} ” Shijun') == 'Tang “{{link_2}}” Shijun'
+    assert news.normalize_article_text("Tang “ {{link_2}} ” Shijun") == "Tang “{{link_2}}” Shijun"
 
 
 @pytest.mark.parametrize(

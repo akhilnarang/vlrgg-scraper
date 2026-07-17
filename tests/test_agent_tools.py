@@ -24,9 +24,27 @@ async def test_count_team_matches_counts_wins_losses():
     fake_team.model_dump = lambda mode=None: {
         "name": "PRX",
         "completed": [
-            {"opponent": "A", "event": "Masters X", "stage": "Playoffs ⋅GF", "score": "3:1", "date": "2025-06-22T00:00:00+00:00"},
-            {"opponent": "B", "event": "Masters Y", "stage": "Playoffs ⋅GF", "score": "0:3", "date": "2026-03-15T00:00:00+00:00"},
-            {"opponent": "C", "event": "VCT PAC", "stage": "Group Stage ⋅W1", "score": "2:0", "date": "2025-01-01T00:00:00+00:00"},
+            {
+                "opponent": "A",
+                "event": "Masters X",
+                "stage": "Playoffs ⋅GF",
+                "score": "3:1",
+                "date": "2025-06-22T00:00:00+00:00",
+            },
+            {
+                "opponent": "B",
+                "event": "Masters Y",
+                "stage": "Playoffs ⋅GF",
+                "score": "0:3",
+                "date": "2026-03-15T00:00:00+00:00",
+            },
+            {
+                "opponent": "C",
+                "event": "VCT PAC",
+                "stage": "Group Stage ⋅W1",
+                "score": "2:0",
+                "date": "2025-01-01T00:00:00+00:00",
+            },
         ],
         "upcoming": [],
     }

@@ -22,7 +22,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.13'
+        python-version: '3.14'
 
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -34,4 +34,4 @@ jobs:
       run: echo "INTERNAL_API_KEY=$(openssl rand -hex 16)" >> $GITHUB_ENV
 
     - name: Run tests
-      run: uv run pytest -m "not live_golden"
+      run: uv run pytest -m "not live_golden and not live_health"

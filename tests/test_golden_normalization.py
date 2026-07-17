@@ -67,10 +67,14 @@ def test_different_timezone_values_normalize_identically() -> None:
     india: GoldenValue = {"date": "2026-07-15T18:30:00+05:30", "time": "18:30:00", "eta": "soon"}
     utc: GoldenValue = {"date": "2026-07-15T13:00:00Z", "time": "13:00:00", "eta": "later"}
 
-    assert normalize_volatile_fields(india) == normalize_volatile_fields(utc) == {
-        "date": "<date>",
-        "time": "<time>",
-    }
+    assert (
+        normalize_volatile_fields(india)
+        == normalize_volatile_fields(utc)
+        == {
+            "date": "<date>",
+            "time": "<time>",
+        }
+    )
 
 
 @pytest.mark.parametrize(

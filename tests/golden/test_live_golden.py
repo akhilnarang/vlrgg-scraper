@@ -8,10 +8,31 @@ import pytest
 from pydantic import BaseModel
 from pytest_regressions.data_regression import DataRegressionFixture
 
-from app.services import events, matches, news, player, standings, team
+from app.services import events, matches, news, standings
 
 
 pytestmark = pytest.mark.live_golden
+
+# Only *frozen* entities belong here: completed matches, completed events,
+# historical standings, and old articles, whose data never changes. For those,
+# exact-equality snapshots are a stronger check than invariants, and any drift is
+# a real parser break -- that is how the `js-spoiler` -> `sp-hide` rename was
+# caught, when a match completed in 2025 started reporting score=null.
+#
+# The bar for adding an event here is that its *end date has passed*, not that it
+# currently reports `status: completed`. Status is derived from counting sidebar
+# headings (app/services/events.py), so an event whose upcoming section happens to
+# be empty reads as completed while a late playoff match can still appear, flip it
+# back to ongoing, and fail the snapshot as a false alarm. Event 2974 (ends
+# Jul 26, 2026) was excluded for exactly that reason.
+#
+# Windowed endpoints (team, player, rankings, match list) are deliberately absent:
+# their pages always show "now", so no baseline is stable at any data age. They
+# get structural-health checks instead -- see `tests/live/test_parser_health.py`.
+#
+# NEVER bulk-regenerate these baselines. Regen per-file and read the diff: the
+# diff *is* the alert. A wholesale `--force-regen` is what previously recorded a
+# parser regression as the expected answer.
 
 
 type GoldenValue = None | bool | int | float | str | list[GoldenValue] | dict[str, GoldenValue]
@@ -78,16 +99,10 @@ def normalize_volatile_fields(value: GoldenValue) -> GoldenValue:
         ("event_2760", lambda: events.get_event_by_id("2760", client=None)),
         ("event_2842", lambda: events.get_event_by_id("2842", client=None)),
         ("event_2863", lambda: events.get_event_by_id("2863", client=None)),
-        ("event_2974", lambda: events.get_event_by_id("2974", client=None)),
         ("match_12345", lambda: matches.match_by_id("12345", redis_client=None)),
         ("match_673178", lambda: matches.match_by_id("673178", redis_client=None)),
         ("match_706763", lambda: matches.match_by_id("706763", redis_client=None)),
         ("match_542272", lambda: matches.match_by_id("542272", redis_client=None)),
-        ("team_624", lambda: team.get_team_data("624", completed_pages=1)),
-        ("team_1120", lambda: team.get_team_data("1120", completed_pages=1)),
-        ("player_45", lambda: player.get_player_data("45", match_pages=1)),
-        ("player_3520", lambda: player.get_player_data("3520", match_pages=1)),
-        ("player_4521", lambda: player.get_player_data("4521", match_pages=1)),
         ("standings_2021", lambda: standings.standings_list(2021)),
         ("news_562934", lambda: news.news_by_id("562934")),
         ("news_562952", lambda: news.news_by_id("562952")),

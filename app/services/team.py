@@ -77,9 +77,14 @@ async def get_team_data(id: str, completed_pages: int = 1) -> schemas.Team:
     for link in soup.find("div", class_="team-header-links").find_all("a"):
         if link := link.get("href"):
             link = utils.expand_url(link)
-            if link and "twitter.com" in link:
+            if not link:
+                continue
+            if utils.is_twitter_url(link):
                 twitter = link
-            else:
+            elif not utils.is_social_url(link) and website is None:
+                # Only the first non-social link is the team's own site; the header
+                # also lists Facebook, Instagram and the like, and letting those
+                # fall through here leaves whichever happened to come last.
                 website = link
 
     country = utils.clean_string(soup.find("div", class_="team-header-country").get_text())

@@ -2,6 +2,34 @@ from concurrent.futures import Executor, Future
 
 import pytest
 
+from tests.live_upstream import UPSTREAM_NETWORK_ERRORS, is_upstream_outage
+
+from app.exceptions import ScrapingError
+
+
+LIVE_MARKERS = ("live_golden", "live_health")
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_call(item):
+    """Turn VLR outages into skips for every live test, in any directory.
+
+    Applied by marker rather than by fixture so that a new live test cannot
+    forget to opt in -- the same drift that previously left the daily job
+    silently skipping everything.
+    """
+    outcome = yield
+    if not any(marker in item.keywords for marker in LIVE_MARKERS):
+        return
+
+    exc = outcome.excinfo[1] if outcome.excinfo else None
+    if exc is None:
+        return
+    if isinstance(exc, ScrapingError) and is_upstream_outage(exc.upstream_status):
+        outcome.force_exception(pytest.skip.Exception(f"VLR unreachable: HTTP {exc.upstream_status}"))
+    elif isinstance(exc, UPSTREAM_NETWORK_ERRORS):
+        outcome.force_exception(pytest.skip.Exception(f"VLR network error: {exc!r}"))
+
 
 class InlineExecutor(Executor):
     def __init__(self, *args, **kwargs):
