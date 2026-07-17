@@ -422,6 +422,20 @@ def test_single_player_without_twitter_passes():
     contracts.check_player_socials([_social_player(twitter=None)] + [_social_player() for _ in range(3)])
 
 
+def test_sample_sizes_tolerate_one_missing_link():
+    """The live samples must be large enough for the 0.75 threshold to mean anything.
+
+    With a two-player sample, 0.75 requires *both* to have Twitter, so one player
+    deleting their link reds the daily job -- the churn the check exists to
+    tolerate. Guards the sample size against being trimmed back.
+    """
+    from tests.live.test_parser_health import PLAYER_IDS, TEAM_IDS
+
+    for name, ids in (("PLAYER_IDS", PLAYER_IDS), ("TEAM_IDS", TEAM_IDS)):
+        one_missing = (len(ids) - 1) / len(ids)
+        assert one_missing >= 0.75, f"{name}: {len(ids)} entries too few -- one dropout gives {one_missing:.0%}"
+
+
 # --- threshold boundaries ---------------------------------------------------
 # Without these, a typo'd threshold (0.075 for 0.75) sails through unnoticed.
 

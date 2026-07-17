@@ -26,7 +26,12 @@ pytestmark = [pytest.mark.live_health, pytest.mark.asyncio]
 # going inactive cannot fire the rank check on its own.
 TEAM_IDS = ["624", "1120", "2", "17"]
 
-PLAYER_IDS = ["45", "3520"]
+# Six players, not two: the sample-wide checks use a 0.75 threshold, so with two
+# entries a single player deleting their Twitter link puts the ratio at 0.5 and
+# reds the job -- the exact churn those checks are meant to tolerate. Six leaves
+# room for one to drop off (5/6 = 83%) while still firing if the parser nulls
+# them all.
+PLAYER_IDS = ["45", "3520", "4521", "9", "1265", "729"]
 
 
 async def test_rankings_health():
