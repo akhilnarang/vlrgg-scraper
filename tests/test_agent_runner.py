@@ -40,8 +40,9 @@ async def test_run_ask_dispatches_tool_then_answers(monkeypatch):
 
     fake_search = AsyncMock(return_value=[{"id": "120", "name": "100 Thieves", "category": "teams"}])
     with patch("app.agent.tools._search", new=fake_search):
-        resp = await run_ask("when does 100T play next", redis_client=None,
-                             client=SimpleNamespace(responses=FakeResponses()))
+        resp = await run_ask(
+            "when does 100T play next", redis_client=None, client=SimpleNamespace(responses=FakeResponses())
+        )
     assert "no match" in resp.answer.lower()
     assert any(t["tool"] == "search" for t in resp.tools_used)
     assert resp.model == "gpt-5.4"
@@ -55,6 +56,7 @@ async def test_run_ask_hits_step_cap_then_answers(monkeypatch):
 
     class FakeResponsesLoops:
         """Emits a tool call whenever tools are offered; the final tools-disabled step answers."""
+
         async def create(self, **kw):
             if kw.get("tools"):
                 return _resp([_fc("c", "search", {"category": "teams", "term": "x"})])
@@ -85,8 +87,12 @@ async def test_total_tool_call_budget_caps_dispatches(monkeypatch):
         async def create(self, **kw):
             # always wants tools; emits 2 calls per step until tools are withheld
             if kw.get("tools"):
-                return _resp([_fc("a", "search", {"category": "teams", "term": "x"}),
-                              _fc("b", "search", {"category": "teams", "term": "y"})])
+                return _resp(
+                    [
+                        _fc("a", "search", {"category": "teams", "term": "x"}),
+                        _fc("b", "search", {"category": "teams", "term": "y"}),
+                    ]
+                )
             captured["input"] = kw["input"]
             return _resp([SimpleNamespace(type="message")], text="answered within budget")
 
@@ -115,7 +121,9 @@ async def test_malformed_tool_arguments_are_fed_back_not_raised(monkeypatch):
             self.calls += 1
             if self.calls == 1:
                 # arguments is a truncated/invalid JSON string
-                bad = SimpleNamespace(type="function_call", call_id="c1", name="search", arguments='{"category": "teams",')
+                bad = SimpleNamespace(
+                    type="function_call", call_id="c1", name="search", arguments='{"category": "teams",'
+                )
                 return _resp([bad])
             captured["input"] = kw["input"]
             return _resp([SimpleNamespace(type="message")], text="Recovered after bad args.")
@@ -148,8 +156,9 @@ async def test_drops_reasoning_keeps_calls(monkeypatch):
             return _resp([SimpleNamespace(type="message")], text="Done.")
 
     with patch("app.agent.tools._search", new=AsyncMock(return_value=[{"id": "120"}])):
-        resp = await run_ask("when does 100T play next", redis_client=None,
-                             client=SimpleNamespace(responses=FakeResponses()))
+        resp = await run_ask(
+            "when does 100T play next", redis_client=None, client=SimpleNamespace(responses=FakeResponses())
+        )
 
     assert resp.answer == "Done."
     items = captured["input"]
@@ -178,6 +187,7 @@ async def test_tool_failure_is_fed_back_not_raised(monkeypatch):
             return _resp([SimpleNamespace(type="message")], text="I couldn't fetch that team right now.")
 
     from app.exceptions import ScrapingError
+
     with patch("app.agent.tools._get_team", new=AsyncMock(side_effect=ScrapingError(url="u", upstream_status=500))):
         resp = await run_ask("team info", redis_client=None, client=SimpleNamespace(responses=FakeResponses()))
     assert "couldn't" in resp.answer.lower()
@@ -203,8 +213,9 @@ async def test_refusal_when_search_empty(monkeypatch):
             return _resp([SimpleNamespace(type="message")], text="I can't find a player by that name.")
 
     with patch("app.agent.tools._search", new=AsyncMock(return_value=[])):
-        resp = await run_ask("when did zzzznobody last play", redis_client=None,
-                             client=SimpleNamespace(responses=FakeResponses()))
+        resp = await run_ask(
+            "when did zzzznobody last play", redis_client=None, client=SimpleNamespace(responses=FakeResponses())
+        )
     assert "can't find" in resp.answer.lower()
     outs = [i for i in captured["input"] if isinstance(i, dict) and i.get("type") == "function_call_output"]
     assert outs and outs[0]["output"] == "[]"

@@ -1,10 +1,24 @@
 from app.agent.filters import filter_matches, guard_rows, MAX_TOOL_RESULT_ROWS, TruncatedResult
 
 MATCHES = [
-    {"opponent": "Team Vitality", "event": "Masters London 2026", "stage": "Playoffs ⋅GF",
-     "score": "2:1", "date": "2026-06-10T17:00:00+00:00", "roster_core": "#ACM", "opponent_roster_core": "#YAJ"},
-    {"opponent": "LOUD", "event": "VCT 26: AMER", "stage": "Group Stage ⋅W1",
-     "score": "0:2", "date": "2025-02-01T17:00:00+00:00", "roster_core": "#OLD", "opponent_roster_core": "#Z5K"},
+    {
+        "opponent": "Team Vitality",
+        "event": "Masters London 2026",
+        "stage": "Playoffs ⋅GF",
+        "score": "2:1",
+        "date": "2026-06-10T17:00:00+00:00",
+        "roster_core": "#ACM",
+        "opponent_roster_core": "#YAJ",
+    },
+    {
+        "opponent": "LOUD",
+        "event": "VCT 26: AMER",
+        "stage": "Group Stage ⋅W1",
+        "score": "0:2",
+        "date": "2025-02-01T17:00:00+00:00",
+        "roster_core": "#OLD",
+        "opponent_roster_core": "#Z5K",
+    },
 ]
 
 

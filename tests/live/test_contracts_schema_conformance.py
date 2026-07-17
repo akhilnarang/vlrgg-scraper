@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 import pytest
 
 from app import schemas
-from app.constants import MatchStatus
+from app.constants import EventStatus, MatchStatus, SearchCategory
 from tests.live import contracts
 
 
@@ -29,6 +29,8 @@ def _team_model() -> schemas.Team:
         name="Sentinels",
         tag="SEN",
         img=IMG,
+        website="https://sentinels.gg/",
+        twitter="https://x.com/Sentinels",
         country="United States",
         rank=3,
         region="North America",
@@ -78,6 +80,7 @@ def _player_model() -> schemas.Player:
         alias="TenZ",
         country="Canada",
         img=IMG,
+        twitter="https://x.com/TenZ",
         agents=[agent],
         past_teams=[schemas.player.PlayerTeam(id="1", name="Cloud9", img=IMG)],
         matches=[
@@ -145,6 +148,62 @@ def _match_details_model() -> schemas.MatchWithDetails:
         ],
         previous_encounters=[],
     )
+
+
+def _search_model() -> list[schemas.SearchResult]:
+    return [
+        schemas.SearchResult(id=str(i), name=f"Team {i}", img=IMG, category=SearchCategory.TEAM, description="desc")
+        for i in range(8)
+    ]
+
+
+def _event_list_model() -> list[schemas.Event]:
+    return [
+        schemas.Event(
+            id=str(i),
+            title=f"VCT 26: Stage {i}",
+            status=EventStatus.COMPLETED,
+            prize="$250,000",
+            dates="Jul 1 - Jul 20",
+            location="Los Angeles",
+            img=IMG,
+        )
+        for i in range(15)
+    ]
+
+
+def _news_list_model() -> list[schemas.NewsItem]:
+    return [
+        schemas.NewsItem(
+            url=f"https://vlr.gg/{i}", title=f"Story {i}", description="A blurb.", date=NOW, author="editor"
+        )
+        for i in range(15)
+    ]
+
+
+def test_check_search_results_matches_schema():
+    contracts.check_search_results(_search_model())
+
+
+def test_check_event_list_matches_schema():
+    """`status` is an EventStatus enum, so the contract must read `.value`."""
+    contracts.check_event_list(_event_list_model())
+
+
+def test_check_news_list_matches_schema():
+    contracts.check_news_list(_news_list_model())
+
+
+def test_check_team_socials_matches_schema():
+    contracts.check_team_socials([_team_model() for _ in range(4)])
+
+
+def test_check_player_socials_matches_schema():
+    contracts.check_player_socials([_player_model() for _ in range(4)])
+
+
+def test_check_team_rosters_matches_schema():
+    contracts.check_team_rosters([_team_model() for _ in range(4)])
 
 
 def test_check_team_matches_schema():

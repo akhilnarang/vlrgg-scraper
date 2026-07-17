@@ -145,6 +145,35 @@ def check_team_ranks(teams: Sequence[Any], threshold: float = 0.75) -> None:
     )
 
 
+def check_team_socials(teams: Sequence[Any], threshold: float = 0.75) -> None:
+    """At least `threshold` of a sample of teams must have a website and a Twitter link.
+
+    Every team's link block lists both. When Twitter moved to x.com the literal
+    `"twitter.com"` check stopped matching, leaving `twitter` null on every team
+    while the X link fell through and overwrote `website` with whichever social
+    happened to come last -- schema-valid, and wrong.
+    """
+    _require_ratio(
+        teams, lambda t: t.twitter is not None, threshold, "team.twitter", "social link domain match (app/utils.py)"
+    )
+    _require_ratio(teams, lambda t: t.website is not None, threshold, "team.website", "`team-header-links` selector")
+
+
+def check_player_socials(players: Sequence[Any], threshold: float = 0.75) -> None:
+    """At least `threshold` of a sample of players must have a Twitter link.
+
+    An individual player may genuinely have none, so this is only meaningful
+    across a sample. See `check_team_socials` for the failure it guards against.
+    """
+    _require_ratio(
+        players,
+        lambda p: p.twitter is not None,
+        threshold,
+        "player.twitter",
+        "social link domain match (app/utils.py)",
+    )
+
+
 def check_rankings(rankings: Sequence[Any]) -> None:
     """Invariants for the rankings page (`app/services/rankings.py`).
 
@@ -199,6 +228,10 @@ def check_player(player: Any) -> None:
     _require_ratio(player.agents, lambda a: a.acs > 0, 0.9, "player.agents[].acs", "agent stats table ACS column")
     _require_ratio(player.agents, lambda a: a.rounds > 0, 1.0, "player.agents[].rounds", "agent stats rounds column")
     _require_ratio(player.agents, lambda a: a.k > 0, 0.9, "player.agents[].k", "agent stats kills column")
+
+    # `twitter` is checked across a sample in `check_player_socials`, not here: an
+    # individual player may genuinely have no link, but the domain check missing
+    # every link at once is a break (that is how the x.com rename went unnoticed).
 
     # `past_teams` is populated by matching the literal heading "past teams", so a
     # retitle silently leaves it []. Checked on established players only: it is the
@@ -267,6 +300,51 @@ def check_match_list(matches: Sequence[Any], completed_status: Any = None) -> No
             "matches[].team1/team2.score",
             "`match-item-vs-team-score` selector (app/services/matches.py parse_score)",
         )
+
+
+def check_search_results(results: Sequence[Any]) -> None:
+    """Invariants for search (`app/services/search.py`).
+
+    A `search-item` rename yields `[]` with no error, so an empty list for a term
+    that certainly matches is itself the alarm.
+    """
+    _require_min_len(results, 3, "search", "`search-item` selector (app/services/search.py)")
+    _require_ratio(results, lambda r: _nonempty(r.id), 1.0, "search[].id", "`search-item` link href")
+    _require_ratio(results, lambda r: _nonempty(r.name), 1.0, "search[].name", "`search-item-title` selector")
+
+
+def check_event_list(events: Sequence[Any]) -> None:
+    """Invariants for the event list (`app/services/events.py`).
+
+    An `events-container-col` rename yields `[]` with no error.
+    """
+    _require_min_len(events, 10, "events", "`events-container-col` selector (app/services/events.py)")
+    _require_ratio(events, lambda e: _nonempty(e.id), 1.0, "events[].id", "event link href")
+    _require_ratio(events, lambda e: _nonempty(e.title), 1.0, "events[].title", "`event-item-title` selector")
+    _require_ratio(events, lambda e: _nonempty(e.dates), 1.0, "events[].dates", "`mod-dates` selector")
+    # `prize` and `location` are free text VLR sometimes leaves blank, so they are
+    # checked as a ratio rather than absolutely.
+    _require_ratio(events, lambda e: _nonempty(e.prize), 0.8, "events[].prize", "`mod-prize` selector")
+    # UNKNOWN is the parser's own fallback when the status heading is unreadable.
+    _require_ratio(
+        events,
+        lambda e: str(getattr(e.status, "value", e.status)).lower() != "unknown",
+        0.9,
+        "events[].status",
+        "`event-item-desc-item-status` selector",
+    )
+
+
+def check_news_list(items: Sequence[Any]) -> None:
+    """Invariants for the news list (`app/services/news.py`).
+
+    A `wf-module-item` rename yields `[]` with no error.
+    """
+    _require_min_len(items, 10, "news", "`wf-module-item` selector (app/services/news.py)")
+    _require_ratio(items, lambda n: _nonempty(n.url), 1.0, "news[].url", "article link href")
+    _require_ratio(items, lambda n: _nonempty(n.title), 1.0, "news[].title", "`wf-module-item` title selector")
+    _require_ratio(items, lambda n: _nonempty(n.author), 1.0, "news[].author", "`ge-text-light` author selector")
+    _require_ratio(items, lambda n: _nonempty(n.description), 0.8, "news[].description", "article blurb selector")
 
 
 def check_match_details(match: Any) -> None:

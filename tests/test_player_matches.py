@@ -206,9 +206,11 @@ async def test_player_data_cache_hit_skips_fetch():
     cached_json = seed.model_dump_json()
 
     http_get = AsyncMock(side_effect=AssertionError("must not fetch on cache hit"))
-    with patch("app.services.player.cache.get", new=AsyncMock(return_value=cached_json)), \
-         patch("app.services.player.cache.set", new=AsyncMock()) as cset, \
-         patch("httpx.AsyncClient.get", new=http_get):
+    with (
+        patch("app.services.player.cache.get", new=AsyncMock(return_value=cached_json)),
+        patch("app.services.player.cache.set", new=AsyncMock()) as cset,
+        patch("httpx.AsyncClient.get", new=http_get),
+    ):
         result = await player.get_player_data(PLAYER_ID)
 
     assert result.alias == seed.alias
@@ -219,9 +221,11 @@ async def test_player_data_cache_hit_skips_fetch():
 @pytest.mark.asyncio
 async def test_player_data_cache_miss_fetches_and_stores():
     """A cache miss fetches live and writes the result back under player:{id}:{pages}."""
-    with patch("app.services.player.cache.get", new=AsyncMock(return_value=None)), \
-         patch("app.services.player.cache.set", new=AsyncMock()) as cset, \
-         patch("httpx.AsyncClient.get", side_effect=_build_mock_get()):
+    with (
+        patch("app.services.player.cache.get", new=AsyncMock(return_value=None)),
+        patch("app.services.player.cache.set", new=AsyncMock()) as cset,
+        patch("httpx.AsyncClient.get", side_effect=_build_mock_get()),
+    ):
         await player.get_player_data(PLAYER_ID, match_pages=1)
 
     cset.assert_awaited_once()

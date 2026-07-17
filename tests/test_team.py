@@ -58,6 +58,21 @@ async def test_team_default_single_page():
 
 
 @pytest.mark.asyncio
+async def test_team_social_links_are_classified():
+    """Twitter moved to x.com, and only the real site belongs in `website`.
+
+    The team header lists site, X and Facebook links. Matching "twitter.com"
+    alone misses the x.com link, and letting every unmatched link fall through to
+    `website` leaves whichever social happens to come last.
+    """
+    with patch("httpx.AsyncClient.get", side_effect=_build_mock_get()):
+        result = await team.get_team_data(TEAM_ID)
+
+    assert result.twitter == "https://x.com/pprxteam"
+    assert str(result.website) == "https://pprx.team/"
+
+
+@pytest.mark.asyncio
 async def test_team_multi_page_returns_more_matches():
     with patch("httpx.AsyncClient.get", side_effect=_build_mock_get()):
         default = await team.get_team_data(TEAM_ID)
@@ -160,9 +175,11 @@ async def test_team_cache_hit_skips_fetch():
     cached_json = seed.model_dump_json()
 
     http_get = AsyncMock(side_effect=AssertionError("must not fetch on cache hit"))
-    with patch("app.services.team.cache.get", new=AsyncMock(return_value=cached_json)), \
-         patch("app.services.team.cache.set", new=AsyncMock()) as cset, \
-         patch("httpx.AsyncClient.get", new=http_get):
+    with (
+        patch("app.services.team.cache.get", new=AsyncMock(return_value=cached_json)),
+        patch("app.services.team.cache.set", new=AsyncMock()) as cset,
+        patch("httpx.AsyncClient.get", new=http_get),
+    ):
         result = await team.get_team_data(TEAM_ID)
 
     assert result.name == seed.name
@@ -173,9 +190,11 @@ async def test_team_cache_hit_skips_fetch():
 @pytest.mark.asyncio
 async def test_team_cache_miss_fetches_and_stores():
     """A cache miss fetches live and writes the result back under team:{id}:{pages}."""
-    with patch("app.services.team.cache.get", new=AsyncMock(return_value=None)), \
-         patch("app.services.team.cache.set", new=AsyncMock()) as cset, \
-         patch("httpx.AsyncClient.get", side_effect=_build_mock_get()):
+    with (
+        patch("app.services.team.cache.get", new=AsyncMock(return_value=None)),
+        patch("app.services.team.cache.set", new=AsyncMock()) as cset,
+        patch("httpx.AsyncClient.get", side_effect=_build_mock_get()),
+    ):
         result = await team.get_team_data(TEAM_ID, completed_pages=2)
 
     cset.assert_awaited_once()
@@ -207,9 +226,11 @@ async def test_team_later_page_error_raises_and_is_not_cached():
             r.status_code, r.content = 503, b""
         return r
 
-    with patch("app.services.team.cache.get", new=AsyncMock(return_value=None)), \
-         patch("app.services.team.cache.set", new=AsyncMock()) as cset, \
-         patch("httpx.AsyncClient.get", side_effect=mock_get):
+    with (
+        patch("app.services.team.cache.get", new=AsyncMock(return_value=None)),
+        patch("app.services.team.cache.set", new=AsyncMock()) as cset,
+        patch("httpx.AsyncClient.get", side_effect=mock_get),
+    ):
         with pytest.raises(ScrapingError):
             await team.get_team_data(TEAM_ID, completed_pages=0)
 

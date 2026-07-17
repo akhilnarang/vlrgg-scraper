@@ -88,6 +88,29 @@ def _listed_match(name1="SEN", name2="NRG", score1=2, score2=1, **overrides) -> 
     return SimpleNamespace(**(base | overrides))
 
 
+def _search_result(**overrides) -> SimpleNamespace:
+    return SimpleNamespace(**(dict(id="1", name="Sentinels") | overrides))
+
+
+def _listed_event(**overrides) -> SimpleNamespace:
+    base = dict(id="1", title="VCT 26: Pacific", status="completed", prize="$250,000", dates="Jul 1 - Jul 20")
+    return SimpleNamespace(**(base | overrides))
+
+
+def _news_item(**overrides) -> SimpleNamespace:
+    base = dict(url="https://vlr.gg/1", title="Roster move", author="editor", description="A blurb.")
+    return SimpleNamespace(**(base | overrides))
+
+
+def _social_team(**overrides) -> SimpleNamespace:
+    base = dict(twitter="https://x.com/sen", website="https://sentinels.gg/")
+    return SimpleNamespace(**(base | overrides))
+
+
+def _social_player(**overrides) -> SimpleNamespace:
+    return SimpleNamespace(**(dict(twitter="https://x.com/tenz") | overrides))
+
+
 def _member(**overrides) -> SimpleNamespace:
     base = dict(name="tenz", agents=[SimpleNamespace(title="jett")], rating=1.2, kills=20, deaths=14)
     return SimpleNamespace(**(base | overrides))
@@ -301,6 +324,102 @@ def test_match_list_all_tbd_bracket_passes():
 def test_check_match_details_fires(case, broken):
     with pytest.raises(ContractViolation):
         contracts.check_match_details(broken())
+
+
+def test_healthy_search_passes():
+    contracts.check_search_results([_search_result() for _ in range(8)])
+
+
+def test_healthy_event_list_passes():
+    contracts.check_event_list([_listed_event() for _ in range(15)])
+
+
+def test_healthy_news_list_passes():
+    contracts.check_news_list([_news_item() for _ in range(15)])
+
+
+def test_healthy_team_socials_pass():
+    contracts.check_team_socials([_social_team() for _ in range(4)])
+
+
+def test_healthy_player_socials_pass():
+    contracts.check_player_socials([_social_player() for _ in range(4)])
+
+
+@pytest.mark.parametrize(
+    ("case", "broken"),
+    [
+        # search.py returning [] when the `search-item` selector misses.
+        ("empty", lambda: []),
+        ("too_few", lambda: [_search_result() for _ in range(1)]),
+        ("ids_empty", lambda: [_search_result(id="") for _ in range(8)]),
+        ("names_empty", lambda: [_search_result(name="") for _ in range(8)]),
+    ],
+)
+def test_check_search_results_fires(case, broken):
+    with pytest.raises(ContractViolation):
+        contracts.check_search_results(broken())
+
+
+@pytest.mark.parametrize(
+    ("case", "broken"),
+    [
+        # events.py returning [] when `events-container-col` misses.
+        ("empty", lambda: []),
+        ("too_few", lambda: [_listed_event() for _ in range(3)]),
+        ("ids_empty", lambda: [_listed_event(id="") for _ in range(15)]),
+        ("titles_empty", lambda: [_listed_event(title="") for _ in range(15)]),
+        ("dates_empty", lambda: [_listed_event(dates="") for _ in range(15)]),
+        ("prizes_empty", lambda: [_listed_event(prize="") for _ in range(15)]),
+        # UNKNOWN is the parser's own fallback for an unreadable status heading.
+        ("statuses_unknown", lambda: [_listed_event(status="unknown") for _ in range(15)]),
+    ],
+)
+def test_check_event_list_fires(case, broken):
+    with pytest.raises(ContractViolation):
+        contracts.check_event_list(broken())
+
+
+@pytest.mark.parametrize(
+    ("case", "broken"),
+    [
+        # news.py returning [] when `wf-module-item` misses.
+        ("empty", lambda: []),
+        ("too_few", lambda: [_news_item() for _ in range(3)]),
+        ("urls_empty", lambda: [_news_item(url="") for _ in range(15)]),
+        ("titles_empty", lambda: [_news_item(title="") for _ in range(15)]),
+        ("authors_empty", lambda: [_news_item(author="") for _ in range(15)]),
+        ("descriptions_empty", lambda: [_news_item(description="") for _ in range(15)]),
+    ],
+)
+def test_check_news_list_fires(case, broken):
+    with pytest.raises(ContractViolation):
+        contracts.check_news_list(broken())
+
+
+def test_team_socials_fire_when_twitter_all_null():
+    """The x.com rename: the domain check misses every link at once."""
+    with pytest.raises(ContractViolation, match="team.twitter"):
+        contracts.check_team_socials([_social_team(twitter=None) for _ in range(4)])
+
+
+def test_team_socials_fire_when_website_all_null():
+    with pytest.raises(ContractViolation, match="team.website"):
+        contracts.check_team_socials([_social_team(website=None) for _ in range(4)])
+
+
+def test_player_socials_fire_when_all_null():
+    with pytest.raises(ContractViolation, match="player.twitter"):
+        contracts.check_player_socials([_social_player(twitter=None) for _ in range(4)])
+
+
+def test_single_team_without_twitter_passes():
+    """One team genuinely lacking a link is churn, not a break."""
+    contracts.check_team_socials([_social_team(twitter=None)] + [_social_team() for _ in range(3)])
+
+
+def test_single_player_without_twitter_passes():
+    contracts.check_player_socials([_social_player(twitter=None)] + [_social_player() for _ in range(3)])
 
 
 # --- threshold boundaries ---------------------------------------------------

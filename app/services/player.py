@@ -9,7 +9,7 @@ from app.exceptions import ScrapingError
 from app import schemas, utils, cache
 import app.constants as constants
 from app.core.connections import get_http_client
-from app.utils import clean_number_string, expand_url, get_image_url
+from app.utils import clean_number_string, expand_url, get_image_url, is_twitter_url, twitter_profile_url
 
 
 # VLR returns 50 match-history cards per page. When fetching "all" pages we request
@@ -83,10 +83,13 @@ async def get_player_data(id: str, match_pages: int = 1) -> schemas.Player:
                 ]
 
     for link in player_info.find_all("a"):
-        if "twitter.com" in link["href"]:
-            player_data["twitter"] = expand_url(link.get_text().strip())
-        elif "twitch.tv" in link["href"]:
-            player_data["twitch"] = expand_url(link["href"])
+        href = link["href"]
+        # The twitter link's text is the handle VLR displays; the href is a
+        # redirect, so the text is what gets stored, normalized to a profile URL.
+        if is_twitter_url(href):
+            player_data["twitter"] = twitter_profile_url(link.get_text())
+        elif "twitch.tv" in href:
+            player_data["twitch"] = expand_url(href)
     result = schemas.Player.model_validate(player_data)
     await cache.set(cache_key, result.model_dump_json(), ttl=constants.CACHE_TTL_PLAYER)
     return result

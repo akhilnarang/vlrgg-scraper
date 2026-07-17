@@ -15,8 +15,8 @@ Run: `uv run pytest -m live_health tests/live`
 
 import pytest
 
-from app.constants import MatchStatus
-from app.services import matches, player, rankings, team
+from app.constants import MatchStatus, SearchCategory
+from app.services import events, matches, news, player, rankings, search, team
 from tests.live import contracts
 
 
@@ -46,6 +46,7 @@ async def test_team_sample_health():
     teams = [await team.get_team_data(team_id, completed_pages=1) for team_id in TEAM_IDS]
     contracts.check_team_ranks(teams)
     contracts.check_team_rosters(teams)
+    contracts.check_team_socials(teams)
 
 
 @pytest.mark.parametrize("player_id", PLAYER_IDS)
@@ -54,9 +55,33 @@ async def test_player_health(player_id):
     contracts.check_player(result)
 
 
+async def test_player_sample_health():
+    """Socials are only meaningful across a sample: one player may have no link."""
+    players = [await player.get_player_data(player_id, match_pages=1) for player_id in PLAYER_IDS]
+    contracts.check_player_socials(players)
+
+
 async def test_match_list_health():
     result = await matches.match_list(redis_client=None)
     contracts.check_match_list(result, completed_status=MatchStatus.COMPLETED)
+
+
+async def test_search_health():
+    """`search-item` missing yields [] with no error."""
+    result = await search.get_data(SearchCategory.ALL, "sentinels")
+    contracts.check_search_results(result)
+
+
+async def test_event_list_health():
+    """`events-container-col` missing yields [] with no error."""
+    result = await events.get_events(cache_client=None, pages=1)
+    contracts.check_event_list(result)
+
+
+async def test_news_list_health():
+    """`wf-module-item` missing yields [] with no error."""
+    result = await news.news_list(pages=1)
+    contracts.check_news_list(result)
 
 
 async def test_completed_match_health():

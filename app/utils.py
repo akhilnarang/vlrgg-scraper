@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
@@ -73,6 +74,46 @@ def clean_number_string(value: str | None) -> int | float:
                 except ValueError:
                     pass
     return 0
+
+
+# Twitter rebranded to x.com and VLR serves both forms, so matching "twitter.com"
+# alone silently misses every link on the new domain.
+TWITTER_HOSTS = ("twitter.com", "x.com")
+
+# Other socials VLR lists alongside a team's own site. They are named explicitly so
+# that an unrecognised domain is treated as the site rather than silently dropped.
+OTHER_SOCIAL_HOSTS = ("facebook.com", "fb.com", "instagram.com", "youtube.com", "twitch.tv", "tiktok.com")
+
+
+def _host_matches(url: str, hosts: tuple[str, ...]) -> bool:
+    host = urlparse(url).netloc.lower().removeprefix("www.")
+    return any(host == h or host.endswith(f".{h}") for h in hosts)
+
+
+def is_twitter_url(url: str) -> bool:
+    """Whether `url` points at Twitter/X, under either domain."""
+    return _host_matches(url, TWITTER_HOSTS)
+
+
+def twitter_profile_url(value: str) -> str | None:
+    """Normalize a Twitter/X handle or URL into a profile URL.
+
+    VLR shows the handle (`@SicK_cs`) as the link text while the href is a
+    redirect, so the displayed value is what gets stored -- but a bare handle is
+    not a URL, and expanding it naively yields `https://@SicK_cs`.
+    """
+    value = value.strip()
+    if not value:
+        return None
+    if value.startswith("http"):
+        return value if is_twitter_url(value) else None
+    handle = value.lstrip("@").strip("/")
+    return f"https://x.com/{handle}" if handle else None
+
+
+def is_social_url(url: str) -> bool:
+    """Whether `url` points at any known social network rather than an own site."""
+    return _host_matches(url, TWITTER_HOSTS + OTHER_SOCIAL_HOSTS)
 
 
 def expand_url(url: str | list[str] | None) -> str | None:
