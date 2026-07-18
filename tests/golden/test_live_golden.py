@@ -1,4 +1,5 @@
 import json
+import re
 from collections.abc import Awaitable, Callable
 from datetime import datetime, time
 from enum import Enum
@@ -38,6 +39,9 @@ pytestmark = pytest.mark.live_golden
 type GoldenValue = None | bool | int | float | str | list[GoldenValue] | dict[str, GoldenValue]
 type TimestampKey = Literal["date", "time"]
 
+_DATE_RANGE_PART = re.compile(r"(?P<month>[A-Za-z]+) (?P<day>\d{1,2})(?:, (?P<year>\d{4}))?")
+_DATE_RANGE_SEPARATOR = re.compile(r"\s*[-–—]\s*")
+
 
 def serialize(value: Any) -> GoldenValue:
     """Convert scraper results into the JSON-shaped values stored by golden tests."""
@@ -74,6 +78,48 @@ def normalize_timestamp(key: TimestampKey, value: GoldenValue) -> GoldenValue:
     raise ValueError(f"invalid ISO {key}: {value!r}")
 
 
+def normalize_date_range(value: GoldenValue) -> str:
+    """Validate and normalize VLR's location-dependent event date range."""
+    if not isinstance(value, str):
+        raise ValueError(f"dates must be a string, got {type(value).__name__}")
+
+    parts = _DATE_RANGE_SEPARATOR.split(value)
+    if len(parts) != 2:
+        raise ValueError(f"invalid event date range: {value!r}")
+
+    parsed_parts: list[tuple[int, int, int | None]] = []
+    for part in parts:
+        match = _DATE_RANGE_PART.fullmatch(part)
+        if match is None:
+            raise ValueError(f"invalid event date range: {value!r}")
+        try:
+            month = datetime.strptime(match["month"], "%b").month
+        except ValueError:
+            try:
+                month = datetime.strptime(match["month"], "%B").month
+            except ValueError as exc:
+                raise ValueError(f"invalid event date range: {value!r}") from exc
+        parsed_parts.append((month, int(match["day"]), int(match["year"]) if match["year"] else None))
+
+    (start_month, start_day, start_year), (end_month, end_day, end_year) = parsed_parts
+    if start_year is None and end_year is None:
+        raise ValueError(f"event date range must include a year: {value!r}")
+    if start_year is None:
+        assert end_year is not None
+        start_year = end_year - ((start_month, start_day) > (end_month, end_day))
+    if end_year is None:
+        end_year = start_year + ((end_month, end_day) < (start_month, start_day))
+
+    try:
+        start = datetime(start_year, start_month, start_day)
+        end = datetime(end_year, end_month, end_day)
+    except ValueError as exc:
+        raise ValueError(f"invalid event date range: {value!r}") from exc
+    if start > end:
+        raise ValueError(f"event date range ends before it starts: {value!r}")
+    return "<dates>"
+
+
 def normalize_volatile_fields(value: GoldenValue) -> GoldenValue:
     """Stabilize location-dependent timestamps while preserving response shape."""
     if isinstance(value, list):
@@ -85,6 +131,8 @@ def normalize_volatile_fields(value: GoldenValue) -> GoldenValue:
                 continue
             if key in {"date", "time"}:
                 normalized[key] = normalize_timestamp(cast(TimestampKey, key), item)
+            elif key == "dates":
+                normalized[key] = normalize_date_range(item)
             else:
                 normalized[key] = normalize_volatile_fields(item)
         return normalized
