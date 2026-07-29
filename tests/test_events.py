@@ -281,6 +281,45 @@ def test_parse_event_standings_with_logo_first_column_fixture():
     assert all(standing["team"] != "Spoiler hidden" for standing in result)
 
 
+@pytest.mark.parametrize(
+    ("stats", "expected_record"),
+    [
+        (["3–1", "5", "20", "+12"], (3, 1, 0)),
+        (["3", "1", "2", "5", "20", "+12"], (3, 1, 2)),
+    ],
+)
+def test_parse_event_standings_locates_stats_after_logo_and_team_columns(stats, expected_record):
+    """VLR sometimes gives the logo its own cell before the team cell (VLR-SCRAPER-AS)."""
+    stat_cells = "".join(f'<td class="mod-center mod-stat">{value}</td>' for value in stats)
+    html = f"""
+    <div class="event-container">
+      <table class="wf-table mod-simple mod-group">
+        <tbody><tr>
+          <td><img src="//owcdn.net/img/team.png"></td>
+          <td>
+            <div class="event-group-team-name text-of">
+              A NOVA ORDEM
+              <div class="event-group-team-region">Brazil</div>
+              <div>Spoiler hidden</div>
+            </div>
+          </td>
+          {stat_cells}
+        </tr></tbody>
+      </table>
+    </div>
+    """
+
+    result = events.parse_event_standings(BeautifulSoup(html, "lxml").find("div", class_="event-container"))
+
+    assert len(result) == 1
+    assert result[0]["team"] == "A NOVA ORDEM"
+    assert result[0]["country"] == "Brazil"
+    assert (result[0]["wins"], result[0]["losses"], result[0]["ties"]) == expected_record
+    assert result[0]["map_difference"] == 5
+    assert result[0]["round_difference"] == 20
+    assert result[0]["round_delta"] == 12
+
+
 def test_parse_prizes_from_current_prize_distribution_grid():
     html = """
     <html><body>
