@@ -16,7 +16,7 @@ data:
     id: '2114'
     kast: 0
     kills: 29
-    name: Kinguyen
+    name: <player-name>
     rating: 0.0
     team: ky5
   - acs: 244
@@ -33,7 +33,7 @@ data:
     id: '2115'
     kast: 0
     kills: 21
-    name: b2kk
+    name: <player-name>
     rating: 0.0
     team: ky5
   - acs: 241
@@ -50,7 +50,7 @@ data:
     id: '2111'
     kast: 0
     kills: 18
-    name: Aegis
+    name: <player-name>
     rating: 0.0
     team: ky5
   - acs: 166
@@ -67,7 +67,7 @@ data:
     id: '6889'
     kast: 0
     kills: 11
-    name: NeskaaS
+    name: <player-name>
     rating: 0.0
     team: ky5
   - acs: 131
@@ -84,7 +84,7 @@ data:
     id: '2112'
     kast: 0
     kills: 11
-    name: dathuaaN
+    name: <player-name>
     rating: 0.0
     team: ky5
   - acs: 341
@@ -101,7 +101,7 @@ data:
     id: '10887'
     kast: 0
     kills: 24
-    name: Dimaoneshot
+    name: <player-name>
     rating: 0.0
     team: IMBAPEEK
   - acs: 285
@@ -118,7 +118,7 @@ data:
     id: '4951'
     kast: 0
     kills: 22
-    name: Hardy
+    name: <player-name>
     rating: 0.0
     team: IMBAPEEK
   - acs: 151
@@ -135,7 +135,7 @@ data:
     id: ''
     kast: 0
     kills: 14
-    name: RAiLWAY
+    name: <player-name>
     rating: 0.0
     team: IMBAPEEK
   - acs: 150
@@ -152,7 +152,7 @@ data:
     id: '7106'
     kast: 0
     kills: 7
-    name: diseased
+    name: <player-name>
     rating: 0.0
     team: IMBAPEEK
   - acs: 137
@@ -169,7 +169,7 @@ data:
     id: '222'
     kast: 0
     kills: 12
-    name: 0nuqtive
+    name: <player-name>
     rating: 0.0
     team: IMBAPEEK
   rounds:

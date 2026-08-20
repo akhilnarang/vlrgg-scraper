@@ -16,7 +16,7 @@ data:
     id: '424'
     kast: 93
     kills: 20
-    name: Dep
+    name: <player-name>
     rating: 1.8
     team: REJECT
   - acs: 244
@@ -33,7 +33,7 @@ data:
     id: '4122'
     kast: 87
     kills: 15
-    name: Persia
+    name: <player-name>
     rating: 1.69
     team: REJECT
   - acs: 194
@@ -50,7 +50,7 @@ data:
     id: '7405'
     kast: 80
     kills: 11
-    name: Jremy
+    name: <player-name>
     rating: 1.28
     team: REJECT
   - acs: 197
@@ -67,7 +67,7 @@ data:
     id: '7745'
     kast: 80
     kills: 12
-    name: Yoshiii
+    name: <player-name>
     rating: 1.19
     team: REJECT
   - acs: 209
@@ -84,7 +84,7 @@ data:
     id: '25915'
     kast: 80
     kills: 12
-    name: BRIAN
+    name: <player-name>
     rating: 1.02
     team: REJECT
   - acs: 238
@@ -101,7 +101,7 @@ data:
     id: '64747'
     kast: 60
     kills: 12
-    name: Kylerr
+    name: <player-name>
     rating: 0.97
     team: PARON
   - acs: 177
@@ -118,7 +118,7 @@ data:
     id: '47474'
     kast: 67
     kills: 9
-    name: Russeyll
+    name: <player-name>
     rating: 0.85
     team: PARON
   - acs: 124
@@ -135,7 +135,7 @@ data:
     id: '43029'
     kast: 53
     kills: 6
-    name: Onyx
+    name: <player-name>
     rating: 0.53
     team: PARON
   - acs: 132
@@ -152,7 +152,7 @@ data:
     id: '43093'
     kast: 67
     kills: 5
-    name: RIFE
+    name: <player-name>
     rating: 0.49
     team: PARON
   - acs: 74
@@ -169,7 +169,7 @@ data:
     id: '64748'
     kast: 40
     kills: 3
-    name: endr666
+    name: <player-name>
     rating: 0.1
     team: PARON
   rounds:
@@ -269,7 +269,7 @@ data:
     id: '424'
     kast: 89
     kills: 20
-    name: Dep
+    name: <player-name>
     rating: 1.67
     team: REJECT
   - acs: 269
@@ -286,7 +286,7 @@ data:
     id: '25915'
     kast: 72
     kills: 18
-    name: BRIAN
+    name: <player-name>
     rating: 1.4
     team: REJECT
   - acs: 197
@@ -303,7 +303,7 @@ data:
     id: '7745'
     kast: 94
     kills: 12
-    name: Yoshiii
+    name: <player-name>
     rating: 1.29
     team: REJECT
   - acs: 227
@@ -320,7 +320,7 @@ data:
     id: '7405'
     kast: 78
     kills: 16
-    name: Jremy
+    name: <player-name>
     rating: 1.15
     team: REJECT
   - acs: 170
@@ -337,7 +337,7 @@ data:
     id: '4122'
     kast: 83
     kills: 11
-    name: Persia
+    name: <player-name>
     rating: 1.12
     team: REJECT
   - acs: 234
@@ -354,7 +354,7 @@ data:
     id: '64747'
     kast: 61
     kills: 13
-    name: Kylerr
+    name: <player-name>
     rating: 0.97
     team: PARON
   - acs: 258
@@ -371,7 +371,7 @@ data:
     id: '64748'
     kast: 72
     kills: 16
-    name: endr666
+    name: <player-name>
     rating: 0.96
     team: PARON
   - acs: 92
@@ -388,7 +388,7 @@ data:
     id: '43093'
     kast: 50
     kills: 6
-    name: RIFE
+    name: <player-name>
     rating: 0.55
     team: PARON
   - acs: 85
@@ -405,7 +405,7 @@ data:
     id: '47474'
     kast: 39
     kills: 4
-    name: Russeyll
+    name: <player-name>
     rating: 0.53
     team: PARON
   - acs: 54
@@ -422,7 +422,7 @@ data:
     id: '43029'
     kast: 33
     kills: 3
-    name: Onyx
+    name: <player-name>
     rating: 0.17
     team: PARON
   rounds:

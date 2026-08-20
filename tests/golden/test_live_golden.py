@@ -120,11 +120,21 @@ def normalize_date_range(value: GoldenValue) -> str:
     return "<dates>"
 
 
+def normalize_match_member_name(value: GoldenValue) -> str:
+    """Validate a scoreboard alias while ignoring legitimate profile renames."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"match member name must be a non-empty string, got {value!r}")
+    return "<player-name>"
+
+
 def normalize_volatile_fields(value: GoldenValue) -> GoldenValue:
-    """Stabilize location-dependent timestamps while preserving response shape."""
+    """Stabilize location- and profile-dependent values while preserving response shape."""
     if isinstance(value, list):
         return [normalize_volatile_fields(item) for item in value]
     if isinstance(value, dict):
+        # VLR renders a player's current profile alias into historical match
+        # scoreboards. IDs and results are frozen; these display names are not.
+        is_match_member = {"id", "name", "team", "agents"}.issubset(value) and isinstance(value["agents"], list)
         normalized: dict[str, GoldenValue] = {}
         for key, item in value.items():
             if key == "eta":
@@ -133,6 +143,8 @@ def normalize_volatile_fields(value: GoldenValue) -> GoldenValue:
                 normalized[key] = normalize_timestamp(cast(TimestampKey, key), item)
             elif key == "dates":
                 normalized[key] = normalize_date_range(item)
+            elif key == "name" and is_match_member:
+                normalized[key] = normalize_match_member_name(item)
             else:
                 normalized[key] = normalize_volatile_fields(item)
         return normalized

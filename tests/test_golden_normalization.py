@@ -52,6 +52,36 @@ def test_normalize_volatile_fields_removes_nested_eta() -> None:
     assert normalize_volatile_fields(value) == [{"name": "Example", "details": {}}]
 
 
+def test_normalize_volatile_fields_masks_mutable_match_member_names() -> None:
+    """Player aliases can change even after a match's results are frozen."""
+    old_alias: GoldenValue = {
+        "id": "43029",
+        "name": "Onyx",
+        "team": "PARON",
+        "agents": [{"title": "Killjoy"}],
+    }
+    new_alias: GoldenValue = {**old_alias, "name": "Lipsum"}
+
+    assert normalize_volatile_fields(old_alias) == normalize_volatile_fields(new_alias) == {
+        **old_alias,
+        "name": "<player-name>",
+    }
+
+
+@pytest.mark.parametrize("name", [None, "", "   ", 123])
+def test_normalize_volatile_fields_rejects_invalid_match_member_names(name: GoldenValue) -> None:
+    """Masking mutable aliases must not hide a broken name selector."""
+    member: GoldenValue = {
+        "id": "43029",
+        "name": name,
+        "team": "PARON",
+        "agents": [{"title": "Killjoy"}],
+    }
+
+    with pytest.raises(ValueError, match="match member name"):
+        normalize_volatile_fields(member)
+
+
 def test_serialize_handles_supported_container_and_object_types() -> None:
     """Serialization must produce a JSON-shaped value for every supported branch."""
     value = {

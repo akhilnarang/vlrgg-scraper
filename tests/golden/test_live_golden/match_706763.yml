@@ -23,7 +23,7 @@ data:
     id: '11494'
     kast: 84
     kills: 22
-    name: keiko
+    name: <player-name>
     rating: 1.53
     team: NRG
   - acs: 273
@@ -40,7 +40,7 @@ data:
     id: '11118'
     kast: 84
     kills: 18
-    name: skuba
+    name: <player-name>
     rating: 1.41
     team: NRG
   - acs: 262
@@ -57,7 +57,7 @@ data:
     id: '2172'
     kast: 84
     kills: 19
-    name: brawk
+    name: <player-name>
     rating: 1.31
     team: NRG
   - acs: 141
@@ -74,7 +74,7 @@ data:
     id: '5132'
     kast: 79
     kills: 10
-    name: mada
+    name: <player-name>
     rating: 0.84
     team: NRG
   - acs: 153
@@ -91,7 +91,7 @@ data:
     id: '11225'
     kast: 68
     kills: 10
-    name: Ethan
+    name: <player-name>
     rating: 0.73
     team: NRG
   - acs: 209
@@ -108,7 +108,7 @@ data:
     id: '36245'
     kast: 68
     kills: 13
-    name: N4RRATE
+    name: <player-name>
     rating: 1.26
     team: Karmine Corp
   - acs: 159
@@ -125,7 +125,7 @@ data:
     id: '2858'
     kast: 58
     kills: 11
-    name: SUYGETSU
+    name: <player-name>
     rating: 0.72
     team: Karmine Corp
   - acs: 181
@@ -142,7 +142,7 @@ data:
     id: '20144'
     kast: 42
     kills: 13
-    name: LewN
+    name: <player-name>
     rating: 0.62
     team: Karmine Corp
   - acs: 156
@@ -159,7 +159,7 @@ data:
     id: '5654'
     kast: 53
     kills: 10
-    name: Avez
+    name: <player-name>
     rating: 0.57
     team: Karmine Corp
   - acs: 134
@@ -176,7 +176,7 @@ data:
     id: '16215'
     kast: 47
     kills: 8
-    name: dos9
+    name: <player-name>
     rating: 0.55
     team: Karmine Corp
   rounds:
@@ -296,7 +296,7 @@ data:
     id: '11494'
     kast: 55
     kills: 18
-    name: keiko
+    name: <player-name>
     rating: 1.43
     team: NRG
   - acs: 187
@@ -313,7 +313,7 @@ data:
     id: '2172'
     kast: 65
     kills: 11
-    name: brawk
+    name: <player-name>
     rating: 0.95
     team: NRG
   - acs: 188
@@ -330,7 +330,7 @@ data:
     id: '5132'
     kast: 55
     kills: 13
-    name: mada
+    name: <player-name>
     rating: 0.69
     team: NRG
   - acs: 119
@@ -347,7 +347,7 @@ data:
     id: '11118'
     kast: 65
     kills: 9
-    name: skuba
+    name: <player-name>
     rating: 0.68
     team: NRG
   - acs: 95
@@ -364,7 +364,7 @@ data:
     id: '11225'
     kast: 70
     kills: 7
-    name: Ethan
+    name: <player-name>
     rating: 0.36
     team: NRG
   - acs: 245
@@ -381,7 +381,7 @@ data:
     id: '2858'
     kast: 80
     kills: 20
-    name: SUYGETSU
+    name: <player-name>
     rating: 1.49
     team: Karmine Corp
   - acs: 302
@@ -398,7 +398,7 @@ data:
     id: '36245'
     kast: 90
     kills: 21
-    name: N4RRATE
+    name: <player-name>
     rating: 1.48
     team: Karmine Corp
   - acs: 149
@@ -415,7 +415,7 @@ data:
     id: '5654'
     kast: 80
     kills: 11
-    name: Avez
+    name: <player-name>
     rating: 0.93
     team: Karmine Corp
   - acs: 194
@@ -432,7 +432,7 @@ data:
     id: '16215'
     kast: 80
     kills: 14
-    name: dos9
+    name: <player-name>
     rating: 0.93
     team: Karmine Corp
   - acs: 168
@@ -449,7 +449,7 @@ data:
     id: '20144'
     kast: 75
     kills: 14
-    name: LewN
+    name: <player-name>
     rating: 0.84
     team: Karmine Corp
   rounds:
@@ -574,7 +574,7 @@ data:
     id: '11118'
     kast: 95
     kills: 18
-    name: skuba
+    name: <player-name>
     rating: 1.34
     team: NRG
   - acs: 277
@@ -591,7 +591,7 @@ data:
     id: '11225'
     kast: 75
     kills: 19
-    name: Ethan
+    name: <player-name>
     rating: 1.27
     team: NRG
   - acs: 180
@@ -608,7 +608,7 @@ data:
     id: '11494'
     kast: 75
     kills: 15
-    name: keiko
+    name: <player-name>
     rating: 1.12
     team: NRG
   - acs: 183
@@ -625,7 +625,7 @@ data:
     id: '2172'
     kast: 65
     kills: 13
-    name: brawk
+    name: <player-name>
     rating: 1.09
     team: NRG
   - acs: 206
@@ -642,7 +642,7 @@ data:
     id: '5132'
     kast: 75
     kills: 14
-    name: mada
+    name: <player-name>
     rating: 0.93
     team: NRG
   - acs: 193
@@ -659,7 +659,7 @@ data:
     id: '5654'
     kast: 55
     kills: 14
-    name: Avez
+    name: <player-name>
     rating: 0.99
     team: Karmine Corp
   - acs: 190
@@ -676,7 +676,7 @@ data:
     id: '36245'
     kast: 55
     kills: 12
-    name: N4RRATE
+    name: <player-name>
     rating: 0.83
     team: Karmine Corp
   - acs: 144
@@ -693,7 +693,7 @@ data:
     id: '16215'
     kast: 70
     kills: 9
-    name: dos9
+    name: <player-name>
     rating: 0.78
     team: Karmine Corp
   - acs: 174
@@ -710,7 +710,7 @@ data:
     id: '20144'
     kast: 70
     kills: 12
-    name: LewN
+    name: <player-name>
     rating: 0.76
     team: Karmine Corp
   - acs: 146
@@ -727,7 +727,7 @@ data:
     id: '2858'
     kast: 55
     kills: 11
-    name: SUYGETSU
+    name: <player-name>
     rating: 0.61
     team: Karmine Corp
   rounds:
