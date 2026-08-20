@@ -109,7 +109,20 @@ docker run -p 8000:8000 vlrgg-scraper
 
 ### Production
 
-Use `uvicorn` or `gunicorn` for production deployment. See `scripts/start.sh` for an example.
+Install and start the systemd user service:
+
+```bash
+./scripts/install-systemd-user.sh
+```
+
+The service runs Uvicorn from this checkout on `gunicorn.sock`, loads
+configuration from `.env`, restarts automatically, and starts with the user's
+systemd session.
+After pushing a new revision, deploy it with:
+
+```bash
+./scripts/deploy.sh
+```
 
 ## Contributing
 
