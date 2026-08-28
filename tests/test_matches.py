@@ -97,6 +97,37 @@ def test_parse_div_based_overview_scoreboard():
     ]
 
 
+def test_get_map_data_supports_anchor_map_navigation():
+    """Parse map navigation links."""
+    html = """
+    <div class="vm-stats">
+      <a class="vm-stats-gamesnav-item js-map-switch mod-active mod-all"
+         data-game-id="all">All Maps</a>
+      <a class="vm-stats-gamesnav-item js-map-switch"
+         data-game-id="1">1 Lotus</a>
+      <a class="vm-stats-gamesnav-item js-map-switch mod-disabled"
+         data-game-id="2">2 N/A</a>
+      <div class="vm-stats-game" data-game-id="all"></div>
+      <div class="vm-stats-game" data-game-id="1">
+        <div class="team-name">Alpha</div>
+        <div class="team-name">Beta</div>
+        <div class="score">13</div>
+        <div class="score">10</div>
+        <div class="vlr-rounds">
+          <div class="team">ALP</div>
+          <div class="team">BET</div>
+        </div>
+      </div>
+    </div>
+    """
+    stats = BeautifulSoup(html, "lxml").find_all("div", class_="vm-stats")
+
+    maps, map_count = matches.get_map_data(stats)
+
+    assert map_count == 1
+    assert [map_data["map"] for map_data in maps] == ["Lotus"]
+
+
 @pytest.mark.asyncio
 async def test_match_list_keeps_first_upcoming_date_group(monkeypatch):
     fixture_dir = Path(__file__).parent / "fixtures"

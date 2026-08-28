@@ -218,10 +218,13 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
     # Extract stats first
     map_stats = stats.find_all("div", class_="vm-stats-game")
 
-    # Extract map names if there were multiple maps
+    # Get map names for matches with more than one map.
+    map_navigation = stats.find_all(class_="vm-stats-gamesnav-item")
     maps = {
-        map_data["data-game-id"]: "".join(i for i in clean_string(map_data.get_text()) if not i.isdigit())
-        for map_data in stats.find_all("div", class_="vm-stats-gamesnav-item")
+        map_data["data-game-id"]: "".join(
+            character for character in clean_string(map_data.get_text()) if not character.isdigit()
+        ).strip()
+        for map_data in map_navigation
     }
 
     # If the above dict is empty (i.e. no vm-stats-gamesnav-item), we know that there is a single map
@@ -232,8 +235,11 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
         else:
             map_count = 0
     else:
-        # Set the number of maps actually played (remove disabled ones basically)
-        map_count = len(maps) - 1 - len(stats.find_all("div", class_="mod-disabled"))
+        # Count played maps. Ignore the overview tab and disabled map tabs.
+        map_count = sum(
+            map_data.get("data-game-id") != "all" and "mod-disabled" not in map_data.get("class", [])
+            for map_data in map_navigation
+        )
 
     map_ret = []
     for map_data in map_stats:
