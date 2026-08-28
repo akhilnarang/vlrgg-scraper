@@ -7,7 +7,7 @@ authors = [
     { name = "Akhil Narang", email = "me@akhilnarang.dev" }
 ]
 dependencies = [
-    "fastapi[all]",
+    "fastapi[all]<0.137",
     "httpx",
     "beautifulsoup4",
     "uvicorn[standard]",
@@ -32,6 +32,9 @@ dev = [
     "ruff>=0.16.3",
     "ty>=0.0.72",
 ]
+
+[tool.uv]
+exclude-newer = "3 days"
 
 [tool.ruff]
 line-length = 120
