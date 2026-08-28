@@ -10,7 +10,6 @@ job must go red rather than report a green no-op.
 
 import httpx
 
-
 UPSTREAM_NETWORK_ERRORS = (httpx.TransportError, httpx.TimeoutException)
 
 # 429 plus any 5xx: VLR's problem, and it clears on its own.

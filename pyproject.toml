@@ -7,7 +7,7 @@ authors = [
     { name = "Akhil Narang", email = "me@akhilnarang.dev" }
 ]
 dependencies = [
-    "fastapi[all]<0.137",
+    "fastapi[all]<0.140",
     "httpx",
     "beautifulsoup4",
     "uvicorn[standard]",

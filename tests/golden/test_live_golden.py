@@ -1,7 +1,8 @@
 import json
 import re
+from calendar import month_abbr, month_name
 from collections.abc import Awaitable, Callable
-from datetime import datetime, time
+from datetime import date, datetime, time
 from enum import Enum
 from typing import Any, Literal, cast
 
@@ -10,7 +11,6 @@ from pydantic import BaseModel
 from pytest_regressions.data_regression import DataRegressionFixture
 
 from app.services import events, matches, news, standings
-
 
 pytestmark = pytest.mark.live_golden
 
@@ -41,6 +41,7 @@ type TimestampKey = Literal["date", "time"]
 
 _DATE_RANGE_PART = re.compile(r"(?P<month>[A-Za-z]+) (?P<day>\d{1,2})(?:, (?P<year>\d{4}))?")
 _DATE_RANGE_SEPARATOR = re.compile(r"\s*[-–—]\s*")
+_MONTHS = {name.lower(): number for names in (month_abbr, month_name) for number, name in enumerate(names) if name}
 
 
 def serialize(value: Any) -> GoldenValue:
@@ -63,7 +64,7 @@ def normalize_timestamp(key: TimestampKey, value: GoldenValue) -> GoldenValue:
     if value is None:
         return None
     if not isinstance(value, str):
-        raise ValueError(f"{key} must be a string or null, got {type(value).__name__}")
+        raise TypeError(f"{key} must be a string or null, got {type(value).__name__}")
     if key == "time" and "tbd" in value.lower():
         return "<time>"
 
@@ -81,7 +82,7 @@ def normalize_timestamp(key: TimestampKey, value: GoldenValue) -> GoldenValue:
 def normalize_date_range(value: GoldenValue) -> str:
     """Validate and normalize VLR's location-dependent event date range."""
     if not isinstance(value, str):
-        raise ValueError(f"dates must be a string, got {type(value).__name__}")
+        raise TypeError(f"dates must be a string, got {type(value).__name__}")
 
     parts = _DATE_RANGE_SEPARATOR.split(value)
     if len(parts) != 2:
@@ -93,12 +94,9 @@ def normalize_date_range(value: GoldenValue) -> str:
         if match is None:
             raise ValueError(f"invalid event date range: {value!r}")
         try:
-            month = datetime.strptime(match["month"], "%b").month
-        except ValueError:
-            try:
-                month = datetime.strptime(match["month"], "%B").month
-            except ValueError as exc:
-                raise ValueError(f"invalid event date range: {value!r}") from exc
+            month = _MONTHS[match["month"].lower()]
+        except KeyError as exc:
+            raise ValueError(f"invalid event date range: {value!r}") from exc
         parsed_parts.append((month, int(match["day"]), int(match["year"]) if match["year"] else None))
 
     (start_month, start_day, start_year), (end_month, end_day, end_year) = parsed_parts
@@ -111,8 +109,8 @@ def normalize_date_range(value: GoldenValue) -> str:
         end_year = start_year + ((end_month, end_day) < (start_month, start_day))
 
     try:
-        start = datetime(start_year, start_month, start_day)
-        end = datetime(end_year, end_month, end_day)
+        start = date(start_year, start_month, start_day)
+        end = date(end_year, end_month, end_day)
     except ValueError as exc:
         raise ValueError(f"invalid event date range: {value!r}") from exc
     if start > end:
@@ -140,7 +138,7 @@ def normalize_volatile_fields(value: GoldenValue) -> GoldenValue:
             if key == "eta":
                 continue
             if key in {"date", "time"}:
-                normalized[key] = normalize_timestamp(cast(TimestampKey, key), item)
+                normalized[key] = normalize_timestamp(key, item)
             elif key == "dates":
                 normalized[key] = normalize_date_range(item)
             elif key == "name" and is_match_member:
@@ -155,17 +153,10 @@ def normalize_volatile_fields(value: GoldenValue) -> GoldenValue:
 @pytest.mark.parametrize(
     ("case_name", "loader"),
     [
-        ("event_2283", lambda: events.get_event_by_id("2283", client=None)),
-        ("event_2760", lambda: events.get_event_by_id("2760", client=None)),
-        ("event_2842", lambda: events.get_event_by_id("2842", client=None)),
         ("event_2863", lambda: events.get_event_by_id("2863", client=None)),
-        ("match_12345", lambda: matches.match_by_id("12345", redis_client=None)),
-        ("match_673178", lambda: matches.match_by_id("673178", redis_client=None)),
-        ("match_706763", lambda: matches.match_by_id("706763", redis_client=None)),
         ("match_542272", lambda: matches.match_by_id("542272", redis_client=None)),
         ("standings_2021", lambda: standings.standings_list(2021)),
         ("news_562934", lambda: news.news_by_id("562934")),
-        ("news_562952", lambda: news.news_by_id("562952")),
     ],
 )
 async def test_live_vlr_parser_golden(

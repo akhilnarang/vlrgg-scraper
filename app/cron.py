@@ -8,10 +8,9 @@ from zoneinfo import ZoneInfo
 from arq import cron
 from arq.worker import Worker, create_worker
 from firebase_admin import App, credentials, delete_app, get_app, initialize_app, messaging
-from sentry_sdk import get_current_scope
+from sentry_sdk import capture_exception, get_current_scope
 
-from app import schemas
-from app import constants
+from app import constants, schemas
 from app.constants import MatchStatus
 from app.core.config import settings
 from app.services import events, matches, news, rankings, standings
@@ -81,6 +80,7 @@ async def fcm_notification_cron(ctx: dict) -> None:
     messages = []
     for match, match_details in zip(upcoming_matches, all_match_details):
         if isinstance(match_details, BaseException):
+            capture_exception(match_details)
             logging.warning(f"Failed to fetch match details for {match.id}: {match_details}")
             continue
 

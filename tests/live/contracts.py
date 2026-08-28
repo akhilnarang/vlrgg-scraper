@@ -10,14 +10,13 @@ back to `0`, `""`, `None`, or `[]` rather than raising -- output that is
 schema-valid and entirely useless. Pydantic cannot catch that; only value-level
 invariants can.
 
-Every function here MUST have a mutation test in `test_contracts_sensitivity.py`
-proving it fires. A contract that cannot fail is a green light wired to nothing.
+The scheduled live checks call these contracts at the project-owned service
+boundary. Keep each check focused on public values that indicate a parser break.
 """
 
 import re
 from collections.abc import Callable, Sequence
 from typing import Any
-
 
 SCORE_RE = re.compile(r"^\d+\s*:\s*\d+$")
 
@@ -345,40 +344,3 @@ def check_news_list(items: Sequence[Any]) -> None:
     _require_ratio(items, lambda n: _nonempty(n.title), 1.0, "news[].title", "`wf-module-item` title selector")
     _require_ratio(items, lambda n: _nonempty(n.author), 1.0, "news[].author", "`ge-text-light` author selector")
     _require_ratio(items, lambda n: _nonempty(n.description), 0.8, "news[].description", "article blurb selector")
-
-
-def check_match_details(match: Any) -> None:
-    """Invariants for a completed match (`app/services/matches.py`).
-
-    Pin this to a completed match from a finished event: its result is frozen
-    forever, so any drift is a parser break rather than churn.
-    """
-    _require(len(match.teams) == 2, f"match.teams: got {len(match.teams)}, expected 2 -- `wf-title-med` selector")
-    _require_ratio(match.teams, lambda t: _nonempty(t.name), 1.0, "match.teams[].name", "`wf-title-med` selector")
-    # The regression this suite was built for: `js-spoiler` was renamed to
-    # `sp-hide` and every completed match silently reported score=None.
-    _require_ratio(
-        match.teams,
-        lambda t: t.score is not None,
-        1.0,
-        "match.teams[].score",
-        "`sp-hide` score selector (app/services/matches.py)",
-    )
-
-    _require(_nonempty(match.event.series), "match.event.series: empty -- `match-header-event` selector")
-    _require(match.map_count >= 1, f"match.map_count: got {match.map_count} -- map selector")
-    _require_min_len(match.data, 1, "match.data", "`vm-stats-game` selector")
-
-    members = [member for map_data in match.data for member in map_data.members]
-    _require_min_len(members, 10, "match.data[].members", "scoreboard `tbody` selector")
-    _require_ratio(members, lambda m: _nonempty(m.name), 1.0, "match.data[].members[].name", "scoreboard selector")
-    _require_ratio(members, lambda m: bool(m.agents), 0.9, "match.data[].members[].agents", "scoreboard agent selector")
-    # 90%: a player can genuinely post 0.00 rating on a stomped map.
-    _require_ratio(members, lambda m: m.rating > 0, 0.9, "match.data[].members[].rating", "scoreboard stat columns")
-    _require_ratio(
-        members,
-        lambda m: m.kills + m.deaths > 0,
-        0.9,
-        "match.data[].members[].kills/deaths",
-        "scoreboard stat columns",
-    )

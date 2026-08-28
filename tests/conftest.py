@@ -1,13 +1,41 @@
 from concurrent.futures import Executor, Future
+from unittest.mock import AsyncMock
 
 import pytest
 
+from app.exceptions import ScrapingError
 from tests.live_upstream import UPSTREAM_NETWORK_ERRORS, is_upstream_outage
 
-from app.exceptions import ScrapingError
-
-
 LIVE_MARKERS = ("live_golden", "live_health")
+
+
+@pytest.fixture
+def http_response():
+    """Build the small HTTP response surface used by service tests."""
+
+    def build(url: str, content: bytes, status: int = 200):
+        response = AsyncMock()
+        response.status_code = status
+        response.content = content
+        response.url = url
+        return response
+
+    return build
+
+
+@pytest.fixture
+def http_get(http_response):
+    """Route mocked HTTP GET calls by URL."""
+
+    def build(pages: dict[str, bytes], fallback: bytes = b"<html><body></body></html>", failures=None):
+        failures = failures or {}
+
+        async def get(url: str, *_args, **_kwargs):
+            return http_response(url, pages.get(url, fallback), failures.get(url, 200))
+
+        return get
+
+    return build
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -38,14 +66,14 @@ class InlineExecutor(Executor):
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.shutdown()
 
     def submit(self, fn, /, *args, **kwargs):
         future = Future()
         try:
             future.set_result(fn(*args, **kwargs))
-        except BaseException as exc:
+        except BaseException as exc:  # noqa: BLE001 - executors preserve BaseException semantics
             future.set_exception(exc)
         return future
 

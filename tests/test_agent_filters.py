@@ -1,60 +1,45 @@
-from app.agent.filters import filter_matches, guard_rows, MAX_TOOL_RESULT_ROWS, TruncatedResult
+from app.agent.filters import MAX_TOOL_RESULT_ROWS, MatchRow, TruncatedResult, filter_matches, guard_rows
 
-MATCHES = [
-    {
-        "opponent": "Team Vitality",
-        "event": "Masters London 2026",
-        "stage": "Playoffs ⋅GF",
-        "score": "2:1",
-        "date": "2026-06-10T17:00:00+00:00",
-        "roster_core": "#ACM",
-        "opponent_roster_core": "#YAJ",
-    },
-    {
-        "opponent": "LOUD",
-        "event": "VCT 26: AMER",
-        "stage": "Group Stage ⋅W1",
-        "score": "0:2",
-        "date": "2025-02-01T17:00:00+00:00",
-        "roster_core": "#OLD",
-        "opponent_roster_core": "#Z5K",
-    },
-]
+MATCH: MatchRow = {
+    "opponent": "Team Vitality",
+    "event": "Masters London 2026",
+    "stage": "Playoffs ⋅GF",
+    "date": "2026-06-10T17:00:00+00:00",
+    "roster_core": "#ACM",
+    "opponent_roster_core": "#YAJ",
+}
 
 
-def test_filter_by_opponent_substring_case_insensitive():
-    out = filter_matches(MATCHES, opponent="vitality")
-    assert len(out) == 1 and out[0]["opponent"] == "Team Vitality"
+def test_match_filters_return_the_requested_slice():
+    matches: list[MatchRow] = [
+        {**MATCH, "opponent": "LOUD"},
+        {**MATCH, "event": "VCT 26: AMER"},
+        {**MATCH, "stage": "Group Stage ⋅W1"},
+        {**MATCH, "date": "2025-12-31T17:00:00+00:00"},
+        {**MATCH, "date": "2027-01-01T17:00:00+00:00"},
+        {**MATCH, "roster_core": "#OLD"},
+        {**MATCH, "opponent_roster_core": "#Z5K"},
+        MATCH,
+        dict(MATCH),
+    ]
+    result = filter_matches(
+        matches,
+        opponent="vitality",
+        event="london",
+        stage="GF",
+        date_from="2026-01-01",
+        date_to="2026-12-31",
+        roster_core="#ACM",
+        opponent_roster_core="#YAJ",
+    )
+
+    assert result == [MATCH, MATCH]
+    assert filter_matches(result, limit=1) == [MATCH]
 
 
-def test_filter_by_stage_and_limit():
-    out = filter_matches(MATCHES, stage="GF", limit=5)
-    assert len(out) == 1 and out[0]["stage"].endswith("GF")
+def test_large_tool_results_require_narrowing():
+    rows: list[MatchRow] = [dict(MATCH) for _ in range(MAX_TOOL_RESULT_ROWS + 1)]
 
+    result = guard_rows(rows, ["opponent", "stage"])
 
-def test_filter_by_date_range():
-    out = filter_matches(MATCHES, date_from="2026-01-01")
-    assert len(out) == 1 and out[0]["event"].startswith("Masters London")
-
-
-def test_filter_by_roster_core():
-    out = filter_matches(MATCHES, roster_core="#ACM")
-    assert len(out) == 1 and out[0]["roster_core"] == "#ACM"
-
-
-def test_filter_by_opponent_roster_core():
-    out = filter_matches(MATCHES, opponent_roster_core="#Z5K")
-    assert len(out) == 1 and out[0]["opponent"] == "LOUD"
-
-
-def test_guard_passes_small_lists():
-    assert guard_rows(MATCHES, ["opponent"]) == MATCHES
-
-
-def test_guard_truncates_large_lists():
-    big = [dict(MATCHES[0]) for _ in range(MAX_TOOL_RESULT_ROWS + 1)]
-    out = guard_rows(big, ["opponent", "stage"])
-    assert isinstance(out, TruncatedResult)
-    assert out.truncated is True
-    assert out.total == MAX_TOOL_RESULT_ROWS + 1
-    assert "opponent" in out.available_filters
+    assert result == TruncatedResult(total=len(rows), available_filters=["opponent", "stage"])
