@@ -29,8 +29,8 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "pytest-regressions",
-    "ruff>=0.16.3",
-    "ty>=0.0.72",
+    "ruff>=0.16.5",
+    "ty>=0.0.75",
 ]
 
 [tool.uv]
