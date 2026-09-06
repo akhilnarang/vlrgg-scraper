@@ -7,6 +7,7 @@ from bs4 import Comment, NavigableString, Tag
 
 from app.constants import PREFIX
 from app.schemas.news import NewsBlock, NewsBlockType, NewsTextRun
+from app.services.news_video import news_video_player
 
 _SKIP_TAGS = {"script", "style", "noscript", "template"}
 _CONTAINERS = {"div", "section", "article", "main", "figure", "header", "footer"}
@@ -134,6 +135,7 @@ def parse_article_blocks(body: Tag) -> list[NewsBlock]:
                         NewsBlock(
                             type="image" if node.name == "img" else "video",
                             url=_url(source),
+                            player=news_video_player(_url(source) or "") if node.name != "img" else None,
                             alt=str(node.get("alt", "")) if node.name == "img" else "",
                         )
                     )

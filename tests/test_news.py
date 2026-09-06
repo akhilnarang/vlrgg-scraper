@@ -68,6 +68,14 @@ async def test_news_article_preserves_links_and_quoted_names(http_response, arti
     elif article_id == "748106":
         assert text.index("{video_0}") < text.index("N4RRATE, it's been a year")
         assert [b.type for b in result.blocks[:4]] == ["paragraph", "video", "paragraph", "blockquote"]
+        player = result.blocks[1].player
+        assert player is not None
+        assert player.model_dump() == {
+            "provider": "youtube",
+            "media_id": "vbBd_Hu6o2M",
+            "player_url": "/media/youtube/vbBd_Hu6o2M",
+            "external_url": "https://www.youtube.com/watch?v=vbBd_Hu6o2M",
+        }
         assert all(r.italic for r in result.blocks[0].runs)
         assert all(r.bold for r in result.blocks[2].runs)
         assert len([b for b in result.blocks if b.type == "blockquote"]) == 6
@@ -83,6 +91,12 @@ async def test_news_article_preserves_links_and_quoted_names(http_response, arti
         assert text.index("{video_0}") < text.index("Dambi with a Dambi-esque")
         assert text.index("{video_1}") < text.index("Meteor finished the series")
         assert text.count("Up next") == 1
+        videos = [b for b in result.blocks if b.type == "video"]
+        assert all(b.player is not None and b.player.provider == "twitch" for b in videos)
+        assert videos[0].player.media_id == "ExquisiteRealSandpiperBabyRage-31jlkIQddWpcEqu0"
+        assert (
+            videos[0].player.external_url == "https://clips.twitch.tv/ExquisiteRealSandpiperBabyRage-31jlkIQddWpcEqu0"
+        )
 
     assert result.blocks
     assert "{{image_" not in result.content
@@ -121,6 +135,38 @@ async def test_news_article_fallback_preserves_nested_content_once(http_response
     assert image.url == "https://owcdn.net/photo.jpg" and image.alt == "Winner"
     assert caption.runs[-1].italic
     assert video.url == "https://www.vlr.gg/clip.mp4"
+    assert video.player is None
     assert result.content.count("After video") == 1
     assert "hidden" not in result.content
     assert result.links == [{"text": "boldboth", "url": "https://www.vlr.gg/player/1"}]
+
+
+@pytest.mark.asyncio
+async def test_news_video_links_only_embed_supported_providers(http_response):
+    accepted = [
+        "https://youtube.com/watch?v=vbBd_Hu6o2M",
+        "https://youtu.be/vbBd_Hu6o2M",
+        "https://www.youtube-nocookie.com/embed/vbBd_Hu6o2M",
+        "https://clips.twitch.tv/ExampleClip",
+        "https://www.twitch.tv/valorant/clip/ExampleClip",
+    ]
+    rejected = [
+        "https://youtube.com.evil.test/embed/vbBd_Hu6o2M",
+        "https://www.youtube.com/embed/invalid",
+        "https://clips.twitch.tv/embed?clip=%22%3E%3Cscript%3E",
+        "https://youtube.com@evil.test/embed/vbBd_Hu6o2M",
+    ]
+    html = "<article>" + "".join(f'<iframe src="{url}"></iframe>' for url in accepted + rejected) + "</article>"
+    with patch("httpx.AsyncClient.get", return_value=http_response("https://www.vlr.gg/1", html.encode())):
+        result = await news.news_by_id("1")
+    assert [b.player.provider if b.player else None for b in result.blocks] == [
+        "youtube",
+        "youtube",
+        "youtube",
+        "twitch",
+        "twitch",
+        None,
+        None,
+        None,
+        None,
+    ]

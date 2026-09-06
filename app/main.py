@@ -17,6 +17,7 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
+from app.api.media import router as media_router
 from app.api import deps
 from app.api.v1.api import router
 from app.api.v1.endpoints.internal import router as internal_router
@@ -119,6 +120,8 @@ async def add_server_name_header(request: Request, call_next: Callable) -> Respo
     response.headers["X-Server"] = _HOSTNAME
     return response
 
+
+app.include_router(media_router)
 
 if settings.API_KEYS:
     print("Got API keys", settings.API_KEYS.keys())

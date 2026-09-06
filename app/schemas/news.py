@@ -25,6 +25,13 @@ class NewsTextRun(BaseModel):
 NewsBlockType = Literal["paragraph", "heading", "blockquote", "list", "list_item", "image", "video", "caption"]
 
 
+class NewsVideoPlayer(BaseModel):
+    provider: Literal["youtube", "twitch"]
+    media_id: str
+    player_url: str
+    external_url: str
+
+
 class NewsBlock(BaseModel):
     type: NewsBlockType
     runs: list[NewsTextRun] = Field(default_factory=list)
@@ -34,6 +41,7 @@ class NewsBlock(BaseModel):
     start: int = 1
     url: str | None = None
     alt: str = ""
+    player: NewsVideoPlayer | None = None
 
 
 # Response for `GET /api/v1/news/{id}`
