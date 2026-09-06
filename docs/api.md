@@ -40,13 +40,16 @@ and nested content remain in their original positions.
 | `blockquote` | Ordered `children` blocks |
 | `list` | `children` containing `list_item` blocks; `ordered` and `start` specify numbering |
 | `list_item` | Ordered `children`, including paragraphs and nested lists |
-| `image` | Absolute `url` and `alt` text |
-| `video` | Absolute `url`, including iframe embeds and native video sources |
-| `caption` | `runs` from a figure caption or italic photo caption |
+| `image` | Absolute `url` and `alt` text; optional `link_url` when wrapped in a link |
+| `video` | Absolute `url`, including iframe embeds and native video sources; optional `link_url` when wrapped in a link |
+| `caption` | `runs` from a figure caption or italic media caption |
 
 Each text run has `text`, an optional absolute link `url`, and `bold` and `italic`
 flags. Concatenate runs exactly, retaining their spaces and newlines. A line break
-is represented by `\n` within a run. Formatting and links can overlap.
+is represented by `\n` within a run. Formatting and links can overlap. Link and
+media URLs are resolved against VLR and emitted only when they use HTTP or HTTPS.
+When an image or video is wrapped in an anchor link, its destination is preserved in
+`link_url`.
 
 For example, an introduction followed by a video and an interview question has
 this block sequence. Unused fields are omitted here for readability; responses

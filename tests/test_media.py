@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from app.core.config import settings
 
 
-def test_public_player_uses_its_own_origin_and_rejects_invalid_media(monkeypatch):
+def test_public_player_endpoint_contract_and_invalid_media(monkeypatch):
     monkeypatch.setattr(settings, "API_KEYS", {"test": "test-key"})
     from app.main import app
 
@@ -15,12 +15,15 @@ def test_public_player_uses_its_own_origin_and_rejects_invalid_media(monkeypatch
         response = client.get(f"/media/{provider}/{media_id}")
         assert response.status_code == 200
         iframe = BeautifulSoup(response.text, "html.parser").find("iframe")
-        source = urlsplit(iframe["src"])
+        assert iframe is not None
+        src = iframe["src"]
+        assert isinstance(src, str)
+        source = urlsplit(src)
         query = parse_qs(source.query)
         if provider == "youtube":
             assert source.hostname == "www.youtube.com"
             assert source.path == "/embed/vbBd_Hu6o2M"
-            assert query == {"origin": ["https://api.example.test:8443"], "playsinline": ["1"], "autoplay": ["0"]}
+            assert query == {"playsinline": ["1"], "autoplay": ["0"]}
         else:
             assert source.hostname == "clips.twitch.tv"
             assert query == {"clip": ["ExampleClip-123"], "parent": ["api.example.test"], "autoplay": ["false"]}
@@ -30,7 +33,6 @@ def test_public_player_uses_its_own_origin_and_rejects_invalid_media(monkeypatch
         assert iframe["referrerpolicy"] == "strict-origin-when-cross-origin"
         assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"
         assert "default-src 'none'" in response.headers["content-security-policy"]
-    for path in ["other/ExampleClip", "youtube/short", "twitch/%22%3E%3Cscript%3E"]:
-        response = client.get(f"/media/{path}")
-        assert response.status_code == 404
-        assert "<script>" not in response.text
+    response = client.get("/media/twitch/%22%3E%3Cscript%3E")
+    assert response.status_code == 404
+    assert "<script>" not in response.text

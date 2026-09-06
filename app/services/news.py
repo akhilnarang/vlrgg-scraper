@@ -1,6 +1,5 @@
 import asyncio
 import http
-import re
 from datetime import datetime
 
 import dateutil.parser
@@ -9,39 +8,12 @@ from bs4 import BeautifulSoup, Tag
 from app import constants, schemas
 from app.core.connections import get_http_client
 from app.exceptions import ScrapingError
-from app.services.news_content import legacy_article_content, parse_article_blocks
+from app.services.news_content import parse_article_blocks, project_legacy_fields
 from app.utils import fix_datetime_tz
 
 # VLR returns 30 news cards per page. When fetching "all" pages we request them in
 # batches of this size and stop as soon as a page yields no cards.
 NEWS_PAGE_BATCH_SIZE = 5
-
-
-def _collapse_link_quote_padding(text: str) -> str:
-    result = []
-    last_end = 0
-    for match in re.finditer(r"\s+({{link_\d+}})\s+", text):
-        prev_char = text[match.start() - 1] if match.start() > 0 else ""
-        next_char = text[match.end()] if match.end() < len(text) else ""
-        is_quoted_link = (prev_char == next_char == '"') or (prev_char == "“" and next_char == "”")
-        if not is_quoted_link:
-            continue
-
-        result.append(text[last_end : match.start()])
-        result.append(match.group(1))
-        last_end = match.end()
-
-    if not result:
-        return text
-
-    result.append(text[last_end:])
-    return "".join(result)
-
-
-def normalize_article_text(text: str) -> str:
-    text = re.sub(r"\s+([.,;:!?])", r"\1", text)
-    text = re.sub(r"({{link_\d+}})\s+(['’]s)\b", r"\1\2", text)
-    return _collapse_link_quote_padding(text)
 
 
 def news_url(page: int) -> str:
@@ -168,10 +140,11 @@ def _parse_article_date(value: str) -> datetime | None:
 
 
 async def news_by_id(id: str) -> schemas.NewsArticle:
-    """
-    Function to fetch a news article by ID from VLR
-    :param id: The news article ID
-    :return: The parsed news article
+    """Fetch and parse a news article by ID from VLR.
+
+    :param id: The news article ID.
+    :return: The parsed article with ordered blocks and legacy projections.
+    :raises ScrapingError: If VLR returns a non-200 HTTP status.
     """
     async with get_http_client() as client:
         response = await client.get(constants.NEWS_URL_WITH_ID.format(id))
@@ -184,13 +157,10 @@ async def news_by_id(id: str) -> schemas.NewsArticle:
     article_container = soup.find("div", class_="wf-card mod-article")
 
     title = ""
-    content = ""
-    links = []
-    images = []
-    videos = []
     author = ""
     date = None
-    blocks = []
+    title_elem = None
+    meta_div = None
 
     if article_container:
         # Title
@@ -205,23 +175,15 @@ async def news_by_id(id: str) -> schemas.NewsArticle:
             if (date_elem := meta_div.find(class_="js-date-toggle")) and date_elem.get("title"):
                 date = _parse_article_date(str(date_elem["title"]))
 
-    if not title and (title_elem := soup.find("h1") or soup.find("title")):
-        title = title_elem.get_text().strip()
-
-    content_div = (
-        (article_container.find("div", class_="article-body") if article_container else None)
-        or soup.find("div", class_="article-body")
-        or soup.find("div", class_="content")
-        or soup.find("article")
-        or soup.find("main")
-    )
-    if content_div:
-        blocks = parse_article_blocks(content_div)
-        content, links, images, videos = legacy_article_content(blocks)
-        content = normalize_article_text(content)
+    if not title:
+        title_elem = soup.find("h1") or soup.find("title")
+        if title_elem:
+            title = title_elem.get_text().strip()
 
     # Parse metadata - try different selectors
-    if meta_div := soup.find("div", class_="article-meta") or soup.find("div", class_="meta"):
+    if not (author and date) and (
+        meta_div := soup.find("div", class_="article-meta") or soup.find("div", class_="meta")
+    ):
         if not author:
             if author_elem := meta_div.find("span", class_="author"):
                 author = author_elem.get_text().strip().replace("by ", "").replace("By ", "")
@@ -236,14 +198,35 @@ async def news_by_id(id: str) -> schemas.NewsArticle:
             if date_elem:
                 date = _parse_article_date(date_elem.get_text().strip())
 
+    body_div = (
+        (article_container.find("div", class_="article-body") if article_container else None)
+        or soup.find("div", class_="article-body")
+        or soup.find("div", class_="content")
+    )
+    fallback_container = soup.find("article") or soup.find("main")
+    content_div = body_div or fallback_container
+
+    if not body_div and fallback_container:
+        if title_elem and any(p is fallback_container for p in title_elem.parents):
+            header = title_elem.find_parent("header")
+            if header and any(p is fallback_container for p in header.parents):
+                header.extract()
+            else:
+                title_elem.extract()
+        if meta_div and any(p is fallback_container for p in meta_div.parents):
+            meta_div.extract()
+
+    blocks = parse_article_blocks(content_div) if content_div else []
+    legacy = project_legacy_fields(blocks)
+
     return schemas.NewsArticle(
         id=id,
         title=title,
-        content=content.strip(),
+        content=legacy.content,
         blocks=blocks,
-        links=links,
-        images=images,
-        videos=videos,
+        links=legacy.links,
+        images=legacy.images,
+        videos=legacy.videos,
         date=date,
         author=author,
     )

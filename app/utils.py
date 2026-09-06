@@ -1,32 +1,46 @@
 import re
 from datetime import datetime
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse, urlsplit
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 from sentry_sdk.types import Event, Hint
 
-from app.constants import PREFIX, VLR_IMAGE
+from app.constants import PREFIX
 from app.core.config import settings
 
 _TZ_LOCAL = ZoneInfo(settings.TIMEZONE)
 _TZ_UTC = ZoneInfo("UTC")
 
 
+def resolve_http_url(value: str | list[str] | None) -> str | None:
+    """Resolve an HTTP(S) URL relative to the VLR root.
+
+    :param value: A URL attribute value, or list from BeautifulSoup.
+    :return: The resolved URL, or ``None`` when empty, unsupported, or malformed.
+    """
+    if isinstance(value, list):
+        value = value[0] if value else None
+    if not value or not (value := value.strip()):
+        return None
+    try:
+        resolved = urljoin(PREFIX + "/", value)
+        parsed = urlsplit(resolved)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            return None
+        _ = parsed.port  # urllib validates the port when this property is read.
+        return resolved
+    except ValueError:
+        return None
+
+
 def get_image_url(img: str | list[str]) -> str:
+    """Resolve an image URL while preserving the legacy string return type.
+
+    :param img: The image source, or list from BeautifulSoup.
+    :return: The resolved HTTP(S) URL, or an empty string when invalid.
     """
-    Determine an image URL based on the string
-    :param img: The src string of the image (or list from BeautifulSoup)
-    :return: The full URL
-    """
-    if isinstance(img, list):
-        img = img[0]
-    if img.startswith("http"):
-        return img
-    elif img.startswith(VLR_IMAGE):
-        return f"{PREFIX}{img}"
-    else:
-        return f"https:{img}"
+    return resolve_http_url(img) or ""
 
 
 def clear_datetime_tz(source: datetime) -> datetime:

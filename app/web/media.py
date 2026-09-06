@@ -3,20 +3,30 @@
 from html import escape
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
+from app.constants import NewsVideoProvider
+from app.exceptions import NotFoundError
 from app.services.news_video import valid_media_id
 
 router = APIRouter()
 
 
 @router.get("/media/{provider}/{media_id}", response_class=HTMLResponse)
-async def media_player(request: Request, provider: str, media_id: str) -> HTMLResponse:
+async def media_player(request: Request, provider: NewsVideoProvider, media_id: str) -> HTMLResponse:
+    """Serve a provider iframe page for a syntactically valid media ID.
+
+    :param request: The request used to derive Twitch's parent hostname.
+    :param provider: Supported provider name (``youtube`` or ``twitch``).
+    :param media_id: Provider-specific media identifier.
+    :return: A secured HTML response containing the official provider iframe.
+    :raises NotFoundError: For an invalid media ID.
+    """
     if not valid_media_id(provider, media_id):
-        raise HTTPException(status_code=404, detail="Unsupported video")
-    if provider == "youtube":
-        query = urlencode({"origin": str(request.base_url).rstrip("/"), "playsinline": "1", "autoplay": "0"})
+        raise NotFoundError("Unsupported video")
+    if provider is NewsVideoProvider.YOUTUBE:
+        query = urlencode({"playsinline": "1", "autoplay": "0"})
         source = f"https://www.youtube.com/embed/{media_id}?{query}"
         title = "YouTube video player"
         frame_origin = "https://www.youtube.com"

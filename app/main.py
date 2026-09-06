@@ -17,7 +17,6 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
-from app.api.media import router as media_router
 from app.api import deps
 from app.api.v1.api import router
 from app.api.v1.endpoints.internal import router as internal_router
@@ -26,6 +25,7 @@ from app.core import connections
 from app.core.config import settings
 from app.cron import arq_worker
 from app.utils import before_send
+from app.web.media import router as media_router
 
 # Git SHA for Sentry release tracking
 _RELEASE = os.environ.get("GIT_SHA")

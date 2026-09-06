@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
+
+from app.constants import NewsVideoProvider
 
 
 # Response for `GET /api/v1/news`
@@ -26,13 +26,18 @@ NewsBlockType = Literal["paragraph", "heading", "blockquote", "list", "list_item
 
 
 class NewsVideoPlayer(BaseModel):
-    provider: Literal["youtube", "twitch"]
+    provider: NewsVideoProvider
     media_id: str
     player_url: str
     external_url: str
 
 
 class NewsBlock(BaseModel):
+    """A supported article block, optionally containing nested or media content.
+
+    For media, ``url`` is the source while ``link_url`` is its wrapping anchor.
+    """
+
     type: NewsBlockType
     runs: list[NewsTextRun] = Field(default_factory=list)
     children: list[NewsBlock] = Field(default_factory=list)
@@ -40,6 +45,7 @@ class NewsBlock(BaseModel):
     ordered: bool = False
     start: int = 1
     url: str | None = None
+    link_url: str | None = None
     alt: str = ""
     player: NewsVideoPlayer | None = None
 
