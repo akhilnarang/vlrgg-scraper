@@ -57,6 +57,13 @@ class EventStatus(str, Enum):
     UNKNOWN = "unknown"
 
 
+class NewsVideoProvider(str, Enum):
+    """Providers supported by hosted news video players."""
+
+    YOUTUBE = "youtube"
+    TWITCH = "twitch"
+
+
 REGION_NAME_MAPPING = {
     # "gc": "Game Changers",
     "la-s": "Latin America South",

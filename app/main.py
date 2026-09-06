@@ -25,6 +25,7 @@ from app.core import connections
 from app.core.config import settings
 from app.cron import arq_worker
 from app.utils import before_send
+from app.web.media import router as media_router
 
 # Git SHA for Sentry release tracking
 _RELEASE = os.environ.get("GIT_SHA")
@@ -119,6 +120,8 @@ async def add_server_name_header(request: Request, call_next: Callable) -> Respo
     response.headers["X-Server"] = _HOSTNAME
     return response
 
+
+app.include_router(media_router)
 
 if settings.API_KEYS:
     print("Got API keys", settings.API_KEYS.keys())
