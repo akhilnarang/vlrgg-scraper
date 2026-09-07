@@ -3,15 +3,8 @@
 Tests protect public behavior at project-owned boundaries. Keep the suite small
 enough that a failure identifies a broken contract instead of a private refactor.
 
-## Rules
-
-- Strongly avoid new tests. Extend the existing focused test for that behavior.
-- Cover the hot path and, at most, one meaningful failure path.
-- Assert public response values and user-visible HTTP behavior.
-- Do not assert private helpers, route trees, internal types, or schema defaults.
-- Do not duplicate the type checker.
-- Test adapters where project code calls them, such as cache, Firebase, or Sentry.
-- Reject redundant variations and tests of test infrastructure.
+The [testing rules in AGENTS.md](../AGENTS.md#testing) govern test changes and
+reviews. This document covers scraper-specific contracts and validation commands.
 
 ## Layout
 
@@ -36,6 +29,11 @@ async def test_news_article_preserves_links(http_response):
 For paginated services, pass URL-to-content routes to `http_get`. The hot path
 must assert ordering and uniqueness. The failure path must prove that a later
 HTTP error does not return or cache partial data.
+
+Offline fixtures cover deterministic response values. Live checks cover VLR
+markup drift using meaningful values, such as populated names and match scores;
+schema-valid empty results can still indicate a broken scraper. Do not add live
+variations that merely repeat the same contract.
 
 ## Commands
 

@@ -23,21 +23,34 @@ async def test_run_ask_uses_a_tool_then_returns_an_answer(monkeypatch):
     class Responses:
         def __init__(self):
             self.calls = 0
+            self.inputs = []
 
-        async def create(self, **_kwargs):
+        async def create(self, **kwargs):
             self.calls += 1
+            self.inputs.append(list(kwargs["input"]))
             if self.calls == 1:
                 return _response([_tool_call("search", {"category": "teams", "term": "100T"})])
             return _response([SimpleNamespace(type="message")], "100T have no match scheduled.")
 
+    responses = Responses()
     with patch(
-        "app.agent.tools._search",
-        new=AsyncMock(return_value=[{"id": "120", "name": "100 Thieves", "category": "teams"}]),
+        "app.services.search.get_data",
+        new=AsyncMock(
+            return_value=[
+                SimpleNamespace(model_dump=lambda mode=None: {"id": "120", "name": "100 Thieves", "category": "teams"})
+            ]
+        ),
     ):
-        result = await run_ask("when does 100T play next", None, SimpleNamespace(responses=Responses()))
+        result = await run_ask("when does 100T play next", None, SimpleNamespace(responses=responses))
 
     assert result.answer == "100T have no match scheduled."
     assert result.tools_used and result.tools_used[-1]["tool"] == "search"
+    tool_outputs = [
+        item["output"]
+        for item in responses.inputs[-1]
+        if isinstance(item, dict) and item.get("type") == "function_call_output"
+    ]
+    assert tool_outputs and "100 Thieves" in tool_outputs[0]
 
 
 @pytest.mark.asyncio
@@ -47,17 +60,26 @@ async def test_run_ask_turns_a_tool_failure_into_an_answer(monkeypatch):
     class Responses:
         def __init__(self):
             self.calls = 0
+            self.inputs = []
 
-        async def create(self, **_kwargs):
+        async def create(self, **kwargs):
             self.calls += 1
+            self.inputs.append(list(kwargs["input"]))
             if self.calls == 1:
                 return _response([_tool_call("get_team", {"id": "624"})])
             return _response([SimpleNamespace(type="message")], "I couldn't fetch that team right now.")
 
+    responses = Responses()
     with patch(
-        "app.agent.tools._get_team",
+        "app.services.team.get_team_data",
         new=AsyncMock(side_effect=ScrapingError(url="https://vlr.gg/team/624", upstream_status=500)),
     ):
-        result = await run_ask("team info", None, SimpleNamespace(responses=Responses()))
+        result = await run_ask("team info", None, SimpleNamespace(responses=responses))
 
     assert result.answer == "I couldn't fetch that team right now."
+    tool_outputs = [
+        item["output"]
+        for item in responses.inputs[-1]
+        if isinstance(item, dict) and item.get("type") == "function_call_output"
+    ]
+    assert tool_outputs and "ScrapingError" in tool_outputs[0]

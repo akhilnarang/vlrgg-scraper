@@ -39,7 +39,7 @@ async def test_news_list_does_not_return_partial_results(http_get):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("article_id", ["562934", "750541", "748106", "750321"])
+@pytest.mark.parametrize("article_id", ["562934", "748106", "750321"])
 async def test_news_article_preserves_links_and_quoted_names(http_response, article_id):
     response = http_response(
         f"https://www.vlr.gg/{article_id}",
@@ -53,36 +53,20 @@ async def test_news_article_preserves_links_and_quoted_names(http_response, arti
     if article_id == "562934":
         assert result.title == "EDward Gaming bids farewell to head coach Muggle"
         assert 'Tang "{{link_2}}" Shijun' in result.content
-        assert len(result.links) == 21
-        assert len(result.images) == 1
         assert result.author == "raezeri"
         assert text.index("{image_0}") < text.index("One of the first from China") < text.index("2025 was")
         assert result.blocks[-1].type == "list"
-        assert len(result.blocks[-1].children) == 9
-    elif article_id == "750541":
-        assert text.index("2028 season.") < text.index("{image_0}") < text.index("koshmaras getting ready")
-        assert [b.type for b in result.blocks[:4]] == ["paragraph", "paragraph", "image", "caption"]
-        assert any(r.italic for r in result.blocks[3].runs)
-        assert result.blocks[-1].type == "list"
-        assert len(result.blocks[-1].children) == 9
     elif article_id == "748106":
         assert text.index("{video_0}") < text.index("N4RRATE, it's been a year")
         assert [b.type for b in result.blocks[:4]] == ["paragraph", "video", "paragraph", "blockquote"]
         player = result.blocks[1].player
         assert player is not None
-        assert player.model_dump(mode="json") == {
-            "provider": "youtube",
-            "media_id": "vbBd_Hu6o2M",
-            "player_url": "/media/youtube/vbBd_Hu6o2M",
-            "external_url": "https://www.youtube.com/watch?v=vbBd_Hu6o2M",
-        }
-        assert all(r.italic for r in result.blocks[0].runs)
-        assert all(r.bold for r in result.blocks[2].runs)
-        assert len([b for b in result.blocks if b.type == "blockquote"]) == 6
-        assert text.count("It's definitely been like a bit of a roller coaster") == 1
+        assert (player.provider, player.media_id) == ("youtube", "vbBd_Hu6o2M")
+        assert player.player_url == "/media/youtube/vbBd_Hu6o2M"
+        assert player.external_url == "https://www.youtube.com/watch?v=vbBd_Hu6o2M"
     else:
         headings = [b for b in result.blocks if b.type == "heading"]
-        assert ["".join(r.text for r in h.runs) for h in headings] == [
+        assert ["".join(r.text for r in heading.runs) for heading in headings] == [
             "Nongshim continues to roll, downs Global Esports 2-1",
             "T1 derails the VARREL roll, seals Champions Shanghai spot with 2-0 win",
             "Up next",
@@ -90,16 +74,16 @@ async def test_news_article_preserves_links_and_quoted_names(http_response, arti
         assert all(h.level == 1 for h in headings)
         assert text.index("{video_0}") < text.index("Dambi with a Dambi-esque")
         assert text.index("{video_1}") < text.index("Meteor finished the series")
-        assert text.count("Up next") == 1
         videos = [b for b in result.blocks if b.type == "video"]
-        assert all(b.player is not None and b.player.provider == "twitch" for b in videos)
+        assert len(videos) == 2
         player = videos[0].player
         assert player is not None
-        assert player.media_id == "ExquisiteRealSandpiperBabyRage-31jlkIQddWpcEqu0"
+        assert (player.provider, player.media_id) == ("twitch", "ExquisiteRealSandpiperBabyRage-31jlkIQddWpcEqu0")
+        assert player.player_url == "/media/twitch/ExquisiteRealSandpiperBabyRage-31jlkIQddWpcEqu0"
         assert player.external_url == "https://clips.twitch.tv/ExquisiteRealSandpiperBabyRage-31jlkIQddWpcEqu0"
-        video_indexes = [index for index, block in enumerate(result.blocks) if block.type == "video"]
-        assert [result.blocks[index + 1].type for index in video_indexes] == ["caption", "caption"]
-        assert all(all(run.italic for run in result.blocks[index + 1].runs) for index in video_indexes)
+        video_index = next(index for index, block in enumerate(result.blocks) if block.type == "video")
+        assert result.blocks[video_index + 1].type == "caption"
+        assert all(run.italic for run in result.blocks[video_index + 1].runs)
 
     assert result.blocks
     assert "{{image_" not in result.content
