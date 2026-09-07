@@ -18,7 +18,6 @@ dependencies = [
     "lxml",
     "redis[hiredis]",
     "arq",
-    "semver",
     "rich",
     "openai",
 ]

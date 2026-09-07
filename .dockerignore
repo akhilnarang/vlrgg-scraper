@@ -1,7 +1,6 @@
 .git/
 .github/
 .idea/
-.mypy_cache/
 .ruff_cache/
 
 venv/
@@ -15,6 +14,5 @@ venv/
 Dockerfile
 README.md
 Makefile
-mypy.ini
 README.md
 sa.json

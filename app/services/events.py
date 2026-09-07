@@ -222,33 +222,6 @@ def get_event_title(header: Tag) -> str:
     return clean_string(title_tag.get_text())
 
 
-async def get_event_name_and_cache(id: str, client: Redis) -> str:
-    """
-    Lightweight function to fetch just the event name and populate the cache
-    :param id: The event ID
-    :param client: Redis client for caching
-    :return: The event name
-    """
-    async with get_http_client() as http_client:
-        response = await http_client.get(constants.EVENT_URL_WITH_ID.format(id))
-        if response.status_code != http.HTTPStatus.OK:
-            raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
-
-    soup = BeautifulSoup(response.content, "lxml")
-
-    if (event_header := soup.find_all("div", class_="event-header")) is None:
-        raise BadRequestError(detail="Event header was missing, please retry")
-
-    header = event_header[0]
-    title = get_event_title(header)
-
-    # Populate cache if enabled
-    if settings.ENABLE_ID_MAP_DB:
-        await cache.hset("event", {simplify_name(title): id}, client)
-
-    return title
-
-
 async def get_event_by_id(id: str, client: Redis | None = None) -> schemas.EventWithDetails:
     """
     Function to fetch an event from VLR, and return the parsed response

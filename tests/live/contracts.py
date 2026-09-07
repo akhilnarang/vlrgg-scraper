@@ -18,8 +18,6 @@ import re
 from collections.abc import Callable, Sequence
 from typing import Any
 
-SCORE_RE = re.compile(r"^\d+\s*:\s*\d+$")
-
 # VLR shows forfeits/walkovers in place of a numeric score on some cards.
 SCORE_OR_FORFEIT_RE = re.compile(r"^(\d+\s*:\s*\d+|.*\bff\b.*|.*\bw/?o\b.*)$", re.IGNORECASE)
 

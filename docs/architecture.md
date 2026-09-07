@@ -74,7 +74,7 @@ Dynamic model creation and configuration.
 - **Serialization**: JSON
 - **Testing**: pytest with asyncio
 - **Linting**: ruff
-- **Type Checking**: mypy
+- **Type Checking**: ty
 
 ## Performance Considerations
 
@@ -115,7 +115,6 @@ Dynamic model creation and configuration.
 
 1. **Local Development**: `uv run fastapi dev` with auto-reload
 2. **Testing**: `uv run pytest` with coverage
-3. **Linting**: `uv run ruff check` and `uv run mypy`
+3. **Linting**: `uv run ruff check` and `uv run ty check`
 4. **Documentation**: Auto-generated OpenAPI docs
 5. **Deployment**: Docker build and push to registry
-

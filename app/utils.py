@@ -43,15 +43,6 @@ def get_image_url(img: str | list[str]) -> str:
     return resolve_http_url(img) or ""
 
 
-def clear_datetime_tz(source: datetime) -> datetime:
-    """
-    Function that accepts a timezone-aware datetime object and strips out tzinfo
-    :param source: A timezone-aware datetime object
-    :return: A timezone-naive datetime object
-    """
-    return source.replace(tzinfo=None)
-
-
 def fix_datetime_tz(value: datetime) -> datetime:
     return value.replace(tzinfo=_TZ_LOCAL).astimezone(_TZ_UTC)
 
