@@ -12,6 +12,7 @@ dependencies = [
     "beautifulsoup4",
     "uvicorn[standard]",
     "gunicorn",
+    "uvicorn-worker",
     "python-dateutil",
     "firebase-admin",
     "sentry-sdk[arq,fastapi,httpx,starlette]",

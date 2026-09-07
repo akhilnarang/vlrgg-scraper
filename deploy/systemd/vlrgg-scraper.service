@@ -7,12 +7,19 @@ StartLimitBurst=5
 Type=simple
 WorkingDirectory=%h/vlrgg-scraper
 # The app loads its own .env from the working directory (pydantic-settings).
-# --no-sync: do not touch the venv at start. The installer and deploy.sh run
-# `uv sync` in the user's environment instead.
-ExecStart=%h/.local/bin/uv run --no-sync uvicorn app.main:app --uds %h/vlrgg-scraper/gunicorn.sock
+# Dependencies are synced by the installer/deploy script, never at startup.
+# One web worker also means one embedded arq instance during normal operation.
+# Gunicorn's socket umask preserves Uvicorn's 0666 mode; directory access/ACLs
+# must restrict who can reach the socket. Other files retain UMask=0077 below.
+ExecStart=%h/vlrgg-scraper/.venv/bin/gunicorn app.main:app \
+    --worker-class uvicorn_worker.UvicornWorker --workers 1 \
+    --bind unix:%h/vlrgg-scraper/gunicorn.sock --umask 0o111 \
+    --timeout 60 --graceful-timeout 60 --access-logfile -
 Restart=always
 RestartSec=5s
 TimeoutStopSec=90s
+# Signal the master first; kill remaining descendants only at the stop deadline.
+KillMode=mixed
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full

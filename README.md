@@ -115,14 +115,29 @@ Install and start the systemd user service:
 ./scripts/install-systemd-user.sh
 ```
 
-The service runs Uvicorn from this checkout on `gunicorn.sock`, loads
-configuration from `.env`, restarts automatically, and starts with the user's
-systemd session.
+The service runs Gunicorn with the supported `uvicorn_worker.UvicornWorker`
+adapter on `gunicorn.sock`. It uses one web worker because each web process
+also starts arq when caching is enabled. Gunicorn replaces a worker that stops
+heartbeating for 60 seconds; this is not a maximum duration for an async request.
+Graceful shutdown has a 60-second Gunicorn deadline inside systemd's 90-second
+stop deadline. The app still loads configuration from `.env`.
+
+The installer syncs locked production dependencies (`--no-dev`), installs and
+reloads the unit, enables it for the user's systemd session, and restarts it.
+Startup directly uses `.venv/bin/gunicorn`, without dependency synchronization.
 After pushing a new revision, deploy it with:
 
 ```bash
 ./scripts/deploy.sh
 ```
+
+Deployment also reinstalls the unit so server-command changes take effect.
+The Unix socket retains its previous `0666` access mode for Nginx compatibility;
+restrict access using the containing directory's permissions/ACLs. Proxy-header
+trust is unchanged. Verify Nginx can connect on the deployment host before
+changing socket permissions or trusting forwarded headers from all peers.
+Worker sizing and independent supervision of arq remain separate operational
+decisions; this migration does not add an arq watchdog.
 
 ## Contributing
 
