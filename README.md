@@ -35,6 +35,7 @@ The application follows a modular architecture:
 | `GET /api/v1/search` | Search teams, players, and events |
 | `GET /api/v1/version` | API version info |
 | `POST /api/v1/ask` | Natural-language Q&A over VLR data (LLM-powered; enabled when `LLM_API_KEY` is set) |
+| `POST /api/v1/error-reports/` | Mobile client error-report ingestion (forwarded to Sentry; enabled when `SENTRY_DSN` is set) |
 
 See [API Documentation](docs/api.md) for detailed endpoint specs.
 
