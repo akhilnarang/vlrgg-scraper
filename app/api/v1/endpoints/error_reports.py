@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 import sentry_sdk
 from fastapi import APIRouter, Depends, Request
 from redis.asyncio import Redis
+from starlette.concurrency import run_in_threadpool
 
 from app.agent.ratelimit import enforce_rate_limit
 from app.api.deps import get_api_key_source, get_redis_client
@@ -44,7 +45,8 @@ async def submit_error_report(
     Rate limiting is keyed on the authenticated API key source rather than the client IP,
     since every report from an app install arrives through the same key. The event is
     captured on a cleared isolation scope so none of this ingestion request's own context
-    (headers, transaction, the api_key tag) leaks into the client's event, and the response
+    (headers, transaction, the api_key tag) leaks into the client's event; what the SDK's
+    request integration still attaches is stripped in `app.utils.before_send`. The response
     echoes the client's event id - retries of the same report are deduped by Sentry.
     """
     await enforce_rate_limit(
@@ -67,6 +69,7 @@ async def submit_error_report(
         event_id = client.capture_event(event, scope=scope)
     if event_id is None:
         raise ServiceUnavailableError(detail="Error reporting is unavailable")
-    sentry_sdk.flush(timeout=5)
+    # flush() blocks while the transport drains; keep it off the event loop.
+    await run_in_threadpool(sentry_sdk.flush, 5)
 
     return ErrorReportResponse(id=report.client_event_id, received_at=received_at)

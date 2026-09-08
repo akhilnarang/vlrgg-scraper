@@ -143,10 +143,21 @@ def expand_url(url: str | list[str] | None) -> str | None:
 def before_send(event: Event, hint: Hint) -> Event | None:
     """
     Filter and enrich Sentry events.
+    - Sanitize forwarded mobile error reports — the ingestion request must not ride along
     - Drop client errors (4xx) — not actionable
     - Keep server errors (5xx) — ScrapingError, InternalServerError, etc.
     - Enrich ScrapingError with upstream URL/status context
     """
+    tags = event.get("tags") or {}
+    if tags.get("error_origin") == "mobile-app":
+        # The Starlette/FastAPI integration attaches the capturing request's own raw body and
+        # route to every event — for forwarded mobile reports that bypasses the redaction done
+        # in build_sentry_event and mislabels the event with the ingestion route. before_send
+        # runs after every integration processor, so stripping here is guaranteed to hold.
+        event.pop("request", None)
+        event["transaction"] = tags.get("api.path") or tags.get("mobile.screen") or "mobile-error-report"
+        return event
+
     if "exc_info" in hint:
         exc_value = hint["exc_info"][1]
         if isinstance(exc_value, HTTPException) and exc_value.status_code < 500:
