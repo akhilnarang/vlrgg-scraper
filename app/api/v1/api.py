@@ -26,3 +26,7 @@ router.include_router(search_router, prefix="/search", tags=["Search"])
 if settings.LLM_API_KEY:
     from app.api.v1.endpoints.ask import router as ask_router
     router.include_router(ask_router, prefix="/ask", tags=["Ask"])
+
+if settings.SENTRY_DSN:
+    from app.api.v1.endpoints.error_reports import router as error_reports_router
+    router.include_router(error_reports_router, prefix="/error-reports", tags=["Error Reports"])
