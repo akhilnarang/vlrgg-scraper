@@ -21,6 +21,16 @@ class InternalServerError(HTTPException):
         super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
 
 
+class ServiceUnavailableError(HTTPException):
+    def __init__(self, detail: str = "Service unavailable"):
+        super().__init__(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+
+
+class PayloadTooLargeError(HTTPException):
+    def __init__(self, detail: str = "Payload too large"):
+        super().__init__(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=detail)
+
+
 class ScrapingError(HTTPException):
     def __init__(
         self,

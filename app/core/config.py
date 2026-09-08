@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     LLM_RATE_LIMIT: int = 5
     LLM_RATE_LIMIT_WINDOW: int = 60
 
+    ERROR_REPORT_RATE_LIMIT_ENABLED: bool = False
+    ERROR_REPORT_RATE_LIMIT: int = 30
+    ERROR_REPORT_RATE_LIMIT_WINDOW: int = 60
+
     model_config = SettingsConfigDict(env_file=".env")
 
 

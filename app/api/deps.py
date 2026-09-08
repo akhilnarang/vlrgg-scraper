@@ -10,6 +10,26 @@ from app.core.config import settings
 http_bearer = HTTPBearer()
 
 
+def get_api_key_source(
+    token_data: HTTPAuthorizationCredentials = Depends(http_bearer),
+) -> str:
+    """
+    Resolve the source/owner the presented API key belongs to
+
+    :param token_data: The token data
+    :return: The matching source name from the configured API keys
+    """
+
+    for api_key_source, api_key in settings.API_KEYS.items():
+        if token_data.credentials == api_key:
+            if settings.SENTRY_DSN:
+                import sentry_sdk
+
+                sentry_sdk.set_tag("api_key", api_key_source)
+            return api_key_source
+    raise UnauthorizedError(detail="Invalid token")
+
+
 def verify_token(
     token_data: HTTPAuthorizationCredentials = Depends(http_bearer),
 ) -> None:
@@ -19,14 +39,7 @@ def verify_token(
     :return: Nothing
     """
 
-    for api_key_source, api_key in settings.API_KEYS.items():
-        if token_data.credentials == api_key:
-            if settings.SENTRY_DSN:
-                import sentry_sdk
-
-                sentry_sdk.set_tag("api_key", api_key_source)
-            return
-    raise UnauthorizedError(detail="Invalid token")
+    get_api_key_source(token_data)
 
 
 async def get_redis_client() -> AsyncGenerator:

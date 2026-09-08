@@ -97,3 +97,8 @@ CACHE_TTL_STANDINGS = 90000  # 25 hours (cron: daily at midnight)
 # single agent run and rapid repeats, without serving stale data.
 CACHE_TTL_TEAM = 60  # 1 minute
 CACHE_TTL_PLAYER = 60  # 1 minute
+
+# Mobile error-report ingestion caps (issue #598)
+ERROR_REPORT_MAX_BODY_BYTES = 256 * 1024
+ERROR_REPORT_MAX_TRACE_BYTES = 64 * 1024
+ERROR_REPORT_MAX_RESPONSE_BYTES = 16 * 1024
