@@ -1,6 +1,7 @@
 from pydantic import TypeAdapter
 
 from .agent import AskRequest, AskResponse
+from .error_report import ErrorReportIn, ErrorReportResponse
 from .events import Event, EventWithDetails
 from .matches import Match, MatchTeam, MatchWithDetails
 from .news import NewsItem, NewsArticle
