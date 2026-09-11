@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -7,6 +8,37 @@ import pytest
 
 from app import cron
 from app.constants import MatchStatus
+
+
+@pytest.mark.asyncio
+async def test_arq_worker_recovers_after_redis_disconnect():
+    replacement_started = asyncio.Event()
+
+    async def run_replacement() -> None:
+        replacement_started.set()
+        await asyncio.Event().wait()
+
+    failed_worker = SimpleNamespace(
+        async_run=AsyncMock(side_effect=ConnectionError("redis unavailable")),
+        close=AsyncMock(),
+    )
+    replacement_worker = SimpleNamespace(
+        async_run=AsyncMock(side_effect=run_replacement),
+        close=AsyncMock(),
+    )
+
+    with (
+        patch("app.cron.create_worker", side_effect=[failed_worker, replacement_worker]) as create_worker,
+        patch("app.cron._ARQ_RESTART_INITIAL_DELAY", 0),
+    ):
+        arq_worker = cron.ArqWorker()
+        await arq_worker.start()
+        await replacement_started.wait()
+        await arq_worker.stop()
+
+    assert create_worker.call_count == 2
+    failed_worker.close.assert_awaited_once()
+    replacement_worker.close.assert_awaited_once()
 
 
 @pytest.mark.asyncio
