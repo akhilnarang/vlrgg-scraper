@@ -6,7 +6,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from arq import cron
-from arq.worker import Worker, create_worker
+from arq.worker import create_worker
 from firebase_admin import App, credentials, delete_app, get_app, initialize_app, messaging
 from sentry_sdk import capture_exception, get_current_scope
 
@@ -15,7 +15,10 @@ from app.constants import MatchStatus
 from app.core.config import settings
 from app.services import events, matches, news, rankings, standings
 
+logger = logging.getLogger(__name__)
+
 _FCM_APP_NAME = "vlrgg-fcm"
+_ARQ_RESTART_DELAY = 5
 
 
 def _get_fcm_app() -> App:
@@ -198,7 +201,6 @@ async def standings_cron(ctx: dict) -> None:
 
 class ArqWorker:
     def __init__(self) -> None:
-        self.worker: Worker | None = None
         self.task: Task | None = None
 
     async def start(self, **kwargs: Any) -> None:
@@ -218,15 +220,30 @@ class ArqWorker:
         if settings.GOOGLE_APPLICATION_CREDENTIALS is not None:
             cron_jobs.append(cron("app.cron.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}))
 
-        self.worker = create_worker(
-            {"cron_jobs": cron_jobs},
-            **kwargs,
-        )
-        self.task = asyncio.create_task(self.worker.async_run())
+        self.task = asyncio.create_task(self._run(cron_jobs, kwargs))
+
+    async def _run(self, cron_jobs: list, kwargs: dict[str, Any]) -> None:
+        while True:
+            worker = create_worker({"cron_jobs": cron_jobs}, **kwargs)
+            try:
+                await worker.async_run()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("arq worker crashed; restarting")
+            else:
+                logger.error("arq worker stopped unexpectedly; restarting")
+            finally:
+                try:
+                    await worker.close()
+                except Exception:
+                    logger.warning("failed to close arq worker", exc_info=True)
+            await asyncio.sleep(_ARQ_RESTART_DELAY)
 
     async def stop(self) -> None:
-        if self.worker:
-            await self.worker.close()
+        if self.task:
+            self.task.cancel()
+            await asyncio.gather(self.task, return_exceptions=True)
         await _close_fcm_app()
 
 
