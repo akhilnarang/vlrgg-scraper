@@ -137,8 +137,8 @@ restrict access using the containing directory's permissions/ACLs. Proxy-header
 trust is unchanged. Verify Nginx can connect on the deployment host before
 changing socket permissions or trusting forwarded headers from all peers.
 Worker sizing and independent supervision of arq remain separate operational
-decisions. The embedded arq supervisor reconnects with capped exponential backoff
-if Redis restarts, without recycling the web worker.
+decisions. The embedded arq supervisor reconnects after Redis restarts without
+recycling the web worker.
 
 ## Contributing
 

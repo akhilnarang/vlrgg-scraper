@@ -29,7 +29,7 @@ async def test_arq_worker_recovers_after_redis_disconnect():
 
     with (
         patch("app.cron.create_worker", side_effect=[failed_worker, replacement_worker]) as create_worker,
-        patch("app.cron._ARQ_RESTART_INITIAL_DELAY", 0),
+        patch("app.cron._ARQ_RESTART_DELAY", 0),
     ):
         arq_worker = cron.ArqWorker()
         await arq_worker.start()
