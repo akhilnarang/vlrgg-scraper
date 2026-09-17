@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, computed_field
+
+from app import i18n
 
 
 class Player(BaseModel):
@@ -42,3 +44,8 @@ class Team(BaseModel):
     roster: list[Player]
     upcoming: list[UpcomingMatch]
     completed: list[CompletedMatch]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def region_label(self) -> str:
+        return i18n.label("region", self.region) if self.region else ""

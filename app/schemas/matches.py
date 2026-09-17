@@ -1,8 +1,9 @@
 from datetime import datetime
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, computed_field
 
-from app.constants import MatchStatus
+from app import i18n
+from app.constants import MatchStatus, VetoAction
 
 
 class Team(BaseModel):
@@ -23,6 +24,11 @@ class Event(BaseModel):
     date: datetime | None = None
     patch: str | None = None
     status: str | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def status_label(self) -> str | None:
+        return i18n.label("match_status", self.status) if self.status else None
 
 
 class Agent(BaseModel):
@@ -55,6 +61,16 @@ class Round(BaseModel):
     side: str
     win_type: str
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def side_label(self) -> str:
+        return i18n.label("side", self.side) if self.side else ""
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def win_type_label(self) -> str:
+        return i18n.label("win_type", self.win_type)
+
 
 class MatchData(BaseModel):
     map: str = ""
@@ -73,6 +89,19 @@ class Video(BaseModel):
     url: HttpUrl
 
 
+class Veto(BaseModel):
+    """One structured map-veto step; ``bans`` on the match keeps the raw VLR text for older clients."""
+
+    team: str | None = None  # team tag as shown by VLR (e.g. "FNC"); None for "remains"/unknown
+    action: VetoAction
+    map: str
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def action_label(self) -> str:
+        return i18n.label("veto", self.action)
+
+
 class MatchVideos(BaseModel):
     streams: list[Video]
     vods: list[Video]
@@ -82,6 +111,7 @@ class MatchVideos(BaseModel):
 class MatchWithDetails(BaseModel):
     teams: list[TeamWithImage]
     bans: list[str]
+    veto: list[Veto] = []
     event: Event
     videos: MatchVideos
     map_count: int
@@ -105,3 +135,8 @@ class Match(BaseModel):
     event: str
     series: str
     event_id: str | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def status_label(self) -> str:
+        return i18n.label("match_status", self.status)

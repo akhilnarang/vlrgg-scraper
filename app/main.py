@@ -20,7 +20,7 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 from app.api import deps
 from app.api.v1.api import router
 from app.api.v1.endpoints.internal import router as internal_router
-from app import constants
+from app import constants, i18n
 from app.core import connections
 from app.core.config import settings
 from app.cron import arq_worker
@@ -119,6 +119,9 @@ async def add_server_name_header(request: Request, call_next: Callable) -> Respo
     response = await call_next(request)
     response.headers["X-Server"] = _HOSTNAME
     return response
+
+
+app.middleware("http")(i18n.localize_response)
 
 
 app.include_router(media_router)

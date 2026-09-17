@@ -1,4 +1,6 @@
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, computed_field
+
+from app import i18n
 
 
 class TeamStanding(BaseModel):
@@ -13,6 +15,11 @@ class TeamStanding(BaseModel):
 class CircuitStanding(BaseModel):
     region: str
     teams: list[TeamStanding]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def region_label(self) -> str:
+        return i18n.label("region", self.region)
 
 
 class Standings(BaseModel):

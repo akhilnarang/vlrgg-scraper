@@ -55,6 +55,13 @@ class EventStatus(str, Enum):
     UNKNOWN = "unknown"
 
 
+class VetoAction(str, Enum):
+    BAN = "ban"
+    PICK = "pick"
+    REMAINS = "remains"  # the decider left over after picks/bans; ``team`` is None
+    UNKNOWN = "unknown"  # note text the parser didn't recognize; ``map`` holds the raw text
+
+
 class NewsVideoProvider(str, Enum):
     """Providers supported by hosted news video players."""
 
