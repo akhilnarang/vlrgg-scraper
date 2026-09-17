@@ -1,5 +1,6 @@
 circuits:
 - region: North America Circuit
+  region_label: North America Circuit
   teams:
   - country: United States
     id: 2
@@ -86,6 +87,7 @@ circuits:
     points: 10
     rank: 14
 - region: EMEA Circuit
+  region_label: EMEA Circuit
   teams:
   - country: Europe
     id: 3531
@@ -262,6 +264,7 @@ circuits:
     points: 10
     rank: 29
 - region: Brazil Circuit
+  region_label: Brazil Circuit
   teams:
   - country: Brazil
     id: 420
@@ -342,6 +345,7 @@ circuits:
     points: 20
     rank: 13
 - region: Japan Circuit
+  region_label: Japan Circuit
   teams:
   - country: Japan
     id: 277
@@ -404,6 +408,7 @@ circuits:
     points: 10
     rank: 10
 - region: Korea Circuit
+  region_label: Korea Circuit
   teams:
   - country: South Korea
     id: 198
@@ -472,6 +477,7 @@ circuits:
     points: 20
     rank: 11
 - region: Latin America Circuit
+  region_label: Latin America Circuit
   teams:
   - country: Argentina
     id: 2355
@@ -576,6 +582,7 @@ circuits:
     points: 10
     rank: 17
 - region: Southeast Asia Circuit
+  region_label: Southeast Asia Circuit
   teams:
   - country: Singapore
     id: 2112
@@ -680,6 +687,7 @@ circuits:
     points: 10
     rank: 17
 - region: Oceania Tour
+  region_label: Oceania Tour
   teams:
   - country: Australia
     id: 1208

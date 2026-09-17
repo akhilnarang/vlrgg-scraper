@@ -8,6 +8,7 @@ matches:
   round: Week 1
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: FNATIC
     region: eu
@@ -21,6 +22,7 @@ matches:
   round: Week 1
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Team Liquid
     region: eu
@@ -34,6 +36,7 @@ matches:
   round: Week 1
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Team Vitality
     region: eu
@@ -47,6 +50,7 @@ matches:
   round: Week 1
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Gentle Mates
     region: eu
@@ -60,6 +64,7 @@ matches:
   round: Week 1
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Team Heretics
     region: eu
@@ -73,6 +78,7 @@ matches:
   round: Week 1
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: BBL Esports
     region: tr
@@ -86,6 +92,7 @@ matches:
   round: Week 2
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: PCIFIC Esports
     region: tr
@@ -99,6 +106,7 @@ matches:
   round: Week 2
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: BBL Esports
     region: tr
@@ -112,6 +120,7 @@ matches:
   round: Week 2
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: FNATIC
     region: eu
@@ -125,6 +134,7 @@ matches:
   round: Week 2
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Team Liquid
     region: eu
@@ -138,6 +148,7 @@ matches:
   round: Week 2
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: FUT Esports
     region: tr
@@ -151,6 +162,7 @@ matches:
   round: Week 2
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Gentle Mates
     region: eu
@@ -164,6 +176,7 @@ matches:
   round: Week 3
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: BBL Esports
     region: tr
@@ -177,6 +190,7 @@ matches:
   round: Week 3
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Gentle Mates
     region: eu
@@ -190,6 +204,7 @@ matches:
   round: Week 3
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Eternal Fire
     region: tr
@@ -203,6 +218,7 @@ matches:
   round: Week 3
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Karmine Corp
     region: eu
@@ -216,6 +232,7 @@ matches:
   round: Week 3
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: FUT Esports
     region: tr
@@ -229,6 +246,7 @@ matches:
   round: Week 3
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: PCIFIC Esports
     region: tr
@@ -242,6 +260,7 @@ matches:
   round: Week 4
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Eternal Fire
     region: tr
@@ -255,6 +274,7 @@ matches:
   round: Week 4
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Natus Vincere
     region: eu
@@ -268,6 +288,7 @@ matches:
   round: Week 4
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: GIANTX
     region: eu
@@ -281,6 +302,7 @@ matches:
   round: Week 4
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Karmine Corp
     region: eu
@@ -294,6 +316,7 @@ matches:
   round: Week 4
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Gentle Mates
     region: eu
@@ -307,6 +330,7 @@ matches:
   round: Week 4
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: BBL Esports
     region: tr
@@ -320,6 +344,7 @@ matches:
   round: Week 5
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Team Heretics
     region: eu
@@ -333,6 +358,7 @@ matches:
   round: Week 5
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Team Vitality
     region: eu
@@ -346,6 +372,7 @@ matches:
   round: Week 5
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Natus Vincere
     region: eu
@@ -359,6 +386,7 @@ matches:
   round: Week 5
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: BBL Esports
     region: tr
@@ -372,6 +400,7 @@ matches:
   round: Week 5
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: GIANTX
     region: eu
@@ -385,6 +414,7 @@ matches:
   round: Week 5
   stage: Group Stage
   status: completed
+  status_label: Completed
   teams:
   - name: Gentle Mates
     region: eu
@@ -398,6 +428,7 @@ matches:
   round: Upper Round 1
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: Eternal Fire
     region: tr
@@ -411,6 +442,7 @@ matches:
   round: Upper Round 1
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: Team Liquid
     region: eu
@@ -424,6 +456,7 @@ matches:
   round: Upper Semifinals
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: FUT Esports
     region: tr
@@ -437,6 +470,7 @@ matches:
   round: Upper Semifinals
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: FNATIC
     region: eu
@@ -450,6 +484,7 @@ matches:
   round: Lower Round 1
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: Team Heretics
     region: eu
@@ -463,6 +498,7 @@ matches:
   round: Lower Round 1
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: Team Liquid
     region: eu
@@ -476,6 +512,7 @@ matches:
   round: Lower Round 2
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: FNATIC
     region: eu
@@ -489,6 +526,7 @@ matches:
   round: Lower Round 2
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: Eternal Fire
     region: tr
@@ -502,6 +540,7 @@ matches:
   round: Upper Final
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: FUT Esports
     region: tr
@@ -515,6 +554,7 @@ matches:
   round: Lower Round 3
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: Team Heretics
     region: eu
@@ -528,6 +568,7 @@ matches:
   round: Lower Final
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: FUT Esports
     region: tr
@@ -541,6 +582,7 @@ matches:
   round: Grand Final
   stage: Playoffs
   status: completed
+  status_label: Completed
   teams:
   - name: Team Vitality
     region: eu
@@ -609,6 +651,7 @@ prizes:
     name: Team Liquid
 standings: []
 status: completed
+status_label: Completed
 subtitle: Part of the Valorant Champions Tour, Riot's official 2026 tournament circuit.
 teams:
 - id: '1184'

@@ -28,6 +28,7 @@ from app.utils import (
 # Max concurrent fallback HTTP requests to avoid rate-limiting vlr.gg
 _MAX_CONCURRENT_FALLBACKS = 10
 
+
 # VLR serves 50 completed match cards per results page. When fetching "all" pages we request
 # them in batches of this size and stop as soon as a page yields no cards.
 COMPLETED_PAGE_BATCH_SIZE = 5
@@ -57,6 +58,7 @@ async def match_by_id(id: str, redis_client: Redis | None) -> schemas.MatchWithD
     return schemas.MatchWithDetails(
         teams=teams,
         bans=bans,
+        veto=parse_veto(bans),
         event=event,
         videos=video_data,
         data=map_ret[0],
@@ -124,6 +126,23 @@ def get_ban_data(data: ResultSet) -> list:
     """
     # The "note" seemed to have map ban information. Will change response key back to note if it has more stuff ever.
     return [ban_data.strip() for ban_data in data[0].get_text().split(";")] if data else []
+
+
+_VETO_STEP = re.compile(r"^(?P<team>.+?)\s+(?P<action>ban|pick)\s+(?P<map>\S+)$")
+_VETO_REMAINS = re.compile(r"^(?P<map>.+?)\s+remains$")
+
+
+def parse_veto(bans: list[str]) -> list[schemas.Veto]:
+    """Structure VLR veto notes ("FNC ban Corrode", "Lotus remains") into team/action/map steps."""
+    steps = []
+    for note in bans:
+        if m := _VETO_STEP.match(note):
+            steps.append(schemas.Veto(team=m["team"], action=constants.VetoAction(m["action"]), map=m["map"]))
+        elif m := _VETO_REMAINS.match(note):
+            steps.append(schemas.Veto(action=constants.VetoAction.REMAINS, map=m["map"]))
+        else:
+            steps.append(schemas.Veto(action=constants.VetoAction.UNKNOWN, map=note))
+    return steps
 
 
 def get_event_data(soup: BeautifulSoup) -> dict:

@@ -1,7 +1,8 @@
 from datetime import date
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, computed_field
 
+from app import i18n
 from app.constants import EventStatus, MatchStatus
 
 
@@ -14,6 +15,11 @@ class Event(BaseModel):
     dates: str
     location: str
     img: HttpUrl
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def status_label(self) -> str:
+        return i18n.label("event_status", self.status)
 
 
 class PrizeTeam(BaseModel):
@@ -59,6 +65,11 @@ class Match(BaseModel):
     round: str
     stage: str
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def status_label(self) -> str:
+        return i18n.label("match_status", self.status)
+
 
 class EventStandings(BaseModel):
     logo: HttpUrl
@@ -87,3 +98,8 @@ class EventWithDetails(BaseModel):
     teams: list[Team] = []
     matches: list[Match]
     standings: list[EventStandings] = []
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def status_label(self) -> str:
+        return i18n.label("event_status", self.status)

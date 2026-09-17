@@ -183,82 +183,114 @@ data:
   - round_number: 1
     round_score: 0-1
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 2
     round_score: 0-2
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 3
     round_score: 1-2
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 4
     round_score: 2-2
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 5
     round_score: 3-2
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 6
     round_score: 4-2
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 7
     round_score: 5-2
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 8
     round_score: 6-2
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 9
     round_score: 7-2
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 10
     round_score: 8-2
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 11
     round_score: 8-3
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 12
     round_score: 9-3
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 13
     round_score: 10-3
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 14
     round_score: 11-3
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 15
     round_score: 12-3
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 16
     round_score: 13-3
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   teams:
   - name: NRG
@@ -441,97 +473,135 @@ data:
   - round_number: 1
     round_score: 1-0
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 2
     round_score: 2-0
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 3
     round_score: 3-0
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 4
     round_score: 3-1
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 5
     round_score: 4-1
     side: attack
+    side_label: Attack
     win_type: Spike exploded
+    win_type_label: Spike exploded
     winner: team1
   - round_number: 6
     round_score: 5-1
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 7
     round_score: 6-1
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 8
     round_score: 7-1
     side: attack
+    side_label: Attack
     win_type: Spike exploded
+    win_type_label: Spike exploded
     winner: team1
   - round_number: 9
     round_score: 8-1
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 10
     round_score: 8-2
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 11
     round_score: 9-2
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 12
     round_score: 9-3
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 13
     round_score: 9-4
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 14
     round_score: 9-5
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 15
     round_score: 10-5
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 16
     round_score: 11-5
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 17
     round_score: 12-5
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 18
     round_score: 12-6
     side: attack
+    side_label: Attack
     win_type: Spike exploded
+    win_type_label: Spike exploded
     winner: team2
   - round_number: 19
     round_score: 13-6
     side: defense
+    side_label: Defense
     win_type: Time out
+    win_type_label: Time out
     winner: team1
   teams:
   - name: NRG
@@ -714,142 +784,198 @@ data:
   - round_number: 1
     round_score: 1-0
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 2
     round_score: 2-0
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 3
     round_score: 3-0
     side: defense
+    side_label: Defense
     win_type: Time out
+    win_type_label: Time out
     winner: team1
   - round_number: 4
     round_score: 3-1
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 5
     round_score: 4-1
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 6
     round_score: 5-1
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 7
     round_score: 6-1
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 8
     round_score: 7-1
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 9
     round_score: 8-1
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 10
     round_score: 9-1
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 11
     round_score: 10-1
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 12
     round_score: 11-1
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 13
     round_score: 11-2
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 14
     round_score: 11-3
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 15
     round_score: 11-4
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 16
     round_score: 11-5
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 17
     round_score: 11-6
     side: defense
+    side_label: Defense
     win_type: Time out
+    win_type_label: Time out
     winner: team2
   - round_number: 18
     round_score: 12-6
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 19
     round_score: 12-7
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 20
     round_score: 12-8
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 21
     round_score: 12-9
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 22
     round_score: 12-10
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 23
     round_score: 12-11
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 24
     round_score: 12-12
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 25
     round_score: 12-13
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 26
     round_score: 13-13
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 27
     round_score: 13-14
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 28
     round_score: 13-15
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   teams:
   - name: NRG
@@ -1032,107 +1158,149 @@ data:
   - round_number: 1
     round_score: 1-0
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 2
     round_score: 2-0
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 3
     round_score: 3-0
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 4
     round_score: 3-1
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 5
     round_score: 3-2
     side: attack
+    side_label: Attack
     win_type: Spike exploded
+    win_type_label: Spike exploded
     winner: team2
   - round_number: 6
     round_score: 3-3
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 7
     round_score: 3-4
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 8
     round_score: 3-5
     side: attack
+    side_label: Attack
     win_type: Spike exploded
+    win_type_label: Spike exploded
     winner: team2
   - round_number: 9
     round_score: 3-6
     side: attack
+    side_label: Attack
     win_type: Spike exploded
+    win_type_label: Spike exploded
     winner: team2
   - round_number: 10
     round_score: 4-6
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 11
     round_score: 4-7
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 12
     round_score: 4-8
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 13
     round_score: 4-9
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 14
     round_score: 4-10
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 15
     round_score: 5-10
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 16
     round_score: 5-11
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 17
     round_score: 6-11
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 18
     round_score: 7-11
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 19
     round_score: 8-11
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 20
     round_score: 8-12
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 21
     round_score: 8-13
     side: defense
+    side_label: Defense
     win_type: Time out
+    win_type_label: Time out
     winner: team2
   teams:
   - name: NRG
@@ -1315,92 +1483,128 @@ data:
   - round_number: 1
     round_score: 0-1
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 2
     round_score: 0-2
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 3
     round_score: 1-2
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 4
     round_score: 2-2
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 5
     round_score: 3-2
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 6
     round_score: 4-2
     side: attack
+    side_label: Attack
     win_type: Spike exploded
+    win_type_label: Spike exploded
     winner: team1
   - round_number: 7
     round_score: 5-2
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 8
     round_score: 6-2
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 9
     round_score: 7-2
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 10
     round_score: 7-3
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team2
   - round_number: 11
     round_score: 8-3
     side: attack
+    side_label: Attack
     win_type: Spike exploded
+    win_type_label: Spike exploded
     winner: team1
   - round_number: 12
     round_score: 9-3
     side: attack
+    side_label: Attack
     win_type: Spike exploded
+    win_type_label: Spike exploded
     winner: team1
   - round_number: 13
     round_score: 9-4
     side: attack
+    side_label: Attack
     win_type: Elimination
+    win_type_label: Elimination
     winner: team2
   - round_number: 14
     round_score: 9-5
     side: attack
+    side_label: Attack
     win_type: Spike exploded
+    win_type_label: Spike exploded
     winner: team2
   - round_number: 15
     round_score: 10-5
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 16
     round_score: 11-5
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   - round_number: 17
     round_score: 12-5
     side: defense
+    side_label: Defense
     win_type: Elimination
+    win_type_label: Elimination
     winner: team1
   - round_number: 18
     round_score: 13-5
     side: defense
+    side_label: Defense
     win_type: Defused
+    win_type_label: Defused
     winner: team1
   teams:
   - name: NRG
@@ -1415,6 +1619,7 @@ event:
   series: Valorant Champions 2025
   stage: 'Playoffs: Grand Final'
   status: final
+  status_label: Completed
 map_count: 5
 previous_encounters:
 - match_id: '542270'
@@ -1438,6 +1643,35 @@ teams:
   img: https://owcdn.net/img/62a40cc2b5e29.png
   name: FNATIC
   score: 2
+veto:
+- action: ban
+  action_label: Ban
+  map: Haven
+  team: NRG
+- action: ban
+  action_label: Ban
+  map: Bind
+  team: NRG
+- action: pick
+  action_label: Pick
+  map: Corrode
+  team: NRG
+- action: pick
+  action_label: Pick
+  map: Lotus
+  team: FNC
+- action: pick
+  action_label: Pick
+  map: Abyss
+  team: NRG
+- action: pick
+  action_label: Pick
+  map: Ascent
+  team: FNC
+- action: remains
+  action_label: Remains
+  map: Sunset
+  team: null
 videos:
   streams:
   - name: Valorant
