@@ -13,6 +13,9 @@ class Settings(BaseSettings):
 
     ENABLE_CACHE: bool = False
     ENABLE_ID_MAP_DB: bool = False
+    # Live match SSE is on by default. It uses Redis keys that are separate
+    # from the response cache, so it needs Redis but not ENABLE_CACHE.
+    ENABLE_LIVE_MATCHES: bool = True
 
     GOOGLE_APPLICATION_CREDENTIALS: str | None = None
 
@@ -30,6 +33,14 @@ class Settings(BaseSettings):
     LLM_RATE_LIMIT_WINDOW: int = 60
 
     model_config = SettingsConfigDict(env_file=".env")
+
+    @property
+    def needs_redis(self) -> bool:
+        """Report whether response caching or live matches need Redis.
+
+        :return: ``True`` when at least one Redis feature is on.
+        """
+        return self.ENABLE_CACHE or self.ENABLE_LIVE_MATCHES
 
 
 settings = Settings()  # type: ignore

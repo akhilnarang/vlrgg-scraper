@@ -18,6 +18,15 @@ The application uses Redis for caching to improve performance and reduce load on
 | `events` | Event listings | 30 minutes |
 | `news` | News articles | 30 minutes |
 | `standings_{year}` | VCT standings for year | 1 hour |
+| `vlrgg:live:v1:active` | Match ids with at least one live SSE watcher | lease key TTL |
+| `vlrgg:live:v1:lease:{match_id}` | Watcher stream ids scored by lease expiry | 60 seconds |
+| `vlrgg:live:v1:snapshot:{match_id}` | Latest full versioned live match snapshot | 5 minutes |
+
+Live coordination keys are namespaced (`vlrgg:live:v1`) and are deliberately separate
+from the response cache. They need Redis but not `ENABLE_CACHE`: the response cache
+bypasses reads and writes when caching is off, while live keeps its own keys. Live reads
+and writes never fall back to an upstream scrape; a Redis outage fails the stream closed.
+See [API Documentation](api.md#live-match-streaming).
 
 ## Implementation
 

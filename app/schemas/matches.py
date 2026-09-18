@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, HttpUrl, computed_field
+from pydantic import BaseModel, HttpUrl, computed_field, field_validator
 
 from app import i18n
 from app.constants import MatchStatus, VetoAction
@@ -140,3 +140,67 @@ class Match(BaseModel):
     @property
     def status_label(self) -> str:
         return i18n.label("match_status", self.status)
+
+
+class LiveSnapshot(BaseModel):
+    """Store the latest match data that the live cron writes to Redis."""
+
+    match_id: str
+    version: int
+    observed_at: datetime
+    data: MatchWithDetails
+
+
+class LiveTeam(BaseModel):
+    """Store one team in a compact live update.
+
+    :param name: The team name.
+    :param img: The absolute logo URL, or ``None`` when VLR has no image.
+    :param score: The current series score, or ``None`` when it is unavailable.
+    """
+
+    name: str
+    img: HttpUrl | None = None
+    score: int | None = None
+
+
+class LiveCurrentMap(BaseModel):
+    """Store the current map name and the scores for the two teams.
+
+    ``scores`` follows the top-level ``teams`` order, not the map-card order.
+    """
+
+    name: str
+    scores: list[int | None]
+
+    @field_validator("scores")
+    @classmethod
+    def _require_two_scores(cls, scores: list[int | None]) -> list[int | None]:
+        """Require one score for each of the two teams.
+
+        :param scores: The map scores.
+        :return: The validated scores.
+        :raises ValueError: If the list does not contain exactly two scores.
+        """
+        if len(scores) != 2:
+            raise ValueError("current_map.scores must contain exactly two values")
+        return scores
+
+
+class LiveMatchEvent(BaseModel):
+    """Send one compact score update to a mobile Live Activity.
+
+    :param match_id: The match ID.
+    :param version: The observation ordering and deduplication token, in Unix milliseconds.
+    :param observed_at: The wall-clock observation time. It is not the ordering token.
+    :param terminal: Whether the match is complete.
+    :param teams: The two teams in match-header order.
+    :param current_map: The current map scores, or ``None`` when no map is known.
+    """
+
+    match_id: str
+    version: int
+    observed_at: datetime
+    terminal: bool
+    teams: list[LiveTeam]
+    current_map: LiveCurrentMap | None = None
