@@ -38,6 +38,114 @@ def http_get(http_response):
     return build
 
 
+class _FakeLivePipeline:
+    """Records live-coordination pipeline commands and applies them on execute."""
+
+    def __init__(self, redis, fail=False):
+        self.redis = redis
+        self.fail = fail
+        self.ops = []
+
+    def sadd(self, key, *members):
+        self.ops.append(lambda: self.redis.sets.setdefault(key, set()).update(members))
+        return self
+
+    def srem(self, key, *members):
+        self.ops.append(lambda: self.redis.sets.get(key, set()).difference_update(members))
+        return self
+
+    def zadd(self, key, mapping):
+        self.ops.append(lambda: self.redis.zsets.setdefault(key, {}).update(mapping))
+        return self
+
+    def zrem(self, key, member):
+        self.ops.append(lambda: self.redis.zsets.get(key, {}).pop(member, None))
+        return self
+
+    def zremrangebyscore(self, key, minimum, maximum):
+        def prune():
+            zset = self.redis.zsets.get(key, {})
+            for member in [name for name, score in zset.items() if score <= maximum]:
+                del zset[member]
+
+        self.ops.append(prune)
+        return self
+
+    def zcard(self, key):
+        self.ops.append(lambda: len(self.redis.zsets.get(key, {})))
+        return self
+
+    def expire(self, key, ttl):
+        self.ops.append(lambda: True)
+        return self
+
+    def delete(self, *keys):
+        def remove():
+            for key in keys:
+                self.redis.zsets.pop(key, None)
+                self.redis.sets.pop(key, None)
+                self.redis.values.pop(key, None)
+
+        self.ops.append(remove)
+        return self
+
+    async def execute(self):
+        if self.fail:
+            from redis.exceptions import RedisError
+
+            raise RedisError("redis unavailable")
+        return [op() for op in self.ops]
+
+
+class FakeLiveRedis:
+    """Minimal async Redis stand-in for the live-match coordination contracts.
+
+    ``mget_script`` lets a test drive ``mget`` results in order; an exception entry is
+    raised when reached, which simulates a Redis outage mid-stream. ``fail_pipeline``
+    makes every pipeline execution raise, simulating a Redis outage at admission.
+    """
+
+    def __init__(self, mget_script=None, fail_pipeline=False):
+        self.sets: dict[str, set] = {}
+        self.zsets: dict[str, dict] = {}
+        self.values: dict[str, bytes] = {}
+        self.mget_script = list(mget_script) if mget_script is not None else None
+        self.fail_pipeline = fail_pipeline
+
+    async def smembers(self, key):
+        return set(self.sets.get(key, set()))
+
+    async def mget(self, keys):
+        if self.mget_script is None:
+            return [self.values.get(key) for key in keys]
+        if not self.mget_script:
+            from redis.exceptions import RedisError
+
+            raise RedisError("redis unavailable")
+        result = self.mget_script.pop(0)
+        if isinstance(result, BaseException):
+            raise result
+        return result
+
+    async def set(self, key, value, ex=None):
+        self.values[key] = value.encode("utf-8") if isinstance(value, str) else value
+        return True
+
+    async def incr(self, key):
+        value = int(self.values.get(key, b"0")) + 1
+        self.values[key] = str(value).encode("utf-8")
+        return value
+
+    def pipeline(self, transaction=False):
+        return _FakeLivePipeline(self, fail=self.fail_pipeline)
+
+
+@pytest.fixture
+def live_redis():
+    """Factory for ``FakeLiveRedis`` used by live-match API and cron tests."""
+    return FakeLiveRedis
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_call(item):
     """Turn VLR outages into skips for every live test, in any directory.

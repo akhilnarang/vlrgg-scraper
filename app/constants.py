@@ -104,3 +104,15 @@ CACHE_TTL_STANDINGS = 90000  # 25 hours (cron: daily at midnight)
 # single agent run and rapid repeats, without serving stale data.
 CACHE_TTL_TEAM = 60  # 1 minute
 CACHE_TTL_PLAYER = 60  # 1 minute
+
+# Live match SSE state. A new data format must use a new namespace.
+# SSE connections only read snapshots. The cron job writes the snapshots.
+LIVE_REDIS_NAMESPACE = "vlrgg:live:v1"
+LIVE_MAX_MATCHES = 20  # most ids one connection may watch
+LIVE_LEASE_TTL = 30  # seconds until a silent stream is considered gone
+LIVE_LEASE_KEY_TTL = 60  # key-level safety net for abandoned leases
+LIVE_SNAPSHOT_TTL = 300  # shared snapshot outlives a couple of missed cron ticks
+LIVE_POLL_INTERVAL = 5.0  # seconds between batched snapshot reads
+LIVE_FETCH_CONCURRENCY = 4  # bounded upstream detail fetches per cron occurrence
+LIVE_CRON_SECONDS = {0, 30}  # run twice a minute
+LIVE_TEST_MATCH_ID = "3141592653"  # permanent synthetic feed; never fetched from VLR

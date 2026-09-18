@@ -6,8 +6,9 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from app import cron
-from app.constants import MatchStatus
+from app import cron, schemas
+from app.constants import LIVE_TEST_MATCH_ID, MatchStatus
+from app.services import live
 
 
 @pytest.mark.asyncio
@@ -80,3 +81,98 @@ async def test_fcm_cron_sends_valid_matches_and_reports_failures():
     assert messages[0].data["title"] == "Team A vs Team B"
     assert messages[0].data["match_id"] == "123"
     assert await_args.kwargs["app"] is firebase_app
+
+
+def _match_detail():
+    from app.schemas.matches import Event, MatchVideos, MatchWithDetails
+
+    return MatchWithDetails(
+        teams=[],
+        bans=[],
+        event=Event(id="2283", img="https://cdn.vlr.gg/e.png", series="Series", stage="Group", status="completed"),
+        videos=MatchVideos(streams=[], vods=[]),
+        map_count=0,
+        data=[],
+        previous_encounters=[],
+    )
+
+
+@pytest.mark.asyncio
+async def test_live_cron_fetches_each_watched_match_once(monkeypatch, live_redis):
+    """Many subscribers to one id still produce one detail fetch and one shared snapshot."""
+    monkeypatch.setattr(cron.settings, "ENABLE_LIVE_MATCHES", True)
+    redis = live_redis()
+    await live.register(redis, "stream-a", ["123"])
+    await live.register(redis, "stream-b", ["123"])
+
+    with patch("app.cron.matches.match_by_id", AsyncMock(return_value=_match_detail())) as match_by_id:
+        await cron.live_matches_cron({"redis": redis})
+        assert match_by_id.await_count == 1
+        await_args = match_by_id.await_args
+        assert await_args is not None and await_args.args[0] == "123"
+        # Subscriber connections read the same shared snapshot.
+        shared = (await live.read_snapshots(redis, ["123"]))["123"]
+        assert shared is not None and shared.match_id == "123"
+
+        # After the last release the next cycle is idle and fetches nothing.
+        await live.release(redis, "stream-a", ["123"])
+        await live.release(redis, "stream-b", ["123"])
+        await cron.live_matches_cron({"redis": redis})
+        assert match_by_id.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_live_cron_keeps_last_good_snapshot_on_failure(monkeypatch, live_redis):
+    monkeypatch.setattr(cron.settings, "ENABLE_LIVE_MATCHES", True)
+    redis = live_redis()
+    await live.register(redis, "stream-a", ["123"])
+    previous = await live.store_snapshot(redis, "123", _match_detail())
+
+    with (
+        patch("app.cron.matches.match_by_id", AsyncMock(side_effect=RuntimeError("vlr unavailable"))),
+        patch("app.cron.capture_exception") as capture_exception,
+    ):
+        await cron.live_matches_cron({"redis": redis})
+
+    current = schemas.LiveSnapshot.model_validate_json(redis.values[live.snapshot_key("123")])
+    assert current.version == previous.version
+    capture_exception.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_live_test_match_updates_without_upstream_and_resets(monkeypatch, live_redis):
+    """The reserved id walks fixed phases without VLR, projects compact scores, and restarts after disconnect."""
+    monkeypatch.setattr(cron.settings, "ENABLE_LIVE_MATCHES", True)
+    redis = live_redis()
+    match_id = LIVE_TEST_MATCH_ID
+    await live.register(redis, "stream-a", [match_id])
+
+    with patch("app.cron.matches.match_by_id", AsyncMock()) as match_by_id:
+        projected = []
+        for _ in range(4):
+            await cron.live_matches_cron({"redis": redis})
+            snapshot = (await live.read_snapshots(redis, [match_id]))[match_id]
+            assert snapshot is not None
+            projected.append(live.project_live_event(snapshot))
+
+    match_by_id.assert_not_awaited()
+    assert [(event.terminal, event.current_map.name, event.current_map.scores) for event in projected] == [
+        (False, "Haven", [4, 2]),
+        (False, "Haven", [9, 7]),
+        (False, "Ascent", [5, 4]),
+        (True, "Ascent", [13, 10]),
+    ]
+    assert [[team.score for team in event.teams] for event in projected] == [
+        [0, 0],
+        [0, 0],
+        [1, 0],
+        [2, 0],
+    ]
+
+    await live.release(redis, "stream-a", [match_id])
+    assert live.snapshot_key(match_id) not in redis.values
+
+    await live.register(redis, "stream-b", [match_id])
+    await cron.live_matches_cron({"redis": redis})
+    restarted = (await live.read_snapshots(redis, [match_id]))[match_id]
+    assert restarted is not None and restarted.data.data[0].teams[0].score == 4

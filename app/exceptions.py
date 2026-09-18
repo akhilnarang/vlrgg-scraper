@@ -21,6 +21,18 @@ class InternalServerError(HTTPException):
         super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
 
 
+class ServiceUnavailableError(HTTPException):
+    """Report that an HTTP service is not available."""
+
+    def __init__(self, detail: str = "Service unavailable"):
+        """Create an HTTP 503 error.
+
+        :param detail: The error text for the response.
+        :return: None.
+        """
+        super().__init__(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+
+
 class ScrapingError(HTTPException):
     def __init__(
         self,

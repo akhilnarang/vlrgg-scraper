@@ -73,7 +73,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
     logging.info("Creating shared HTTP client")
     connections.http_client = httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT)
     try:
-        if settings.ENABLE_CACHE:
+        if settings.needs_redis:
             logging.info("Connecting to redis")
             connections.redis_pool = redis.ConnectionPool(
                 host=settings.REDIS_HOST,
@@ -91,7 +91,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
             )
         yield
     finally:
-        if settings.ENABLE_CACHE:
+        if settings.needs_redis:
             logging.info("Stopping arq worker")
             try:
                 await arq_worker.stop()
@@ -109,7 +109,6 @@ app = FastAPI(
     description="Scraper for VLR.gg that exposes a REST API for some data available there",
     lifespan=lifespan,
 )
-app.add_middleware(GZipMiddleware, minimum_size=500)  # type: ignore[arg-type]
 
 _HOSTNAME = socket.gethostname()
 
@@ -122,6 +121,12 @@ async def add_server_name_header(request: Request, call_next: Callable) -> Respo
 
 
 app.middleware("http")(i18n.localize_response)
+
+# Register GZip after the function-style middlewares. Starlette prepends each
+# registration, so the last one is outermost. The outer GZip sends its own
+# response start. This stops an early streaming disconnect from starving the
+# inner BaseHTTPMiddleware of response.start.
+app.add_middleware(GZipMiddleware, minimum_size=500)  # type: ignore[arg-type]
 
 
 app.include_router(media_router)

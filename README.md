@@ -7,6 +7,7 @@ An unofficial FastAPI-based scraper for [vlr.gg](https://www.vlr.gg), providing 
 - **Comprehensive Data**: Scrapes events, matches, teams, players, rankings, standings, and news from vlr.gg
 - **RESTful API**: FastAPI-powered endpoints with automatic OpenAPI documentation
 - **Caching**: Redis-based caching for improved performance
+- **Live Matches**: SSE stream of live match state (on by default), refreshed by one shared cron fetch per watched match
 - **Background Jobs**: Cron jobs for periodic data updates
 - **Async Support**: Asynchronous HTTP requests for efficient scraping
 
@@ -91,6 +92,8 @@ Environment variables (see `app/core/config.py`):
 
 - `REDIS_HOST`: Redis server host
 - `REDIS_PASSWORD`: Redis password
+- `ENABLE_CACHE`: Enable Redis-backed response caching and its cron jobs.
+- `ENABLE_LIVE_MATCHES`: Enable the live match SSE endpoint and its cron job (default `true`). It needs Redis but not `ENABLE_CACHE`.
 - `INTERNAL_API_KEY`: API key for internal endpoints
 - `TIMEZONE`: Server timezone
 - `GOOGLE_APPLICATION_CREDENTIALS`: Path to Firebase credentials (for notifications)

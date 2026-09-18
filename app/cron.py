@@ -8,12 +8,13 @@ from zoneinfo import ZoneInfo
 from arq import cron
 from arq.worker import create_worker
 from firebase_admin import App, credentials, delete_app, get_app, initialize_app, messaging
+from redis.exceptions import RedisError
 from sentry_sdk import capture_exception, get_current_scope
 
 from app import constants, schemas
 from app.constants import MatchStatus
 from app.core.config import settings
-from app.services import events, matches, news, rankings, standings
+from app.services import events, live, matches, news, rankings, standings
 
 logger = logging.getLogger(__name__)
 
@@ -199,26 +200,85 @@ async def standings_cron(ctx: dict) -> None:
     )
 
 
+async def live_matches_cron(ctx: dict) -> None:
+    """Refresh the shared snapshots for matches that have active leases.
+
+    The job does not request match data when no leases are active. Each distinct
+    id gets one fetch with bounded concurrency, and a failed fetch keeps the
+    previous snapshot.
+
+    :param ctx: The arq context. It contains the Redis client.
+    :return: None.
+    """
+    get_current_scope().set_transaction_name("Live Matches Cron")
+    if not settings.ENABLE_LIVE_MATCHES:
+        return
+
+    client = ctx["redis"]
+    try:
+        match_ids = await live.active_match_ids(client)
+    except RedisError:
+        logger.warning("live cron could not read active matches", exc_info=True)
+        return
+
+    if not match_ids:
+        return
+
+    semaphore = asyncio.Semaphore(constants.LIVE_FETCH_CONCURRENCY)
+
+    async def refresh(match_id: str) -> None:
+        """Write one new snapshot.
+
+        :param match_id: The match ID to refresh.
+        :return: None.
+        """
+        async with semaphore:
+            if match_id == constants.LIVE_TEST_MATCH_ID:
+                detail = await live.next_test_match(client)
+            else:
+                detail = await matches.match_by_id(match_id, redis_client=client)
+            await live.store_snapshot(client, match_id, detail)
+
+    results = await asyncio.gather(*(refresh(match_id) for match_id in match_ids), return_exceptions=True)
+    for match_id, result in zip(match_ids, results):
+        if isinstance(result, BaseException):
+            logger.warning("live snapshot refresh failed for match %s", match_id, exc_info=result)
+            capture_exception(result)
+
+
 class ArqWorker:
     def __init__(self) -> None:
         self.task: Task | None = None
 
     async def start(self, **kwargs: Any) -> None:
-        cron_jobs = [
-            cron("app.cron.rankings_cron", hour=None, minute={0, 30}),
-            cron(
-                "app.cron.matches_cron",
-                hour=None,
-                minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55},
-            ),
-            cron("app.cron.events_cron", hour=None, minute={0, 30}),
-            cron("app.cron.news_cron", hour=None, minute={0, 30}),
-            cron("app.cron.standings_cron", hour=0, minute=0),
-        ]
+        """Start the arq worker with the cron jobs for the enabled modes.
 
-        # Only try to run the FCM cron if we have a service account JSON
-        if settings.GOOGLE_APPLICATION_CREDENTIALS is not None:
-            cron_jobs.append(cron("app.cron.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}))
+        :param kwargs: The keyword arguments for the arq worker.
+        :return: None.
+        """
+        cron_jobs = []
+        if settings.ENABLE_CACHE:
+            # Response-cache jobs fill the shared cache keys.
+            cron_jobs.extend(
+                [
+                    cron("app.cron.rankings_cron", hour=None, minute={0, 30}),
+                    cron(
+                        "app.cron.matches_cron",
+                        hour=None,
+                        minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55},
+                    ),
+                    cron("app.cron.events_cron", hour=None, minute={0, 30}),
+                    cron("app.cron.news_cron", hour=None, minute={0, 30}),
+                    cron("app.cron.standings_cron", hour=0, minute=0),
+                ]
+            )
+            # Run the FCM cron only in cache mode with a service account JSON.
+            if settings.GOOGLE_APPLICATION_CREDENTIALS is not None:
+                cron_jobs.append(cron("app.cron.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}))
+
+        # Live mode uses its own Redis keys. arq gives each scheduled run a unique ID.
+        if settings.ENABLE_LIVE_MATCHES:
+            cron_jobs.append(cron("app.cron.live_matches_cron", second=constants.LIVE_CRON_SECONDS))
 
         self.task = asyncio.create_task(self._run(cron_jobs, kwargs))
 

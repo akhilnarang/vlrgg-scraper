@@ -90,5 +90,6 @@ async def localize_response(request: Request, call_next: Callable[[Request], Awa
     finally:
         request_lang.reset(token)
     response.headers["Content-Language"] = lang
-    response.headers.add_vary_header("Accept-Language")  # append: GZipMiddleware already sets Accept-Encoding
+    # Append on the response path. The outer GZip adds Accept-Encoding after this.
+    response.headers.add_vary_header("Accept-Language")
     return response

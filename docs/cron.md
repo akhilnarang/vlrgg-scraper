@@ -1,6 +1,7 @@
 # Background Jobs (Cron)
 
-The application uses arq for background job scheduling to periodically update cached data.
+The application uses arq for background job scheduling to update cached data and to
+refresh live match snapshots.
 
 ## Overview
 
@@ -19,6 +20,23 @@ The application uses arq for background job scheduling to periodically update ca
 | News | `news_cron` | Every 30 min | Update news articles |
 | Standings | `standings_cron` | Daily 00:00 | Update current year standings |
 | FCM Notifications | `fcm_notification_cron` | Every 15 min | Send match notifications |
+| Live Matches | `live_matches_cron` | Every 30s (seconds 0, 30) | Refresh shared snapshots for watched matches |
+
+arq starts when `ENABLE_CACHE` or `ENABLE_LIVE_MATCHES` is on. The response-cache jobs
+(rankings, matches, events, news, standings) and the FCM notification job register only
+with `ENABLE_CACHE`. `live_matches_cron` registers only with `ENABLE_LIVE_MATCHES`, so a
+live-only worker runs just the live job.
+
+`live_matches_cron` prunes expired
+leases, then fetches every actively watched distinct match exactly once per tick with
+bounded concurrency and stores one shared full snapshot per match. Zero active watchers
+means zero upstream detail requests, and a failed fetch leaves the previous snapshot in
+place.
+
+arq schedules one occurrence every 30 seconds. Each occurrence fetches every actively
+watched distinct match once, with concurrency bounded by `LIVE_FETCH_CONCURRENCY`.
+Occurrences are not fenced: if one occurrence runs longer than 30 seconds, the next
+occurrence can overlap it.
 
 ## Implementation
 

@@ -3,17 +3,17 @@ import logging
 import redis.asyncio as redis
 from redis.exceptions import RedisError
 
+from ..core import connections
 from ..core.config import settings
-from ..core.connections import redis_pool
 
 
 def get_client() -> redis.Redis:
-    """
-    Function to get a redis client
+    """Create a Redis client that uses the current connection pool.
 
-    :return: The redis client object
+    :return: A Redis client.
     """
-    return redis.Redis(connection_pool=redis_pool)
+    # Read the module attribute at call time. The application sets this pool at startup.
+    return redis.Redis(connection_pool=connections.redis_pool)
 
 
 async def get(key: str, client: redis.Redis | None = None) -> bytes | None:
