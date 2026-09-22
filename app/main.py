@@ -71,7 +71,9 @@ if settings.SENTRY_DSN:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator:
     logging.info("Creating shared HTTP client")
-    connections.http_client = httpx.AsyncClient(timeout=constants.REQUEST_TIMEOUT)
+    connections.http_client = httpx.AsyncClient(
+        timeout=constants.REQUEST_TIMEOUT, headers={"User-Agent": constants.USER_AGENT}
+    )
     try:
         if settings.ENABLE_CACHE:
             logging.info("Connecting to redis")

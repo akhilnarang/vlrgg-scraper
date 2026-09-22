@@ -14,7 +14,7 @@ async def get_http_client() -> AsyncIterator[httpx.AsyncClient]:
     if http_client is not None:
         yield http_client
     else:
-        from app.constants import REQUEST_TIMEOUT
+        from app.constants import REQUEST_TIMEOUT, USER_AGENT
 
-        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT, headers={"User-Agent": USER_AGENT}) as client:
             yield client
