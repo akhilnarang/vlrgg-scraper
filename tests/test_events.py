@@ -17,7 +17,7 @@ async def test_event_list_returns_full_history_in_order(http_get):
         events.events_url(2): (FIXTURE_DIR / "events_page2.html").read_bytes(),
     }
     with patch(
-        "httpx.AsyncClient.get",
+        "httpx2.AsyncClient.get",
         side_effect=http_get(pages, fallback=(FIXTURE_DIR / "events_empty.html").read_bytes()),
     ):
         result = await events.get_events(AsyncMock(), pages=0)
@@ -32,7 +32,7 @@ async def test_event_list_does_not_return_partial_results(http_get):
     pages = {EVENTS_URL: (FIXTURE_DIR / "events_page1.html").read_bytes()}
     failures = {events.events_url(2): 503}
 
-    with patch("httpx.AsyncClient.get", side_effect=http_get(pages, failures=failures)), pytest.raises(ScrapingError):
+    with patch("httpx2.AsyncClient.get", side_effect=http_get(pages, failures=failures)), pytest.raises(ScrapingError):
         await events.get_events(AsyncMock(), pages=2)
 
 
@@ -44,7 +44,7 @@ async def test_event_details_follow_the_current_public_contract(http_response):
     )
     matches_response = http_response("https://www.vlr.gg/event/matches/2863", b"<html><body></body></html>")
 
-    with patch("httpx.AsyncClient.get", side_effect=[event_response, matches_response]):
+    with patch("httpx2.AsyncClient.get", side_effect=[event_response, matches_response]):
         result = await events.get_event_by_id("2863")
 
     assert result.id == "2863"

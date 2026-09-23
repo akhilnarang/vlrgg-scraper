@@ -35,7 +35,7 @@ The Standings API provides VCT (Valorant Champions Tour) standings data for a gi
 ```
 
 ## Implementation Details
-- **Scraping**: Fetches HTML from `https://www.vlr.gg/vct-{year}/standings` using httpx and parses with BeautifulSoup.
+- **Scraping**: Fetches HTML from `https://www.vlr.gg/vct-{year}/standings` using httpx2 and parses with BeautifulSoup.
 - **Parsing**: Extracts circuits from `div.eg-standing-group`, then teams from tables within, assigning ranks sequentially.
 - **Caching**: Endpoint checks Redis cache first (`standings_{year}` key). If not present, scrapes fresh data and returns it. Cache is populated daily at midnight by a cron job for the current year only.
 - **Validation**: Year must be between 2021 and current year.

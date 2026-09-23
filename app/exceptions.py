@@ -1,6 +1,6 @@
 import logging
 
-import httpx
+import httpx2
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exception_handlers import http_exception_handler
 
@@ -68,4 +68,4 @@ def register_exception_handlers(app: FastAPI) -> None:
     :param app: FastAPI instance.
     :return: None.
     """
-    app.add_exception_handler(httpx.TransportError, vlr_unreachable_handler)
+    app.add_exception_handler(httpx2.TransportError, vlr_unreachable_handler)

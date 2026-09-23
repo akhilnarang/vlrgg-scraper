@@ -8,9 +8,9 @@ The complement lives in `tests/live/check_executed.py`: if *everything* skips, t
 job must go red rather than report a green no-op.
 """
 
-import httpx
+import httpx2
 
-UPSTREAM_NETWORK_ERRORS = (httpx.TransportError, httpx.TimeoutException)
+UPSTREAM_NETWORK_ERRORS = (httpx2.TransportError, httpx2.TimeoutException)
 
 # 429 plus any 5xx: VLR's problem, and it clears on its own.
 UPSTREAM_STATUSES = frozenset({429})

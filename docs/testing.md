@@ -20,7 +20,7 @@ Service tests use the shared `http_response` and `http_get` fixtures from
 async def test_news_article_preserves_links(http_response):
     response = http_response(url, fixture.read_bytes())
 
-    with patch("httpx.AsyncClient.get", return_value=response):
+    with patch("httpx2.AsyncClient.get", return_value=response):
         result = await news.news_by_id("562934")
 
     assert result.title == "EDward Gaming bids farewell to head coach Muggle"

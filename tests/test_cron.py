@@ -119,7 +119,7 @@ async def test_fcm_cron_sends_valid_matches_and_reports_failures():
 
 @pytest.mark.asyncio
 async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_path):
-    import httpx
+    import httpx2
     from firebase_admin import messaging
 
     from app.core import connections
@@ -151,8 +151,8 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         "123": [
             _live_detail("upcoming", (1, 0)),
             ScrapingError(upstream_status=502),
-            httpx.ConnectError("All connection attempts failed"),
-            httpx.ConnectTimeout("timed out"),
+            httpx2.ConnectError("All connection attempts failed"),
+            httpx2.ConnectTimeout("timed out"),
         ],
         "456": [ScrapingError(upstream_status=404)],
     }
@@ -184,7 +184,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
                 blocked_during_channel_create.append(False)
             except sqlite3.OperationalError:
                 blocked_during_channel_create.append(True)
-            return httpx.Response(201, headers={"apns-channel-id": "channel-123"})
+            return httpx2.Response(201, headers={"apns-channel-id": "channel-123"})
         if "/3/device/" in request.url.path:
             match_id = json.loads(request.content)["aps"]["attributes"]["match_id"]
             async with sessions() as session:
@@ -196,7 +196,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
                 )
             # Recorded, not asserted here: the cron logs and skips exceptions raised during a send.
             started_before_send.append(started is not None)
-        return httpx.Response(200)
+        return httpx2.Response(200)
 
     credentials = apns_service.APNsCredentials(
         environment="sandbox",
@@ -205,7 +205,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         bundle_id="com.example.app",
         private_key_path=str(tmp_path / "unused.p8"),
     )
-    apns = apns_service.APNsClient(credentials, transport=httpx.MockTransport(handler))
+    apns = apns_service.APNsClient(credentials, transport=httpx2.MockTransport(handler))
     monkeypatch.setattr(apns, "_jwt", lambda: "provider-token")
     monkeypatch.setattr(connections, "subscription_sessions", sessions)
     monkeypatch.setattr(connections, "apns_client", apns)
@@ -284,7 +284,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         app.include_router(router, prefix="/api/v1/live-updates")
         app.dependency_overrides[deps.get_redis_client] = lambda: redis
         monkeypatch.setattr(deps.settings, "API_KEYS", {"test": "secret"})
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as api:
+        async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app), base_url="http://test") as api:
             response = await api.post("/api/v1/live-updates/test-match", headers={"Authorization": "Bearer secret"})
             duplicate = await api.post("/api/v1/live-updates/test-match", headers={"Authorization": "Bearer secret"})
         assert response.status_code == 204
@@ -294,7 +294,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         for _ in range(6):
             await live_push.live_push_cron({"redis": redis})
         assert constants.TEST_TICK_KEY not in ticks
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as api:
+        async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app), base_url="http://test") as api:
             restarted = await api.post("/api/v1/live-updates/test-match", headers={"Authorization": "Bearer secret"})
         assert restarted.status_code == 204
         async with sessions() as session:

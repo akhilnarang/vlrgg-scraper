@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.14"
 
 [options]
-exclude-newer = "2026-09-20T10:23:49.452664815Z"
+exclude-newer = "2026-09-20T14:38:02.087247828Z"
 exclude-newer-span = "P3D"
 
 [[package]]
@@ -71,14 +71,14 @@ dependencies = [
     { name = "fastapi", extra = ["all"] },
     { name = "firebase-admin" },
     { name = "gunicorn" },
-    { name = "httpx", extra = ["http2"] },
+    { name = "httpx2", extra = ["http2"] },
     { name = "lxml" },
     { name = "openai" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "python-dateutil" },
     { name = "redis", extra = ["hiredis"] },
     { name = "rich" },
-    { name = "sentry-sdk", extra = ["arq", "fastapi", "httpx", "starlette"] },
+    { name = "sentry-sdk", extra = ["arq", "fastapi", "starlette"] },
     { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
     { name = "uvicorn-worker" },
@@ -103,14 +103,14 @@ requires-dist = [
     { name = "fastapi", extras = ["all"], specifier = ">=0.121.0,<0.142" },
     { name = "firebase-admin" },
     { name = "gunicorn" },
-    { name = "httpx", extras = ["http2"] },
+    { name = "httpx2", extras = ["http2"] },
     { name = "lxml" },
     { name = "openai" },
     { name = "pyjwt", extras = ["crypto"] },
     { name = "python-dateutil" },
     { name = "redis", extras = ["hiredis"] },
     { name = "rich" },
-    { name = "sentry-sdk", extras = ["arq", "fastapi", "httpx", "starlette"] },
+    { name = "sentry-sdk", extras = ["arq", "fastapi", "starlette"] },
     { name = "sqlalchemy", specifier = ">=2,<3" },
     { name = "uvicorn", extras = ["standard"] },
     { name = "uvicorn-worker" },
@@ -968,6 +968,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/95/411ba65569158e862368917aaf56597f3e5fa3b91b0502919638465a08f3/httpx2-2.12.0-py3-none-any.whl", hash = "sha256:cc8b6eecb8661c146b8f89a60e97456ee086e91a784ed31ac450c3a9e613dd36", size = 95427, upload-time = "2026-08-18T13:22:06.834Z" },
 ]
 
+[package.optional-dependencies]
+http2 = [
+    { name = "h2" },
+]
+
 [[package]]
 name = "httpx2-jsfetch"
 version = "1.0"
@@ -1771,9 +1776,6 @@ arq = [
 ]
 fastapi = [
     { name = "fastapi" },
-]
-httpx = [
-    { name = "httpx" },
 ]
 starlette = [
     { name = "starlette" },

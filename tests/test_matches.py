@@ -15,7 +15,7 @@ FIXTURE_DIR = Path(__file__).parent / "fixtures"
 async def test_match_details_follow_the_public_response_contract(http_response):
     response = http_response("https://www.vlr.gg/12345", (FIXTURE_DIR / "match_12345.html").read_bytes())
 
-    with patch("httpx.AsyncClient.get", return_value=response):
+    with patch("httpx2.AsyncClient.get", return_value=response):
         result = await matches.match_by_id("12345", AsyncMock())
 
     assert [(team.name, team.score, team.tag) for team in result.teams] == [("Team A", 2, "A"), ("Team B", 1, "B")]
@@ -54,7 +54,7 @@ def test_display_strings_follow_accept_language(http_response):
 
     response = http_response("https://www.vlr.gg/12345", (FIXTURE_DIR / "match_12345.html").read_bytes())
     with (
-        patch("httpx.AsyncClient.get", return_value=response),
+        patch("httpx2.AsyncClient.get", return_value=response),
         patch("app.services.matches.get_team_data", AsyncMock(return_value=[])),
     ):
         client = TestClient(app)
@@ -78,7 +78,7 @@ def test_display_strings_follow_accept_language(http_response):
 
 def test_unreachable_vlr_returns_503(monkeypatch):
     """A DNS failure or blocked IP is an upstream outage, so clients must see 503, not an unhandled 500."""
-    import httpx
+    import httpx2
     from fastapi.testclient import TestClient
 
     from app.core.config import settings
@@ -87,7 +87,7 @@ def test_unreachable_vlr_returns_503(monkeypatch):
     from app.main import app
 
     with patch(
-        "httpx.AsyncClient.get", AsyncMock(side_effect=httpx.ConnectError("[Errno -2] Name or service not known"))
+        "httpx2.AsyncClient.get", AsyncMock(side_effect=httpx2.ConnectError("[Errno -2] Name or service not known"))
     ):
         response = TestClient(app).get("/api/v1/matches/12345", headers={"Authorization": "Bearer test-key"})
 
@@ -106,7 +106,7 @@ async def test_match_list_keeps_each_upcoming_date_group(monkeypatch, http_respo
     }
     monkeypatch.setattr(matches.settings, "ENABLE_ID_MAP_DB", False)
 
-    with patch("httpx.AsyncClient.get", side_effect=lambda url, *_args, **_kwargs: responses[url]):
+    with patch("httpx2.AsyncClient.get", side_effect=lambda url, *_args, **_kwargs: responses[url]):
         result = await matches.match_list(AsyncMock())
 
     names = {match.id: (match.team1.name, match.team2.name) for match in result}
@@ -123,7 +123,7 @@ async def test_completed_matches_clamp_pages_and_keep_results_in_order(monkeypat
         matches.completed_matches_url(2): (FIXTURE_DIR / "matches_results_page2.html").read_bytes(),
     }
 
-    with patch("httpx.AsyncClient.get", side_effect=http_get(pages)) as get:
+    with patch("httpx2.AsyncClient.get", side_effect=http_get(pages)) as get:
         result = await matches.get_completed_matches(AsyncMock(), pages=9999)
 
     assert len(result) == 100
@@ -139,7 +139,7 @@ async def test_completed_matches_do_not_return_partial_results(monkeypatch, http
     pages = {constants.PAST_MATCHES_URL: (FIXTURE_DIR / "matches_results_page1.html").read_bytes()}
     failures = {matches.completed_matches_url(2): 502}
 
-    with patch("httpx.AsyncClient.get", side_effect=http_get(pages, failures=failures)), pytest.raises(ScrapingError):
+    with patch("httpx2.AsyncClient.get", side_effect=http_get(pages, failures=failures)), pytest.raises(ScrapingError):
         await matches.get_completed_matches(AsyncMock(), pages=2)
 
 

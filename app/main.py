@@ -3,7 +3,7 @@ import socket
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 
-import httpx
+import httpx2
 import redis.asyncio as redis
 import sentry_sdk
 from arq.connections import RedisSettings
@@ -30,7 +30,7 @@ init_sentry()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator:
     logger.info("Creating shared HTTP client")
-    connections.http_client = httpx.AsyncClient(
+    connections.http_client = httpx2.AsyncClient(
         timeout=constants.REQUEST_TIMEOUT, headers={"User-Agent": constants.USER_AGENT}
     )
     try:

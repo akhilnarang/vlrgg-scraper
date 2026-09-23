@@ -14,7 +14,7 @@ The VLR.gg scraper is built as a FastAPI application that provides a REST API fo
 - **OpenAPI Generation**: Automatic API documentation via Swagger/ReDoc
 
 ### Service Layer (`app/services/`)
-- **Scraping Logic**: HTTP requests to vlr.gg using httpx
+- **Scraping Logic**: HTTP requests to vlr.gg using httpx2
 - **HTML Parsing**: BeautifulSoup for extracting data from HTML
 - **Business Logic**: Data transformation and processing
 
@@ -66,7 +66,7 @@ Dynamic model creation and configuration.
 ## Technology Stack
 
 - **Framework**: FastAPI (ASGI)
-- **HTTP Client**: httpx (async HTTP)
+- **HTTP Client**: httpx2 (async HTTP; Pydantic's maintained fork of httpx)
 - **HTML Parser**: BeautifulSoup with lxml
 - **Cache**: Redis
 - **Job Queue**: arq (Redis-based)
@@ -81,7 +81,7 @@ Dynamic model creation and configuration.
 - **Async Operations**: Non-blocking I/O for concurrent requests
 - **Caching**: Redis reduces load on vlr.gg and improves response times
 - **Background Updates**: Cron jobs prevent cache stampedes
-- **Connection Pooling**: httpx client reuse for efficient HTTP requests
+- **Connection Pooling**: httpx2 client reuse for efficient HTTP requests
 
 ## Scalability
 

@@ -12,6 +12,7 @@ from rich.logging import RichHandler
 from sentry_sdk.integrations.arq import ArqIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
+from sentry_sdk.integrations.httpx2 import Httpx2Integration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.types import Event, Hint
 
@@ -30,8 +31,8 @@ def configure_logging() -> None:
         datefmt="%d-%m-%y %H:%M:%S",
         handlers=[RichHandler(rich_tracebacks=True)],
     )
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    for name in ("httpx", "httpcore", "httpx2", "httpcore2"):
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 def git_release() -> str | None:
@@ -100,6 +101,7 @@ def init_sentry() -> None:
             StarletteIntegration(),
             FastApiIntegration(),
             HttpxIntegration(),
+            Httpx2Integration(),
             ArqIntegration(),
         ],
         traces_sampler=traces_sampler,

@@ -18,7 +18,7 @@ async def test_news_list_returns_full_history_in_order(http_get):
         news.news_url(2): (FIXTURE_DIR / "news_page2.html").read_bytes(),
     }
     with patch(
-        "httpx.AsyncClient.get",
+        "httpx2.AsyncClient.get",
         side_effect=http_get(pages, fallback=(FIXTURE_DIR / "news_empty.html").read_bytes()),
     ):
         result = await news.news_list(pages=0)
@@ -34,7 +34,7 @@ async def test_news_list_does_not_return_partial_results(http_get):
     pages = {constants.NEWS_URL: (FIXTURE_DIR / "news_page1.html").read_bytes()}
     failures = {news.news_url(2): 500}
 
-    with patch("httpx.AsyncClient.get", side_effect=http_get(pages, failures=failures)), pytest.raises(ScrapingError):
+    with patch("httpx2.AsyncClient.get", side_effect=http_get(pages, failures=failures)), pytest.raises(ScrapingError):
         await news.news_list(pages=2)
 
 
@@ -46,7 +46,7 @@ async def test_news_article_preserves_links_and_quoted_names(http_response, arti
         (FIXTURE_DIR / f"news_{article_id}.html").read_bytes(),
     )
 
-    with patch("httpx.AsyncClient.get", return_value=response):
+    with patch("httpx2.AsyncClient.get", return_value=response):
         result = await news.news_by_id(article_id)
 
     text = re.sub(r"\{\{link_(\d+)\}\}", lambda m: result.links[int(m[1])]["text"], result.content)
@@ -116,7 +116,7 @@ async def test_news_article_fallback_preserves_nested_content_once(http_response
           <script>hidden script</script><!-- hidden comment -->
         </article>""",
     )
-    with patch("httpx.AsyncClient.get", return_value=response):
+    with patch("httpx2.AsyncClient.get", return_value=response):
         result = await news.news_by_id("1")
 
     assert result.title == "Fallback article"
