@@ -31,7 +31,10 @@ init_sentry()
 async def lifespan(app: FastAPI) -> AsyncIterator:
     logger.info("Creating shared HTTP client")
     connections.http_client = httpx2.AsyncClient(
-        timeout=constants.REQUEST_TIMEOUT, headers={"User-Agent": constants.USER_AGENT}
+        transport=connections.build_transport(),
+        timeout=constants.REQUEST_TIMEOUT,
+        headers={},
+        event_hooks={"request": [connections.rotate_user_agent]},
     )
     try:
         if settings.ENABLE_LIVE_PUSH:
