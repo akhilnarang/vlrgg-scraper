@@ -97,12 +97,16 @@ Authorization: Bearer <api-key>
 
 Invalid APNs tokens or favorite IDs return `422 Unprocessable Entity`.
 
-The one-minute job checks matches whose listing status is `live`. Android receives
-data-only FCM topic messages. A matching iOS favorite creates one APNs broadcast
+The one-minute job checks matches whose listing status is `live`. Android live scores
+are data-only FCM messages on the `live-match-{id}`, `live-event-{id}`, `live-team-{id}`,
+and `live-player-{id}` topics, which updated Android clients must subscribe to. The legacy
+`match-`, `event-`, and `team-` topics carry only the "match starting soon" alert, because
+released app versions show every message on those as a notification; those installs keep
+getting just that alert. A matching iOS favorite creates one APNs broadcast
 channel and one push-to-start request per client. Final state ends and deletes the
 channel. If VLR returns 404 for a tracked match, or its page fails to load on three
 runs in a row (DNS failure, refused connection, timeout, or 5xx), it ends with the
-last score sent to iOS (the final Android message goes to the match topic only).
+last score sent to iOS (the final Android message goes to `live-match-{id}` only).
 Provider errors are logged and skipped; there is no delivery history or retry state
 machine.
 

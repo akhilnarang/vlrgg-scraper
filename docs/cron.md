@@ -18,12 +18,12 @@ The application uses arq for background job scheduling to periodically update ca
 | Events | `events_cron` | Every 30 min | Update event listings |
 | News | `news_cron` | Every 30 min | Update news articles |
 | Standings | `standings_cron` | Daily 00:00 | Update current year standings |
-| FCM Notifications | `fcm_notification_cron` | Every 15 min | Send match notifications |
+| FCM Notifications | `fcm_notification_cron` | Every 15 min | Legacy "match starting soon" alert on the `match-`/`event-`/`team-` topics (`app/cron/legacy_fcm.py`) |
 | Live Matches | `live_push_cron` | Every minute | Send APNs/FCM scores for matches listed as live; at most one run at a time (fixed arq `job_id`) |
 
 ## Implementation
 
-### Job Functions (`app/cron/jobs.py` and `app/cron/live_push.py`)
+### Job Functions (`app/cron/jobs.py`, `app/cron/legacy_fcm.py`, and `app/cron/live_push.py`)
 
 Each job function:
 1. Takes a `ctx` dict (Redis connection, etc.)

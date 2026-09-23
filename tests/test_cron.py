@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import sqlite3
 from contextlib import closing
 from datetime import datetime, timedelta
@@ -12,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.constants import MatchStatus
-from app.cron import jobs, live_push, worker
+from app.cron import legacy_fcm, live_push, worker
 from app.db.models import LiveActivityStart
 from app.exceptions import ScrapingError
 from app.schemas.matches import Favorites
@@ -71,7 +72,7 @@ async def test_arq_worker_recovers_after_redis_disconnect():
 
 @pytest.mark.asyncio
 async def test_fcm_cron_sends_valid_matches_and_reports_failures():
-    current_time = datetime.now(tz=ZoneInfo(jobs.settings.TIMEZONE))
+    current_time = datetime.now(tz=ZoneInfo(legacy_fcm.settings.TIMEZONE))
     valid_match = SimpleNamespace(
         id="123",
         status=MatchStatus.UPCOMING,
@@ -95,13 +96,13 @@ async def test_fcm_cron_sends_valid_matches_and_reports_failures():
     firebase_app = object()
 
     with (
-        patch("app.cron.jobs.matches.get_upcoming_matches", AsyncMock(return_value=[valid_match, invalid_match])),
-        patch("app.cron.jobs.matches.match_by_id", AsyncMock(side_effect=[match_details, error])),
-        patch("app.cron.jobs.capture_exception") as capture_exception,
-        patch("app.cron.jobs.get_app", return_value=firebase_app),
-        patch("app.cron.jobs.messaging.send_each_async", AsyncMock()) as send_each_async,
+        patch("app.cron.legacy_fcm.matches.get_upcoming_matches", AsyncMock(return_value=[valid_match, invalid_match])),
+        patch("app.cron.legacy_fcm.matches.match_by_id", AsyncMock(side_effect=[match_details, error])),
+        patch("app.cron.legacy_fcm.capture_exception") as capture_exception,
+        patch("app.cron.legacy_fcm.get_app", return_value=firebase_app),
+        patch("app.cron.legacy_fcm.messaging.send_each_async", AsyncMock()) as send_each_async,
     ):
-        await jobs.fcm_notification_cron({"redis": AsyncMock()})
+        await legacy_fcm.fcm_notification_cron({"redis": AsyncMock()})
 
     capture_exception.assert_called_once_with(error)
     send_each_async.assert_awaited_once()
@@ -111,6 +112,8 @@ async def test_fcm_cron_sends_valid_matches_and_reports_failures():
     assert len(messages) == 1
     assert messages[0].data["title"] == "Team A vs Team B"
     assert messages[0].data["match_id"] == "123"
+    # Released apps subscribe to these legacy topics; live scores must never be sent to them.
+    assert "'match-123' in topics" in messages[0].condition
     assert await_args.kwargs["app"] is firebase_app
 
 
@@ -245,7 +248,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert row is not None and row.channel_id == "channel-123"
         assert await stored_match_ids() == ["123"]
         assert any("/3/device/aabb" in request.url.path for request in requests)
-        assert fcm_calls and "'match-123' in topics" in fcm_calls[0][0].condition
+        assert fcm_calls and "'live-match-123' in topics" in fcm_calls[0][0].condition
 
         for _ in range(2):
             await live_push.live_push_cron({"redis": redis})
@@ -297,6 +300,9 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             assert (await store.get_favorites(client_id)).matches == [constants.TEST_MATCH_ID]
         assert sum("/3/device/aabb" in request.url.path for request in requests) == 2
         assert started_before_send == [True, True]
+        # Released apps render anything on the legacy topics, so live scores use only `live-*` topics.
+        live_topics = re.findall(r"'([^']+)' in topics", " ".join(m.condition for call in fcm_calls for m in call))
+        assert live_topics and all(topic.startswith("live-") for topic in live_topics)
         assert blocked_during_channel_create == [False, False]
         test_events = [
             json.loads(request.content)["aps"]["event"]
@@ -304,7 +310,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             if request.url.path.endswith("/broadcasts/apps/com.example.app")
         ]
         assert test_events == ["end", "update", "update", "update", "update", "end"]
-        assert f"'match-{constants.TEST_MATCH_ID}' in topics" in fcm_calls[-1][0].condition
+        assert f"'live-match-{constants.TEST_MATCH_ID}' in topics" in fcm_calls[-1][0].condition
         assert json.loads(fcm_calls[-1][0].data["state"])["terminal"] is True
         assert match_by_id_mock.await_count == 5  # synthetic observations never hit VLR
     finally:
