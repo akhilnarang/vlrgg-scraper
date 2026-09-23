@@ -79,7 +79,7 @@ its cached response has no blocks.
 ## Live match updates
 
 Live updates are disabled by default. When enabled, clients can store one APNs
-push-to-start token and replace their favorites:
+push-to-start or FCM registration token and replace their favorites:
 
 ```http
 PUT /api/v1/live-updates/clients/{client_id}/token
@@ -89,8 +89,9 @@ Authorization: Bearer <api-key>
 ```
 
 `platform` is `iOS` (default) or `android`. iOS sends its hex APNs push-to-start
-token; Android sends its FCM registration token. Only iOS tokens are used today;
-Android tokens are stored for later, and Android live scores still come from topics.
+token; Android sends its FCM registration token. Android tokens receive an immediate
+unicast FCM message on `POST .../live-activity`; recurring score updates stream
+through FCM topics.
 
 ```http
 PUT /api/v1/live-updates/clients/{client_id}/favorites
@@ -99,14 +100,14 @@ Authorization: Bearer <api-key>
 {"teams":["1"],"matches":["123"],"players":[],"events":["99"]}
 ```
 
-To immediately start a Live Activity for an in-progress match without waiting for the next cron run:
+To immediately start live updates for an in-progress match without waiting for the next cron run:
 
 ```http
 POST /api/v1/live-updates/clients/{client_id}/matches/{match_id}/live-activity
 Authorization: Bearer <api-key>
 ```
 
-Returns `204 No Content` on success, `404` if the client has no registered iOS token, and `400` if the match is not live.
+Returns `204 No Content` on success (triggers an APNs push-to-start on iOS, or an immediate direct FCM message to the device on Android), `404` if the client has no registered token, and `400` if the match is not live.
 
 Invalid tokens (including a non-hex iOS token) or favorite IDs return `422 Unprocessable Entity`.
 

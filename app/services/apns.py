@@ -1,6 +1,7 @@
 """Minimal APNs client for Live Activity starts and broadcasts."""
 
 import json
+import logging
 import time
 from pathlib import Path
 from typing import Literal
@@ -11,7 +12,12 @@ from pydantic import BaseModel
 
 from app import constants
 from app.core.config import settings
+from app.exceptions import ServiceUnavailableError
 from app.schemas.matches import CompactState
+from app.services import push
+from app.services.subscription_store import SubscriptionStore
+
+logger = logging.getLogger(__name__)
 
 
 class APNsCredentials(BaseModel):
@@ -37,6 +43,53 @@ class APNsError(Exception):
         super().__init__(f"APNs request failed ({status}): {reason}")
         self.status = status
         self.reason = reason
+
+
+async def deliver_start(
+    client_id: str,
+    token: str,
+    match_id: str,
+    state: CompactState,
+    channel_id: str | None,
+) -> None:
+    """Deliver an immediate live-match start to an iOS device.
+
+    :param client_id: Client UUID.
+    :param token: APNs push-to-start token.
+    :param match_id: Match identifier.
+    :param state: Current compact match state.
+    :param channel_id: Existing APNs broadcast channel, if any.
+    :return: None.
+    :raises ServiceUnavailableError: If APNs is unavailable or rejects the start.
+    """
+    from app.core import connections
+
+    client = connections.apns_client
+    if client is None:
+        raise ServiceUnavailableError("APNs client is not configured")
+    sessions = connections.subscription_sessions
+    if sessions is None:
+        raise ServiceUnavailableError("Live updates are unavailable")
+
+    created_channel = channel_id is None
+    if created_channel:
+        try:
+            channel_id = await client.create_channel()
+        except APNsError as exc:
+            logger.warning("APNs channel creation failed for match %s: %s", match_id, exc.reason)
+            raise ServiceUnavailableError(f"APNs channel creation failed: {exc.reason}") from exc
+    async with sessions.begin() as session:
+        store = SubscriptionStore(session)
+        if created_channel:
+            await store.save_match(match_id, channel_id, state.semantic())
+        await store.mark_started(client_id, match_id)
+    try:
+        await client.send_start(token, channel_id, state)
+    except APNsError as exc:
+        logger.warning("APNs start failed for client %s, match %s: %s", client_id, match_id, exc.reason)
+        if exc.reason in constants.DEAD_TOKEN_REASONS:
+            await push.clear_rejected_token(token)
+        raise ServiceUnavailableError(f"APNs start failed: {exc.reason}") from exc
 
 
 def load_credentials() -> APNsCredentials | None:
