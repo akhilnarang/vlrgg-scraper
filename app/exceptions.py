@@ -1,4 +1,10 @@
-from fastapi import HTTPException, status
+import logging
+
+import httpx
+from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi.exception_handlers import http_exception_handler
+
+logger = logging.getLogger(__name__)
 
 
 class NotFoundError(HTTPException):
@@ -48,3 +54,18 @@ class RateLimitError(HTTPException):
     def __init__(self, detail: str = "Rate limit exceeded", *, retry_after: int | None = None):
         headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
         super().__init__(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail, headers=headers)
+
+
+async def vlr_unreachable_handler(request: Request, exc: Exception) -> Response:
+    """Answer 503 when VLR.gg can't be reached (DNS failure, refused connection, timeout)."""
+    logger.error("VLR.gg is unreachable: %r", exc)
+    return await http_exception_handler(request, ServiceUnavailableError("VLR.gg is unreachable"))
+
+
+def register_exception_handlers(app: FastAPI) -> None:
+    """Register application-wide exception handlers.
+
+    :param app: FastAPI instance.
+    :return: None.
+    """
+    app.add_exception_handler(httpx.TransportError, vlr_unreachable_handler)

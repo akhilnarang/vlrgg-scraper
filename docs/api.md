@@ -133,6 +133,7 @@ All endpoints return standard HTTP status codes:
 - `404`: Not Found
 - `422`: Validation Error (Pydantic validation errors)
 - `500`: Internal Server Error
+- `503`: VLR.gg can't be reached (DNS failure, refused connection, timeout)
 
 Error response format:
 ```json

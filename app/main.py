@@ -17,7 +17,7 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
-from app import constants, i18n
+from app import constants, exceptions, i18n
 from app.api import deps
 from app.api.v1.api import router
 from app.api.v1.endpoints.internal import router as internal_router
@@ -118,6 +118,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.add_middleware(GZipMiddleware, minimum_size=500)  # type: ignore[arg-type]
+exceptions.register_exception_handlers(app)
 
 _HOSTNAME = socket.gethostname()
 

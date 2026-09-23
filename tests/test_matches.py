@@ -76,6 +76,24 @@ def test_display_strings_follow_accept_language(http_response):
     assert unknown.headers["vary"] == "Accept-Encoding, Accept-Language"  # GZip's Vary must survive
 
 
+def test_unreachable_vlr_returns_503(monkeypatch):
+    """A DNS failure or blocked IP is an upstream outage, so clients must see 503, not an unhandled 500."""
+    import httpx
+    from fastapi.testclient import TestClient
+
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "API_KEYS", {"test": "test-key"})
+    from app.main import app
+
+    with patch(
+        "httpx.AsyncClient.get", AsyncMock(side_effect=httpx.ConnectError("[Errno -2] Name or service not known"))
+    ):
+        response = TestClient(app).get("/api/v1/matches/12345", headers={"Authorization": "Bearer test-key"})
+
+    assert (response.status_code, response.json()) == (503, {"detail": "VLR.gg is unreachable"})
+
+
 @pytest.mark.asyncio
 async def test_match_list_keeps_each_upcoming_date_group(monkeypatch, http_response):
     responses = {
