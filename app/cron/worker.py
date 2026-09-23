@@ -47,7 +47,7 @@ class ArqWorker:
 
         # Only try to run the FCM cron if we have a service account JSON
         if settings.ENABLE_CACHE and settings.GOOGLE_APPLICATION_CREDENTIALS is not None:
-            cron_jobs.append(cron("app.cron.jobs.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}))
+            cron_jobs.append(cron("app.cron.legacy_fcm.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}))
         if settings.ENABLE_LIVE_PUSH:
             # Every minute; the fixed job_id makes arq skip a run while the previous one is still going.
             cron_jobs.append(cron("app.cron.live_push.live_push_cron", second=0, job_id="live_push_cron"))

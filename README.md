@@ -20,7 +20,7 @@ The application follows a modular architecture:
 - **Schema Layer** (`app/schemas/`): Pydantic models for data validation
 - **Cache Layer** (`app/cache/`): Redis integration for caching
 - **Core** (`app/core/`): Configuration and database connections
-- **Cron** (`app/cron/worker.py`, `jobs.py`, `live_push.py`): arq scheduling and jobs
+- **Cron** (`app/cron/worker.py`, `jobs.py`, `legacy_fcm.py`, `live_push.py`): arq scheduling and jobs
 
 ## API Endpoints
 

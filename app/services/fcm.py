@@ -50,11 +50,12 @@ def build_messages(state: CompactState, routing: Routing, player_ids: list[str])
     :param player_ids: Player IDs that have at least one stored favorite.
     :return: FCM messages with per-match collapse keys.
     """
-    topics = [f"match-{routing.match_id}"]
+    # Released apps show a notification for any message on the legacy `match-`/`event-`/`team-` topics.
+    topics = [f"live-match-{routing.match_id}"]
     if routing.event_id:
-        topics.append(f"event-{routing.event_id}")
-    topics.extend(f"team-{value}" for value in routing.team_ids)
-    topics.extend(f"player-{value}" for value in player_ids)
+        topics.append(f"live-event-{routing.event_id}")
+    topics.extend(f"live-team-{value}" for value in routing.team_ids)
+    topics.extend(f"live-player-{value}" for value in player_ids)
     topics = list(dict.fromkeys(topics))
     ttl = timedelta(hours=8) if state.terminal else timedelta(seconds=120)
     android = messaging.AndroidConfig(collapse_key=f"match-{state.match_id}", priority="high", ttl=ttl)
