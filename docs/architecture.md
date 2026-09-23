@@ -31,7 +31,7 @@ The VLR.gg scraper is built as a FastAPI application that provides a REST API fo
 ### Core (`app/core/`)
 - **Configuration**: Environment-based settings management
 - **Connections**: Database and external service connections
-- **Utilities**: Helper functions for common operations
+- **Observability** (`observability.py`): Logging setup and Sentry init, sampling, and event filtering
 
 ### Cron (`app/cron/`)
 - **Background Jobs**: Periodic data updates using arq
