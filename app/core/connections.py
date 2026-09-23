@@ -24,13 +24,15 @@ async def rotate_user_agent(request: httpx2.Request) -> None:
     :param request: Outgoing HTTP request.
     :return: None.
     """
-    request.headers["User-Agent"] = next(_user_agents, "val-esports-app/1.0")
+    request.headers["User-Agent"] = next(_user_agents)
 
 
 class RotatingAddressTransport(httpx2.AsyncBaseTransport):
     """Rotate one request at a time across the configured local addresses.
 
-    An empty address list leaves the requests unbound, so the kernel picks the source.
+    Direct callers may pass an empty list to leave requests unbound and let the
+    kernel pick the source. build_transport() returns None for empty settings so
+    httpx retains its default transport and environment-proxy discovery.
     """
 
     def __init__(self, addresses: list[str]) -> None:
@@ -56,7 +58,7 @@ class RotatingAddressTransport(httpx2.AsyncBaseTransport):
 def build_transport() -> httpx2.AsyncBaseTransport | None:
     """Build the HTTP transport for the configured local addresses.
 
-    :return: A rotating transport, or None to keep the HTTP client's own default.
+    :return: A rotating transport, or None for httpx's default and proxy discovery.
     """
     addresses = settings.HTTP_LOCAL_ADDRESSES
     return RotatingAddressTransport(addresses) if addresses else None

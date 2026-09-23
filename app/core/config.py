@@ -10,12 +10,19 @@ def _parse_string_list(value: object, setting: str) -> list[str]:
 
     :param value: Environment value or Python list.
     :param setting: Setting name for validation errors.
-    :return: Nonempty, stripped strings.
+    :return: Stripped strings, or an empty list for empty input.
     """
     if value is None or value == "":
         return []
     if isinstance(value, str):
-        value = json.loads(value) if value.lstrip().startswith("[") else value.split(",")
+        if value.lstrip().startswith("["):
+            # A value that looks like a JSON list must be one; splitting it would silently mangle entries.
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"{setting} must be a JSON list of strings") from exc
+        else:
+            value = value.split(",")
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ValueError(f"{setting} must be a list of strings or comma-separated string")
     return [item.strip() for item in value if item.strip()]
@@ -68,7 +75,10 @@ class Settings(BaseSettings):
         :param value: Comma-separated user agents or a JSON list of user agents.
         :return: Nonempty, stripped user agents.
         """
-        return _parse_string_list(value, "USER_AGENTS")
+        agents = _parse_string_list(value, "USER_AGENTS")
+        if not agents:
+            raise ValueError("USER_AGENTS must list at least one user agent")
+        return agents
 
     @field_validator("HTTP_LOCAL_ADDRESSES", mode="before")
     @classmethod
