@@ -1,9 +1,11 @@
+import string
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, Field, HttpUrl, computed_field, field_validator
+from pydantic import BaseModel, Field, HttpUrl, computed_field, field_validator, model_validator
 
 from app import i18n
-from app.constants import MAX_FAVORITES_PER_GROUP, MAX_TOKEN_LENGTH, MatchStatus, VetoAction
+from app.constants import MAX_FAVORITES_PER_GROUP, MAX_TOKEN_LENGTH, MatchStatus, Platform, VetoAction
 
 
 class Team(BaseModel):
@@ -175,19 +177,23 @@ class CompactState(BaseModel):
 
 
 class TokenRegistration(BaseModel):
-    """Validated APNs push-to-start token registration."""
+    """Validated APNs push-to-start or FCM registration token."""
 
-    token: str = Field(max_length=MAX_TOKEN_LENGTH, pattern=r"^(?:[0-9a-fA-F]{2})+$")
+    token: str = Field(max_length=MAX_TOKEN_LENGTH, pattern=r"^[A-Za-z0-9_:-]+$")
+    platform: Platform = Platform.IOS
 
-    @field_validator("token")
-    @classmethod
-    def normalize_token(cls, value: str) -> str:
-        """Normalize an APNs token to lowercase hexadecimal.
+    @model_validator(mode="after")
+    def validate_token(self) -> Self:
+        """Require hexadecimal APNs tokens and normalize them to lowercase.
 
-        :param value: Validated hexadecimal token.
-        :return: Lowercase token.
+        :return: The registration with a normalized token.
+        :raises ValueError: If an iOS token is not hexadecimal.
         """
-        return value.lower()
+        if self.platform == Platform.IOS:
+            if len(self.token) % 2 or any(char not in string.hexdigits for char in self.token):
+                raise ValueError("iOS tokens must be hexadecimal")
+            self.token = self.token.lower()
+        return self
 
 
 class Favorites(BaseModel):

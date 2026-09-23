@@ -1,7 +1,9 @@
 """Minimal SQLAlchemy models for live-update subscriptions."""
 
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from app.constants import Platform
 
 
 class Base(DeclarativeBase):
@@ -17,12 +19,16 @@ class Client(Base):
 
 
 class DeviceToken(Base):
-    """APNs push-to-start token belonging to a client."""
+    """APNs push-to-start or FCM registration token belonging to a client."""
 
     __tablename__ = "device_tokens"
 
     client_id: Mapped[str] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), primary_key=True)
     token: Mapped[str] = mapped_column(String(4096))
+    platform: Mapped[Platform] = mapped_column(
+        Enum(Platform, native_enum=False, length=16, values_callable=lambda enum: [member.value for member in enum]),
+        server_default=Platform.IOS.value,
+    )
 
 
 class Favorite(Base):

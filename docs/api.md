@@ -85,8 +85,12 @@ push-to-start token and replace their favorites:
 PUT /api/v1/live-updates/clients/{client_id}/token
 Authorization: Bearer <api-key>
 
-{"token":"<hex token>"}
+{"token":"<token>","platform":"iOS"}
 ```
+
+`platform` is `iOS` (default) or `android`. iOS sends its hex APNs push-to-start
+token; Android sends its FCM registration token. Only iOS tokens are used today;
+Android tokens are stored for later, and Android live scores still come from topics.
 
 ```http
 PUT /api/v1/live-updates/clients/{client_id}/favorites
@@ -95,7 +99,7 @@ Authorization: Bearer <api-key>
 {"teams":["1"],"matches":["123"],"players":[],"events":["99"]}
 ```
 
-Invalid APNs tokens or favorite IDs return `422 Unprocessable Entity`.
+Invalid tokens (including a non-hex iOS token) or favorite IDs return `422 Unprocessable Entity`.
 
 The one-minute job checks matches whose listing status is `live`. Android live scores
 are data-only FCM messages on the `live-match-{id}`, `live-event-{id}`, `live-team-{id}`,

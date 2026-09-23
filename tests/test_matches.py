@@ -154,6 +154,11 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
         token_response = client.put(f"{base}/token", headers=headers, json={"token": "AABB"})
         assert token_response.status_code == 204
         assert token_response.headers["Cache-Control"] == "no-store"
+        fcm_token = {"token": "dGVzdA_x-1:APA91bH", "platform": "android"}
+        assert client.put(f"{base}/token", headers=headers, json=fcm_token).status_code == 204
+        # Omitting platform keeps existing iOS clients working, and iOS still requires a hex APNs token.
+        assert client.put(f"{base}/token", headers=headers, json={"token": fcm_token["token"]}).status_code == 422
+        assert client.put(f"{base}/token", headers=headers, json={"token": "AABB"}).status_code == 204
         assert (
             client.put(
                 f"{base}/favorites",

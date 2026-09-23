@@ -12,7 +12,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app.constants import MatchStatus
+from app.constants import TEST_MATCH_ID, MatchStatus, Platform
 from app.cron import legacy_fcm, live_push, worker
 from app.db.models import LiveActivityStart
 from app.exceptions import ScrapingError
@@ -137,6 +137,9 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         store = SubscriptionStore(session)
         await store.register_token(client_id, "aabb")
         await store.replace_favorites(client_id, Favorites(matches=["123"]))
+        android_id = "22222222-2222-4222-8222-222222222222"
+        await store.register_token(android_id, "fcm-token:APA91b", Platform.ANDROID)
+        await store.replace_favorites(android_id, Favorites(matches=["123", TEST_MATCH_ID]))
         await store.save_match("456", None, None)  # an Android-only row whose page is deleted
 
     listed = SimpleNamespace(id="123", status=MatchStatus.LIVE)
@@ -299,6 +302,8 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             assert await store.get_match(constants.TEST_MATCH_ID) is None
             assert (await store.get_favorites(client_id)).matches == [constants.TEST_MATCH_ID]
         assert sum("/3/device/aabb" in request.url.path for request in requests) == 2
+        # Android FCM tokens are stored for later use but must never be sent to APNs.
+        assert all(r.url.path.endswith("/aabb") for r in requests if "/3/device/" in r.url.path)
         assert started_before_send == [True, True]
         # Released apps render anything on the legacy topics, so live scores use only `live-*` topics.
         live_topics = re.findall(r"'([^']+)' in topics", " ".join(m.condition for call in fcm_calls for m in call))

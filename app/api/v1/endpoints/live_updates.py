@@ -30,8 +30,8 @@ async def put_token(
     body: TokenRegistration,
     store: Annotated[SubscriptionStore, Depends(deps.get_subscription_store)],
 ) -> None:
-    """Store a client's APNs push-to-start token."""
-    await store.register_token(str(client_id), body.token)
+    """Store a client's APNs push-to-start or FCM token."""
+    await store.register_token(str(client_id), body.token, body.platform)
 
 
 @router.delete("/clients/{client_id}/token", status_code=status.HTTP_204_NO_CONTENT)
@@ -39,7 +39,7 @@ async def delete_token(
     client_id: UUID,
     store: Annotated[SubscriptionStore, Depends(deps.get_subscription_store)],
 ) -> None:
-    """Delete a client's APNs push-to-start token."""
+    """Delete a client's push token."""
     await store.delete_token(str(client_id))
 
 
