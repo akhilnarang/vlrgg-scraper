@@ -24,8 +24,8 @@ def _live_detail(status: str, series: tuple[int, int]):
 
     return MatchWithDetails(
         teams=[
-            TeamWithImage(id="1", name="Alpha", score=series[0], img="https://cdn.vlr.gg/a.png"),
-            TeamWithImage(id="2", name="Beta", score=series[1], img="https://cdn.vlr.gg/b.png"),
+            TeamWithImage(id="1", name="Alpha", tag="ALP", score=series[0], img="https://cdn.vlr.gg/a.png"),
+            TeamWithImage(id="2", name="Beta", tag="BET", score=series[1], img="https://cdn.vlr.gg/b.png"),
         ],
         bans=[],
         event=Event(id="99", img="https://cdn.vlr.gg/e.png", series="Series", stage="Stage", status=status),
@@ -266,7 +266,10 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             if request.url.path.endswith("/broadcasts/apps/com.example.app")
         ]
         assert [aps["event"] for aps in end_payloads] == ["end"]
-        assert [team["score"] for team in end_payloads[0]["content-state"]["teams"]] == [1, 0]
+        # The final state is rebuilt from the stored one, so the tags clients show must survive it.
+        end_teams = end_payloads[0]["content-state"]["teams"]
+        assert [(team["tag"], team["score"]) for team in end_teams] == [("ALP", 1), ("BET", 0)]
+        assert [team["tag"] for team in json.loads(fcm_calls[1][0].data["state"])["teams"]] == ["ALP", "BET"]
         assert any(request.method == "DELETE" for request in requests)
         assert len(fcm_calls) == 2
         assert json.loads(fcm_calls[1][0].data["state"])["terminal"] is True

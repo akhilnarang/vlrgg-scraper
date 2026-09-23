@@ -146,9 +146,10 @@ class Match(BaseModel):
 
 
 class PushTeam(BaseModel):
-    """Team name, image, and series score in a compact push state."""
+    """Team name, tag, image, and series score in a compact push state."""
 
     name: str
+    tag: str | None = None
     img: HttpUrl | None = None
     score: int | None = None
 

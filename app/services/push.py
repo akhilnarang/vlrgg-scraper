@@ -53,7 +53,7 @@ def project_state(match_id: str, detail: MatchWithDetails) -> CompactState | Non
         match_id=match_id,
         observed_at=int(time.time()),
         terminal=terminal,
-        teams=[PushTeam(name=team.name, img=team.img, score=team.score) for team in detail.teams],
+        teams=[PushTeam(name=team.name, tag=team.tag, img=team.img, score=team.score) for team in detail.teams],
         current_map=current,
     )
 

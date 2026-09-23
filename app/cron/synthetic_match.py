@@ -24,8 +24,8 @@ async def next_observation(client: Redis) -> MatchWithDetails:
     return MatchWithDetails.model_validate(
         {
             "teams": [
-                {"id": "test-alpha", "name": "Test Alpha", "score": alpha, "img": image},
-                {"id": "test-beta", "name": "Test Beta", "score": beta, "img": image},
+                {"id": "test-alpha", "name": "Test Alpha", "tag": "TA", "score": alpha, "img": image},
+                {"id": "test-beta", "name": "Test Beta", "tag": "TB", "score": beta, "img": image},
             ],
             "bans": [],
             "event": {
