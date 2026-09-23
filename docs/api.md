@@ -76,6 +76,40 @@ Article detail responses are scraped on request, unlike the cached news list.
 Clients with locally cached article bodies should fetch an article again when
 its cached response has no blocks.
 
+## Live match updates
+
+Live updates are disabled by default. When enabled, clients can store one APNs
+push-to-start token and replace their favorites:
+
+```http
+PUT /api/v1/live-updates/clients/{client_id}/token
+Authorization: Bearer <api-key>
+
+{"token":"<hex token>"}
+```
+
+```http
+PUT /api/v1/live-updates/clients/{client_id}/favorites
+Authorization: Bearer <api-key>
+
+{"teams":["1"],"matches":["123"],"players":[],"events":["99"]}
+```
+
+Invalid APNs tokens or favorite IDs return `422 Unprocessable Entity`.
+
+The one-minute job checks matches whose listing status is `live`. Android receives
+data-only FCM topic messages. A matching iOS favorite creates one APNs broadcast
+channel and one push-to-start request per client. Final state ends and deletes the
+channel. If VLR returns 404 for a tracked match, or its page fails to load on three
+runs in a row (DNS failure, refused connection, timeout, or 5xx), it ends with the
+last score sent to iOS (the final Android message goes to the match topic only).
+Provider errors are logged and skipped; there is no delivery history or retry state
+machine.
+
+Favorite match `3141592653` on a test device, then `POST /api/v1/live-updates/test-match`
+with your API key to start a synthetic match. It updates each minute and ends on tick 6;
+trigger it again to restart. Triggering while it is running returns `409 Conflict`.
+
 ## Interactive Documentation
 
 - **Swagger UI**: Visit `http://localhost:8000/docs` for interactive API testing

@@ -2,14 +2,14 @@ import logging
 import os
 import socket
 import subprocess
-from contextlib import asynccontextmanager
-from typing import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager, suppress
 
 import httpx
 import redis.asyncio as redis
 import sentry_sdk
 from arq.connections import RedisSettings
-from fastapi import Depends, FastAPI, Response, Request
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.gzip import GZipMiddleware
 from rich.logging import RichHandler
 from sentry_sdk.integrations.arq import ArqIntegration
@@ -17,23 +17,24 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
+from app import constants, i18n
 from app.api import deps
 from app.api.v1.api import router
 from app.api.v1.endpoints.internal import router as internal_router
-from app import constants, i18n
 from app.core import connections
 from app.core.config import settings
+from app.core.live_push import start_live_push, stop_live_push
 from app.cron import arq_worker
 from app.utils import before_send
 from app.web.media import router as media_router
 
+logger = logging.getLogger(__name__)
+
 # Git SHA for Sentry release tracking
 _RELEASE = os.environ.get("GIT_SHA")
 if not _RELEASE:
-    try:
+    with suppress(OSError, subprocess.CalledProcessError):
         _RELEASE = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL).strip()
-    except Exception:
-        pass
 
 logging.basicConfig(
     format="[%(levelname)s] (%(asctime)s) %(module)s:%(pathname)s:%(funcName)s:%(lineno)s:: %(message)s",
@@ -41,6 +42,8 @@ logging.basicConfig(
     datefmt="%d-%m-%y %H:%M:%S",
     handlers=[RichHandler(rich_tracebacks=True)],
 )
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 def _traces_sampler(sampling_context: dict) -> float:
@@ -70,19 +73,21 @@ if settings.SENTRY_DSN:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator:
-    logging.info("Creating shared HTTP client")
+    logger.info("Creating shared HTTP client")
     connections.http_client = httpx.AsyncClient(
         timeout=constants.REQUEST_TIMEOUT, headers={"User-Agent": constants.USER_AGENT}
     )
     try:
-        if settings.ENABLE_CACHE:
-            logging.info("Connecting to redis")
+        if settings.ENABLE_LIVE_PUSH:
+            await start_live_push()
+        if settings.needs_redis:
+            logger.info("Connecting to redis")
             connections.redis_pool = redis.ConnectionPool(
                 host=settings.REDIS_HOST,
                 password=settings.REDIS_PASSWORD,
                 port=settings.REDIS_PORT,
             )
-            logging.info("Starting arq worker")
+            logger.info("Starting arq worker")
             await arq_worker.start(
                 handle_signals=False,
                 redis_settings=RedisSettings(
@@ -93,15 +98,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
             )
         yield
     finally:
-        if settings.ENABLE_CACHE:
-            logging.info("Stopping arq worker")
+        if settings.needs_redis:
+            logger.info("Stopping arq worker")
             try:
                 await arq_worker.stop()
             finally:
-                logging.info("Closing redis connection pool")
+                logger.info("Closing redis connection pool")
                 if connections.redis_pool:
                     await connections.redis_pool.aclose()
-        logging.info("Closing shared HTTP client")
+        await stop_live_push()
+        logger.info("Closing shared HTTP client")
         await connections.http_client.aclose()
         connections.http_client = None
 

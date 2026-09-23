@@ -19,10 +19,11 @@ The application uses arq for background job scheduling to periodically update ca
 | News | `news_cron` | Every 30 min | Update news articles |
 | Standings | `standings_cron` | Daily 00:00 | Update current year standings |
 | FCM Notifications | `fcm_notification_cron` | Every 15 min | Send match notifications |
+| Live Matches | `live_push_cron` | Every minute | Send APNs/FCM scores for matches listed as live; at most one run at a time (fixed arq `job_id`) |
 
 ## Implementation
 
-### Job Functions (`app/cron.py`)
+### Job Functions (`app/cron/jobs.py` and `app/cron/live_push.py`)
 
 Each job function:
 1. Takes a `ctx` dict (Redis connection, etc.)
@@ -40,9 +41,11 @@ async def rankings_cron(ctx: dict) -> None:
 
 ### Worker Setup
 
+`app/cron/worker.py` schedules the jobs:
+
 ```python
 cron_jobs = [
-    cron("app.cron.rankings_cron", hour=None, minute={0, 30}),
+    cron("app.cron.jobs.rankings_cron", hour=None, minute={0, 30}),
     # ... other jobs
 ]
 
@@ -75,7 +78,6 @@ uv run fastapi dev
 
 To test jobs manually:
 ```python
-from app.cron import rankings_cron
+from app.cron.jobs import rankings_cron
 await rankings_cron({"redis": redis_client})
 ```
-

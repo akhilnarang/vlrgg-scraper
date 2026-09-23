@@ -48,7 +48,7 @@ The Standings API provides VCT (Valorant Champions Tour) standings data for a gi
 - `app/api/v1/endpoints/standings.py`: Created endpoint with cache-first logic
 - `app/api/v1/api.py`: Registered standings router
 - `app/schemas/__init__.py`: Imported new schemas
-- `app/cron.py`: Added `standings_cron()` to cache current year's data daily at 00:00
+- `app/cron/jobs.py`: `standings_cron()` caches current year's data daily at 00:00
 
 ## Design Decisions
 - **Cache Strategy**: Read-only in endpoint (no cache writes on requests) to avoid slow first requests; background cron ensures cache freshness.

@@ -16,3 +16,5 @@ README.md
 Makefile
 README.md
 sa.json
+db.sqlite3*
+backups/

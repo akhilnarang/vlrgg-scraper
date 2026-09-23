@@ -1,55 +1,18 @@
 import asyncio
 import logging
-from asyncio import Task
 from datetime import datetime, timedelta
-from typing import Any
 from zoneinfo import ZoneInfo
 
-from arq import cron
-from arq.worker import create_worker
-from firebase_admin import App, credentials, delete_app, get_app, initialize_app, messaging
+from firebase_admin import messaging
 from sentry_sdk import capture_exception, get_current_scope
 
 from app import constants, schemas
 from app.constants import MatchStatus
 from app.core.config import settings
 from app.services import events, matches, news, rankings, standings
+from app.services.fcm import get_app
 
 logger = logging.getLogger(__name__)
-
-_FCM_APP_NAME = "vlrgg-fcm"
-_ARQ_RESTART_DELAY = 5
-
-
-def _get_fcm_app() -> App:
-    try:
-        return get_app(_FCM_APP_NAME)
-    except ValueError:
-        try:
-            credential = credentials.Certificate(settings.GOOGLE_APPLICATION_CREDENTIALS)
-            return initialize_app(
-                name=_FCM_APP_NAME,
-                credential=credential,
-            )
-        except ValueError as exc:
-            try:
-                return get_app(_FCM_APP_NAME)
-            except ValueError:
-                raise exc
-
-
-async def _close_fcm_app() -> None:
-    try:
-        app = get_app(_FCM_APP_NAME)
-    except ValueError:
-        return
-
-    # firebase_admin 7.3.0 closes an async HTTP client via asyncio.run(), so
-    # cleanup must happen off the worker's event loop.
-    try:
-        await asyncio.to_thread(delete_app, app)
-    except Exception:
-        logging.exception("Failed to delete Firebase app during shutdown: %s", _FCM_APP_NAME)
 
 
 async def fcm_notification_cron(ctx: dict) -> None:
@@ -70,7 +33,7 @@ async def fcm_notification_cron(ctx: dict) -> None:
     ]
 
     if not upcoming_matches:
-        logging.info("No notifications to send")
+        logger.info("No notifications to send")
         return
 
     # Fetch all match details concurrently (skip failures gracefully)
@@ -84,10 +47,10 @@ async def fcm_notification_cron(ctx: dict) -> None:
     for match, match_details in zip(upcoming_matches, all_match_details):
         if isinstance(match_details, BaseException):
             capture_exception(match_details)
-            logging.warning(f"Failed to fetch match details for {match.id}: {match_details}")
+            logger.warning(f"Failed to fetch match details for {match.id}: {match_details}")
             continue
 
-        logging.info(f"Sending notification for {match=}")
+        logger.info(f"Sending notification for {match=}")
 
         team1_id, team2_id = (team.id for team in match_details.teams)
         time_to_start = int((match.time - current_time).total_seconds() // 60)
@@ -114,9 +77,8 @@ async def fcm_notification_cron(ctx: dict) -> None:
     if not messages:
         return
 
-    app = _get_fcm_app()
-    await messaging.send_each_async(messages=messages, dry_run=False, app=app)
-    logging.info("Sent notification")
+    await messaging.send_each_async(messages=messages, dry_run=False, app=get_app())
+    logger.info("Sent notification")
 
 
 async def rankings_cron(ctx: dict) -> None:
@@ -189,7 +151,7 @@ async def standings_cron(ctx: dict) -> None:
     """
     get_current_scope().set_transaction_name("Standings Cron")
     client = ctx["redis"]
-    current_year = datetime.now().year
+    current_year = datetime.now(ZoneInfo(settings.TIMEZONE)).year
 
     result = await standings.standings_list(current_year)
     await client.set(
@@ -197,54 +159,3 @@ async def standings_cron(ctx: dict) -> None:
         result.model_dump_json(),
         ex=constants.CACHE_TTL_STANDINGS,
     )
-
-
-class ArqWorker:
-    def __init__(self) -> None:
-        self.task: Task | None = None
-
-    async def start(self, **kwargs: Any) -> None:
-        cron_jobs = [
-            cron("app.cron.rankings_cron", hour=None, minute={0, 30}),
-            cron(
-                "app.cron.matches_cron",
-                hour=None,
-                minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55},
-            ),
-            cron("app.cron.events_cron", hour=None, minute={0, 30}),
-            cron("app.cron.news_cron", hour=None, minute={0, 30}),
-            cron("app.cron.standings_cron", hour=0, minute=0),
-        ]
-
-        # Only try to run the FCM cron if we have a service account JSON
-        if settings.GOOGLE_APPLICATION_CREDENTIALS is not None:
-            cron_jobs.append(cron("app.cron.fcm_notification_cron", hour=None, minute={0, 15, 30, 45}))
-
-        self.task = asyncio.create_task(self._run(cron_jobs, kwargs))
-
-    async def _run(self, cron_jobs: list, kwargs: dict[str, Any]) -> None:
-        while True:
-            worker = create_worker({"cron_jobs": cron_jobs}, **kwargs)
-            try:
-                await worker.async_run()
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                logger.exception("arq worker crashed; restarting")
-            else:
-                logger.error("arq worker stopped unexpectedly; restarting")
-            finally:
-                try:
-                    await worker.close()
-                except Exception:
-                    logger.warning("failed to close arq worker", exc_info=True)
-            await asyncio.sleep(_ARQ_RESTART_DELAY)
-
-    async def stop(self) -> None:
-        if self.task:
-            self.task.cancel()
-            await asyncio.gather(self.task, return_exceptions=True)
-        await _close_fcm_app()
-
-
-arq_worker = ArqWorker()

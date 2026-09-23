@@ -6,11 +6,30 @@ from zoneinfo import ZoneInfo
 from fastapi import HTTPException
 from sentry_sdk.types import Event, Hint
 
+from app import constants
 from app.constants import PREFIX
 from app.core.config import settings
 
 _TZ_LOCAL = ZoneInfo(settings.TIMEZONE)
 _TZ_UTC = ZoneInfo("UTC")
+
+
+def is_live(status: str | None) -> bool:
+    """Check whether a listing or detail status represents a running match.
+
+    :param status: Match status as a string or string enum.
+    :return: Whether the match is live.
+    """
+    return (status or "").strip().casefold() in constants.LIVE_STATUSES
+
+
+def is_final(status: str | None) -> bool:
+    """Check whether a listing or detail status represents a final match.
+
+    :param status: Match status as a string or string enum.
+    :return: Whether the match is final.
+    """
+    return (status or "").strip().casefold() in constants.FINAL_STATUSES
 
 
 def resolve_http_url(value: str | list[str] | None) -> str | None:
@@ -64,20 +83,19 @@ def clean_number_string(value: str | None) -> int | float:
     :param value: The value to clean
     :return: The cleaned integer/floating point value
     """
-    if value and (value := clean_string(value)):
-        if value != "nan":
-            if value[-1] == "%":
-                value = value[:-1]
-            if "." in value:
-                try:
-                    return float(value)
-                except ValueError:
-                    pass
-            else:
-                try:
-                    return int(value)
-                except ValueError:
-                    pass
+    if value and (value := clean_string(value)) and value != "nan":
+        if value[-1] == "%":
+            value = value[:-1]
+        if "." in value:
+            try:
+                return float(value)
+            except ValueError:
+                pass
+        else:
+            try:
+                return int(value)
+            except ValueError:
+                pass
     return 0
 
 

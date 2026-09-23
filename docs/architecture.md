@@ -35,7 +35,7 @@ The VLR.gg scraper is built as a FastAPI application that provides a REST API fo
 
 ### Cron (`app/cron/`)
 - **Background Jobs**: Periodic data updates using arq
-- **Scheduling**: Cron-like job scheduling
+- **Scheduling**: `worker.py` schedules `jobs.py` and `live_push.py`
 - **Redis Queue**: Job queuing and execution
 
 ## Data Flow

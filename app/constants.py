@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 
 PREFIX = "https://www.vlr.gg"
 
@@ -37,9 +37,15 @@ SEARCH_URL = f"{PREFIX}/search?q={{}}&type={{}}"
 STANDINGS_URL = f"{PREFIX}/vct-{{}}/standings"
 
 TBD = "tbd"
+TEST_MATCH_ID = "3141592653"
+TEST_TICK_KEY = "vlrgg:push:test_tick"
+# A tracked match whose page fails this many cron runs in a row is ended (e.g. VLR blocked our IP).
+PUSH_FETCH_FAILURE_LIMIT = 3
+PUSH_FETCH_FAILURES_KEY = "vlrgg:push:fetch_failures:{}"
+PUSH_FETCH_FAILURES_TTL = 600  # seconds; failures are consecutive per-minute runs
 
 
-class MatchStatus(str, Enum):
+class MatchStatus(StrEnum):
     COMPLETED = "completed"
     ONGOING = "ongoing"
     UPCOMING = "upcoming"
@@ -47,7 +53,30 @@ class MatchStatus(str, Enum):
     TBD = TBD
 
 
-class EventStatus(str, Enum):
+LIVE_STATUSES = frozenset({MatchStatus.LIVE.value, MatchStatus.ONGOING.value})
+FINAL_STATUSES = frozenset(
+    {"final", MatchStatus.COMPLETED.value}
+)  # Detail pages say "final"; listings say "completed".
+
+
+class FavoriteType(StrEnum):
+    """Favorite entity types stored as plain strings in SQLite."""
+
+    MATCH = "match"
+    EVENT = "event"
+    TEAM = "team"
+    PLAYER = "player"
+
+
+FAVORITE_GROUPS = {
+    FavoriteType.TEAM: "teams",
+    FavoriteType.MATCH: "matches",
+    FavoriteType.PLAYER: "players",
+    FavoriteType.EVENT: "events",
+}
+
+
+class EventStatus(StrEnum):
     COMPLETED = "completed"
     ONGOING = "ongoing"
     UPCOMING = "upcoming"
@@ -55,14 +84,14 @@ class EventStatus(str, Enum):
     UNKNOWN = "unknown"
 
 
-class VetoAction(str, Enum):
+class VetoAction(StrEnum):
     BAN = "ban"
     PICK = "pick"
     REMAINS = "remains"  # the decider left over after picks/bans; ``team`` is None
     UNKNOWN = "unknown"  # note text the parser didn't recognize; ``map`` holds the raw text
 
 
-class NewsVideoProvider(str, Enum):
+class NewsVideoProvider(StrEnum):
     """Providers supported by hosted news video players."""
 
     YOUTUBE = "youtube"
@@ -78,7 +107,7 @@ REGION_NAME_MAPPING = {
 }
 
 
-class SearchCategory(str, Enum):
+class SearchCategory(StrEnum):
     ALL = "all"
     TEAM = "teams"
     PLAYER = "players"
@@ -105,3 +134,7 @@ CACHE_TTL_STANDINGS = 90000  # 25 hours (cron: daily at midnight)
 # single agent run and rapid repeats, without serving stale data.
 CACHE_TTL_TEAM = 60  # 1 minute
 CACHE_TTL_PLAYER = 60  # 1 minute
+
+MAX_FAVORITES_PER_GROUP = 200
+MAX_TOKEN_LENGTH = 4096
+ACTIVITY_ATTRIBUTES_TYPE = "MatchActivityAttributes"

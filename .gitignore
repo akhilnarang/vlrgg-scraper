@@ -8,3 +8,5 @@ __pycache__
 *.json
 *.rdb
 !app/locales/*.json
+db.sqlite3*
+backups/

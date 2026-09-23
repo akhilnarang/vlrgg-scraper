@@ -7,8 +7,9 @@ authors = [
     { name = "Akhil Narang", email = "me@akhilnarang.dev" }
 ]
 dependencies = [
-    "fastapi[all]<0.142",
-    "httpx",
+    "fastapi[all]>=0.121.0,<0.142",
+    "httpx[http2]",
+    "PyJWT[crypto]",
     "beautifulsoup4",
     "uvicorn[standard]",
     "gunicorn",
@@ -21,6 +22,9 @@ dependencies = [
     "arq",
     "rich",
     "openai",
+    "sqlalchemy>=2,<3",
+    "aiosqlite",
+    "alembic",
 ]
 
 [dependency-groups]

@@ -1,5 +1,38 @@
 # Repository guidance
 
+## Code
+
+- Build the smallest change that works. Handle failures that have actually
+  happened; add retries, locks, state machines, or concurrency limits only for
+  an observed problem.
+- Validate request input in Pydantic schemas (`Field` constraints, validators).
+  Services receive already-valid data and only normalize it.
+- Raise the HTTP errors in `app/exceptions.py`, adding a new one there when a
+  status is missing, rather than raising `HTTPException` directly.
+- Give repeated string literals (statuses, entity types) a constant or `StrEnum`
+  in `app/constants.py`; put generic helpers in `app/utils.py`. Use `StrEnum`,
+  not `(str, Enum)`: its members format as their value (`f"{MatchStatus.LIVE}"`
+  is `live`), while a `(str, Enum)` member formats as `MatchStatus.LIVE`.
+- Keep modules to one responsibility: database engine setup in `app/db/`,
+  provider clients in `app/services/`, cron handlers in `app/cron/`.
+- Transactions belong to the caller: the request's session dependency, or one
+  session per match in a cron. Stores never commit. Commit before calling APNs,
+  FCM, or VLR so the SQLite write lock is never held across network I/O.
+- Log through a module logger (`logger = logging.getLogger(__name__)`). Fix lint
+  findings in touched code instead of adding `# noqa`.
+- Inline single-use variables.
+- Write Python scripts as `.py` files run with `uv run`, not shell wrappers
+  around Python.
+- Docstrings use reST fields (`:param:`, `:return:`, `:raises:`). FastAPI route
+  handlers get a one-line docstring only, because it becomes the Swagger
+  description.
+
+## Pull requests
+
+- Keep a PR as a single commit, amended as it changes.
+- Add an AI attribution line to a PR body only when that tool wrote the change
+  without human intervention and review.
+
 ## Testing
 
 - Strongly avoid creating new tests. Extend an existing focused test when it can
