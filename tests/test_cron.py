@@ -319,7 +319,10 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         ]
         assert test_events == ["end", "update", "update", "update", "update", "end"]
         assert f"'live-match-{constants.TEST_MATCH_ID}' in topics" in fcm_calls[-1][0].condition
-        assert json.loads(fcm_calls[-1][0].data["state"])["terminal"] is True
+        last_fcm_state = json.loads(fcm_calls[-1][0].data["state"])
+        assert last_fcm_state["terminal"] is True
+        assert last_fcm_state["total_maps"] == 3
+        assert last_fcm_state["current_map"]["number"] == 1
         assert match_by_id_mock.await_count == 5  # synthetic observations never hit VLR
     finally:
         await apns.aclose()

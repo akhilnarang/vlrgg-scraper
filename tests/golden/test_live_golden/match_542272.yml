@@ -1645,6 +1645,7 @@ teams:
   name: FNATIC
   score: 2
   tag: FNC
+total_maps: 5
 veto:
 - action: ban
   action_label: Ban

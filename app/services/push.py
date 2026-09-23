@@ -53,6 +53,7 @@ def project_state(match_id: str, detail: MatchWithDetails) -> CompactState | Non
         match_id=match_id,
         observed_at=int(time.time()),
         terminal=terminal,
+        total_maps=detail.total_maps,
         teams=[PushTeam(name=team.name, tag=team.tag, img=team.img, score=team.score) for team in detail.teams],
         current_map=current,
     )
@@ -81,7 +82,8 @@ def _current_map(detail: MatchWithDetails, terminal: bool) -> PushCurrentMap | N
         return None
     started = [item for item in maps if item.rounds or any((team.score or 0) > 0 for team in item.teams)]
     selected = started[-1] if started else (maps[-1] if terminal else maps[0])
-    return PushCurrentMap(name=selected.map, scores=_aligned_scores(selected, detail))
+    number = maps.index(selected) + 1 if selected in maps else None
+    return PushCurrentMap(name=selected.map, number=number, scores=_aligned_scores(selected, detail))
 
 
 def _aligned_scores(map_data: MatchData, detail: MatchWithDetails) -> list[int | None]:

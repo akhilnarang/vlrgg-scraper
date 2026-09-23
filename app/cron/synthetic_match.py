@@ -37,6 +37,7 @@ async def next_observation(client: Redis) -> MatchWithDetails:
             },
             "videos": {"streams": [], "vods": []},
             "map_count": 1,
+            "total_maps": 3,
             "data": [
                 {
                     "map": "Test Range",

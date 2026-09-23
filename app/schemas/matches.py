@@ -118,6 +118,7 @@ class MatchWithDetails(BaseModel):
     event: Event
     videos: MatchVideos
     map_count: int
+    total_maps: int = 1
     data: list[MatchData]
     previous_encounters: list[PreviousEncounters]
 
@@ -159,6 +160,7 @@ class PushCurrentMap(BaseModel):
 
     name: str
     scores: list[int | None]
+    number: int | None = None
 
 
 class CompactState(BaseModel):
@@ -167,6 +169,7 @@ class CompactState(BaseModel):
     match_id: str
     observed_at: int
     terminal: bool
+    total_maps: int = 1
     teams: list[PushTeam]
     current_map: PushCurrentMap | None = None
 
