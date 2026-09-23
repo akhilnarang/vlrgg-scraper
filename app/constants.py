@@ -133,7 +133,6 @@ MAX_PAGINATION_PAGES = 50
 # Timeouts and TTLs (in seconds)
 # TTLs should be >= 2× cron interval to survive a missed run
 REQUEST_TIMEOUT = 60.0
-USER_AGENT = "val-esports-app/1.0"
 CACHE_TTL_RANKINGS = 3600  # 1 hour (cron: every 30 min)
 CACHE_TTL_MATCHES = 600  # 10 minutes (cron: every 5 min)
 CACHE_TTL_EVENTS = 3600  # 1 hour (cron: every 30 min)
