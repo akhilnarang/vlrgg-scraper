@@ -52,6 +52,10 @@ async def test_team_response_includes_identity_socials_history_and_cache(http_ge
     assert len({match.id for match in result.completed}) == 100
     assert result.completed[0].roster_core
     assert result.completed[0].opponent_roster_core
+    assert result.tag == "PRX"
+    assert (result.completed[0].opponent, result.completed[0].opponent_tag) == ("EDward Gaming", "EDG")
+    assert all(match.opponent_tag for match in result.completed)
+    assert [(match.opponent, match.opponent_tag) for match in result.upcoming] == [("TBD", None)]
     assert cached_result == result
     get.assert_not_called()
 

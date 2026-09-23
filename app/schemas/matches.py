@@ -16,6 +16,7 @@ class Team(BaseModel):
 class TeamWithImage(Team):
     img: HttpUrl
     id: str | None = None
+    tag: str | None = None  # short name, e.g. "PRX"; None until a map has been played
 
 
 class Event(BaseModel):

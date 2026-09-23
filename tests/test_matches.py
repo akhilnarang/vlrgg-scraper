@@ -18,7 +18,7 @@ async def test_match_details_follow_the_public_response_contract(http_response):
     with patch("httpx.AsyncClient.get", return_value=response):
         result = await matches.match_by_id("12345", AsyncMock())
 
-    assert [(team.name, team.score) for team in result.teams] == [("Team A", 2), ("Team B", 1)]
+    assert [(team.name, team.score, team.tag) for team in result.teams] == [("Team A", 2, "A"), ("Team B", 1, "B")]
     assert result.event.id == "2283"
     assert result.event.series == "Event Series"
     assert result.map_count == 1
