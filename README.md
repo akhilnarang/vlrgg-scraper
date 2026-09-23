@@ -11,43 +11,18 @@ An unofficial FastAPI-based scraper for [vlr.gg](https://www.vlr.gg), providing 
 - **Background Jobs**: Cron jobs for periodic data updates
 - **Async Support**: Asynchronous HTTP requests for efficient scraping
 
-## Architecture
-
-The application follows a modular architecture:
-
-- **API Layer** (`app/api/`): FastAPI routers and endpoints
-- **Service Layer** (`app/services/`): Business logic and scraping functionality
-- **Schema Layer** (`app/schemas/`): Pydantic models for data validation
-- **Cache Layer** (`app/cache/`): Redis integration for caching
-- **Core** (`app/core/`): Configuration and database connections
-- **Cron** (`app/cron/worker.py`, `jobs.py`, `legacy_fcm.py`, `live_push.py`): arq scheduling and jobs
-
-## API Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/v1/events` | List upcoming and completed events |
-| `GET /api/v1/matches` | Match listings with filtering |
-| `GET /api/v1/news` | Latest Valorant news |
-| `GET /api/v1/player/{id}` | Player statistics and info |
-| `GET /api/v1/rankings` | Current team rankings by region |
-| `GET /api/v1/standings/{year}` | VCT standings for a specific year |
-| `GET /api/v1/team/{id}` | Team details and matches |
-| `GET /api/v1/search` | Search teams, players, and events |
-| `GET /api/v1/version` | API version info |
-| `POST /api/v1/ask` | Natural-language Q&A over VLR data (LLM-powered; enabled when `LLM_API_KEY` is set) |
-| `PUT /api/v1/live-updates/clients/{id}/token` | Store an APNs push-to-start token |
-| `PUT /api/v1/live-updates/clients/{id}/favorites` | Replace team, match, player, and event favorites |
-
-See [API Documentation](docs/api.md) for detailed endpoint specs.
-
 ## Documentation
 
-- [API Reference](docs/api.md) - Detailed endpoint specifications
-- [Architecture](docs/architecture.md) - System design and components
-- [Caching](docs/caching.md) - Redis caching implementation
-- [Background Jobs](docs/cron.md) - Cron job scheduling
-- [Standings API](docs/standings.md) - VCT standings implementation
+The running server documents every endpoint at `/docs` (Swagger UI), `/redoc`, and
+`/openapi.json`. The guides in `docs/` cover the rest:
+
+- [API Reference](docs/api.md): authentication, live match updates, and errors
+- [Architecture](docs/architecture.md): components, data flow, and deployment
+- [Caching](docs/caching.md): Redis caching
+- [Background Jobs](docs/cron.md): cron schedules
+- [News Media](docs/news-media.md): news article content and media
+- [Standings](docs/standings.md): VCT standings
+- [Testing](docs/testing.md): test layout and commands
 
 ## Quick Start
 
@@ -81,12 +56,10 @@ uv run fastapi dev
 ### Testing
 
 ```bash
-# Run tests
-uv run pytest
-
-# Run with coverage
-uv run pytest --cov=app
+uv run pytest -m "not live_golden and not live_health"
 ```
+
+Live checks against vlr.gg and more commands are in [docs/testing.md](docs/testing.md).
 
 ## Configuration
 
@@ -118,36 +91,15 @@ docker run -p 8000:8000 vlrgg-scraper
 
 ### Production
 
-Install and start the systemd user service:
-
 ```bash
+# First install: sync dependencies, install and start the systemd user service
 ./scripts/install-systemd-user.sh
-```
 
-The service runs Gunicorn with the supported `uvicorn_worker.UvicornWorker`
-adapter on `gunicorn.sock`. It uses one web worker because each web process
-also starts arq when caching is enabled. Gunicorn replaces a worker that stops
-heartbeating for 60 seconds; this is not a maximum duration for an async request.
-Graceful shutdown has a 60-second Gunicorn deadline inside systemd's 90-second
-stop deadline. The app still loads configuration from `.env`.
-
-The installer syncs locked production dependencies (`--no-dev`), installs and
-reloads the unit, enables it for the user's systemd session, and restarts it.
-Startup directly uses `.venv/bin/gunicorn`, without dependency synchronization.
-After pushing a new revision, deploy it with:
-
-```bash
+# Later deploys: pull, reinstall the unit, and restart
 ./scripts/deploy.sh
 ```
 
-Deployment also reinstalls the unit so server-command changes take effect.
-The Unix socket retains its previous `0666` access mode for Nginx compatibility;
-restrict access using the containing directory's permissions/ACLs. Proxy-header
-trust is unchanged. Verify Nginx can connect on the deployment host before
-changing socket permissions or trusting forwarded headers from all peers.
-Worker sizing and independent supervision of arq remain separate operational
-decisions. The embedded arq supervisor reconnects after Redis restarts without
-recycling the web worker.
+See [Architecture: Deployment](docs/architecture.md#deployment) for how the service runs.
 
 ## Contributing
 

@@ -14,7 +14,7 @@ The VLR.gg scraper is built as a FastAPI application that provides a REST API fo
 - **OpenAPI Generation**: Automatic API documentation via Swagger/ReDoc
 
 ### Service Layer (`app/services/`)
-- **Scraping Logic**: HTTP requests to vlr.gg using httpx
+- **Scraping Logic**: HTTP requests to vlr.gg using httpx2
 - **HTML Parsing**: BeautifulSoup for extracting data from HTML
 - **Business Logic**: Data transformation and processing
 
@@ -31,7 +31,7 @@ The VLR.gg scraper is built as a FastAPI application that provides a REST API fo
 ### Core (`app/core/`)
 - **Configuration**: Environment-based settings management
 - **Connections**: Database and external service connections
-- **Utilities**: Helper functions for common operations
+- **Observability** (`observability.py`): Logging setup and Sentry init, sampling, and event filtering
 
 ### Cron (`app/cron/`)
 - **Background Jobs**: Periodic data updates using arq
@@ -66,7 +66,7 @@ Dynamic model creation and configuration.
 ## Technology Stack
 
 - **Framework**: FastAPI (ASGI)
-- **HTTP Client**: httpx (async HTTP)
+- **HTTP Client**: httpx2 (async HTTP; Pydantic's maintained fork of httpx)
 - **HTML Parser**: BeautifulSoup with lxml
 - **Cache**: Redis
 - **Job Queue**: arq (Redis-based)
@@ -81,7 +81,7 @@ Dynamic model creation and configuration.
 - **Async Operations**: Non-blocking I/O for concurrent requests
 - **Caching**: Redis reduces load on vlr.gg and improves response times
 - **Background Updates**: Cron jobs prevent cache stampedes
-- **Connection Pooling**: httpx client reuse for efficient HTTP requests
+- **Connection Pooling**: httpx2 client reuse for efficient HTTP requests
 
 ## Scalability
 
@@ -106,15 +106,35 @@ Dynamic model creation and configuration.
 
 ## Deployment
 
-- **Containerization**: Docker for consistent environments
-- **Orchestration**: Kubernetes for production scaling
-- **CI/CD**: GitHub Actions for automated testing and deployment
-- **Environment Config**: 12-factor app principles
+Production runs as a systemd user service (`deploy/systemd/vlrgg-scraper.service`),
+installed by `scripts/install-systemd-user.sh` and updated by `scripts/deploy.sh`. A
+`Dockerfile` is also available.
+
+- The service runs Gunicorn with the `uvicorn_worker.UvicornWorker` adapter on
+  `gunicorn.sock`. It uses one web worker because each web process also starts arq
+  when caching is enabled.
+- Gunicorn replaces a worker that stops heartbeating for 60 seconds; this is not a
+  maximum duration for an async request. Graceful shutdown has a 60-second Gunicorn
+  deadline inside systemd's 90-second stop deadline.
+- The app loads configuration from `.env`. The installer syncs locked production
+  dependencies (`--no-dev`), installs and reloads the unit, enables it, and restarts
+  it. Startup uses `.venv/bin/gunicorn` directly, without syncing dependencies.
+  Deploys reinstall the unit so server-command changes take effect.
+- The Unix socket keeps its `0666` mode for Nginx; restrict access with the
+  containing directory's permissions or ACLs. Other files are created owner-only
+  (`UMask=0077`). Proxy-header trust is unchanged, so verify Nginx can connect before
+  changing socket permissions or trusting forwarded headers from all peers.
+- The embedded arq supervisor reconnects after Redis restarts without recycling the
+  web worker. Worker sizing and supervising arq separately remain open decisions.
+- GitHub Actions runs the offline tests (`ci.yml`), scheduled live parser checks
+  (`parser-health.yml`), and builds the Docker image to
+  `ghcr.io/akhilnarang/vlrgg-scraper` (`build-docker-image.yml`). The systemd deploy
+  is run by hand.
 
 ## Development Workflow
 
 1. **Local Development**: `uv run fastapi dev` with auto-reload
-2. **Testing**: `uv run pytest` with coverage
+2. **Testing**: see [testing.md](testing.md)
 3. **Linting**: `uv run ruff check` and `uv run ty check`
 4. **Documentation**: Auto-generated OpenAPI docs
-5. **Deployment**: Docker build and push to registry
+5. **Deployment**: `scripts/deploy.sh`, or the Docker image (see [Deployment](#deployment))

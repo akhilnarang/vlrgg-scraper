@@ -24,8 +24,8 @@ def _live_detail(status: str, series: tuple[int, int]):
 
     return MatchWithDetails(
         teams=[
-            TeamWithImage(id="1", name="Alpha", score=series[0], img="https://cdn.vlr.gg/a.png"),
-            TeamWithImage(id="2", name="Beta", score=series[1], img="https://cdn.vlr.gg/b.png"),
+            TeamWithImage(id="1", name="Alpha", tag="ALP", score=series[0], img="https://cdn.vlr.gg/a.png"),
+            TeamWithImage(id="2", name="Beta", tag="BET", score=series[1], img="https://cdn.vlr.gg/b.png"),
         ],
         bans=[],
         event=Event(id="99", img="https://cdn.vlr.gg/e.png", series="Series", stage="Stage", status=status),
@@ -119,7 +119,7 @@ async def test_fcm_cron_sends_valid_matches_and_reports_failures():
 
 @pytest.mark.asyncio
 async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_path):
-    import httpx
+    import httpx2
     from firebase_admin import messaging
 
     from app.core import connections
@@ -151,8 +151,8 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         "123": [
             _live_detail("upcoming", (1, 0)),
             ScrapingError(upstream_status=502),
-            httpx.ConnectError("All connection attempts failed"),
-            httpx.ConnectTimeout("timed out"),
+            httpx2.ConnectError("All connection attempts failed"),
+            httpx2.ConnectTimeout("timed out"),
         ],
         "456": [ScrapingError(upstream_status=404)],
     }
@@ -184,7 +184,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
                 blocked_during_channel_create.append(False)
             except sqlite3.OperationalError:
                 blocked_during_channel_create.append(True)
-            return httpx.Response(201, headers={"apns-channel-id": "channel-123"})
+            return httpx2.Response(201, headers={"apns-channel-id": "channel-123"})
         if "/3/device/" in request.url.path:
             match_id = json.loads(request.content)["aps"]["attributes"]["match_id"]
             async with sessions() as session:
@@ -196,7 +196,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
                 )
             # Recorded, not asserted here: the cron logs and skips exceptions raised during a send.
             started_before_send.append(started is not None)
-        return httpx.Response(200)
+        return httpx2.Response(200)
 
     credentials = apns_service.APNsCredentials(
         environment="sandbox",
@@ -205,7 +205,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         bundle_id="com.example.app",
         private_key_path=str(tmp_path / "unused.p8"),
     )
-    apns = apns_service.APNsClient(credentials, transport=httpx.MockTransport(handler))
+    apns = apns_service.APNsClient(credentials, transport=httpx2.MockTransport(handler))
     monkeypatch.setattr(apns, "_jwt", lambda: "provider-token")
     monkeypatch.setattr(connections, "subscription_sessions", sessions)
     monkeypatch.setattr(connections, "apns_client", apns)
@@ -266,7 +266,10 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             if request.url.path.endswith("/broadcasts/apps/com.example.app")
         ]
         assert [aps["event"] for aps in end_payloads] == ["end"]
-        assert [team["score"] for team in end_payloads[0]["content-state"]["teams"]] == [1, 0]
+        # The final state is rebuilt from the stored one, so the tags clients show must survive it.
+        end_teams = end_payloads[0]["content-state"]["teams"]
+        assert [(team["tag"], team["score"]) for team in end_teams] == [("ALP", 1), ("BET", 0)]
+        assert [team["tag"] for team in json.loads(fcm_calls[1][0].data["state"])["teams"]] == ["ALP", "BET"]
         assert any(request.method == "DELETE" for request in requests)
         assert len(fcm_calls) == 2
         assert json.loads(fcm_calls[1][0].data["state"])["terminal"] is True
@@ -284,7 +287,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         app.include_router(router, prefix="/api/v1/live-updates")
         app.dependency_overrides[deps.get_redis_client] = lambda: redis
         monkeypatch.setattr(deps.settings, "API_KEYS", {"test": "secret"})
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as api:
+        async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app), base_url="http://test") as api:
             response = await api.post("/api/v1/live-updates/test-match", headers={"Authorization": "Bearer secret"})
             duplicate = await api.post("/api/v1/live-updates/test-match", headers={"Authorization": "Bearer secret"})
         assert response.status_code == 204
@@ -294,7 +297,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         for _ in range(6):
             await live_push.live_push_cron({"redis": redis})
         assert constants.TEST_TICK_KEY not in ticks
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as api:
+        async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app), base_url="http://test") as api:
             restarted = await api.post("/api/v1/live-updates/test-match", headers={"Authorization": "Bearer secret"})
         assert restarted.status_code == 204
         async with sessions() as session:
@@ -316,7 +319,10 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         ]
         assert test_events == ["end", "update", "update", "update", "update", "end"]
         assert f"'live-match-{constants.TEST_MATCH_ID}' in topics" in fcm_calls[-1][0].condition
-        assert json.loads(fcm_calls[-1][0].data["state"])["terminal"] is True
+        last_fcm_state = json.loads(fcm_calls[-1][0].data["state"])
+        assert last_fcm_state["terminal"] is True
+        assert last_fcm_state["total_maps"] == 3
+        assert last_fcm_state["current_map"]["number"] == 1
         assert match_by_id_mock.await_count == 5  # synthetic observations never hit VLR
     finally:
         await apns.aclose()

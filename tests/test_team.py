@@ -36,7 +36,7 @@ async def test_team_response_includes_identity_socials_history_and_cache(http_ge
         patch("app.services.team.cache.get", side_effect=cache_get),
         patch("app.services.team.cache.set", side_effect=cache_set),
         patch(
-            "httpx.AsyncClient.get",
+            "httpx2.AsyncClient.get",
             side_effect=http_get(_team_pages(), fallback=(FIXTURE_DIR / "team_624_completed_empty.html").read_bytes()),
         ) as get,
     ):
@@ -52,6 +52,10 @@ async def test_team_response_includes_identity_socials_history_and_cache(http_ge
     assert len({match.id for match in result.completed}) == 100
     assert result.completed[0].roster_core
     assert result.completed[0].opponent_roster_core
+    assert result.tag == "PRX"
+    assert (result.completed[0].opponent, result.completed[0].opponent_tag) == ("EDward Gaming", "EDG")
+    assert all(match.opponent_tag for match in result.completed)
+    assert [(match.opponent, match.opponent_tag) for match in result.upcoming] == [("TBD", None)]
     assert cached_result == result
     get.assert_not_called()
 
@@ -62,7 +66,7 @@ async def test_team_response_does_not_cache_partial_match_history(http_get):
     with (
         patch("app.services.team.cache.get", new=AsyncMock(return_value=None)),
         patch("app.services.team.cache.set", new=AsyncMock()) as cache_set,
-        patch("httpx.AsyncClient.get", side_effect=http_get(_team_pages(), failures=failures)),
+        patch("httpx2.AsyncClient.get", side_effect=http_get(_team_pages(), failures=failures)),
         pytest.raises(ScrapingError),
     ):
         await team.get_team_data(TEAM_ID, completed_pages=2)

@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from typing import Literal
 
-import httpx
+import httpx2
 import jwt
 from pydantic import BaseModel
 
@@ -65,7 +65,7 @@ class APNsClient:
         :return: None.
         """
         self.credentials = credentials
-        self.client = httpx.AsyncClient(http2=True, transport=transport, timeout=10)
+        self.client = httpx2.AsyncClient(http2=True, transport=transport, timeout=10)
         self.token: str | None = None
         self.token_time = 0.0
 
@@ -120,7 +120,7 @@ class APNsClient:
         return {"authorization": f"bearer {self._jwt()}", **values}
 
     @staticmethod
-    def _check(response: httpx.Response, expected: tuple[int, ...]) -> None:
+    def _check(response: httpx2.Response, expected: tuple[int, ...]) -> None:
         """Reject unexpected APNs HTTP responses.
 
         :param response: HTTP response from APNs.

@@ -15,10 +15,10 @@ FIXTURE_DIR = Path(__file__).parent / "fixtures"
 async def test_match_details_follow_the_public_response_contract(http_response):
     response = http_response("https://www.vlr.gg/12345", (FIXTURE_DIR / "match_12345.html").read_bytes())
 
-    with patch("httpx.AsyncClient.get", return_value=response):
+    with patch("httpx2.AsyncClient.get", return_value=response):
         result = await matches.match_by_id("12345", AsyncMock())
 
-    assert [(team.name, team.score) for team in result.teams] == [("Team A", 2), ("Team B", 1)]
+    assert [(team.name, team.score, team.tag) for team in result.teams] == [("Team A", 2, "A"), ("Team B", 1, "B")]
     assert result.event.id == "2283"
     assert result.event.series == "Event Series"
     assert result.map_count == 1
@@ -54,7 +54,7 @@ def test_display_strings_follow_accept_language(http_response):
 
     response = http_response("https://www.vlr.gg/12345", (FIXTURE_DIR / "match_12345.html").read_bytes())
     with (
-        patch("httpx.AsyncClient.get", return_value=response),
+        patch("httpx2.AsyncClient.get", return_value=response),
         patch("app.services.matches.get_team_data", AsyncMock(return_value=[])),
     ):
         client = TestClient(app)
@@ -76,6 +76,24 @@ def test_display_strings_follow_accept_language(http_response):
     assert unknown.headers["vary"] == "Accept-Encoding, Accept-Language"  # GZip's Vary must survive
 
 
+def test_unreachable_vlr_returns_503(monkeypatch):
+    """A DNS failure or blocked IP is an upstream outage, so clients must see 503, not an unhandled 500."""
+    import httpx2
+    from fastapi.testclient import TestClient
+
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "API_KEYS", {"test": "test-key"})
+    from app.main import app
+
+    with patch(
+        "httpx2.AsyncClient.get", AsyncMock(side_effect=httpx2.ConnectError("[Errno -2] Name or service not known"))
+    ):
+        response = TestClient(app).get("/api/v1/matches/12345", headers={"Authorization": "Bearer test-key"})
+
+    assert (response.status_code, response.json()) == (503, {"detail": "VLR.gg is unreachable"})
+
+
 @pytest.mark.asyncio
 async def test_match_list_keeps_each_upcoming_date_group(monkeypatch, http_response):
     responses = {
@@ -88,7 +106,7 @@ async def test_match_list_keeps_each_upcoming_date_group(monkeypatch, http_respo
     }
     monkeypatch.setattr(matches.settings, "ENABLE_ID_MAP_DB", False)
 
-    with patch("httpx.AsyncClient.get", side_effect=lambda url, *_args, **_kwargs: responses[url]):
+    with patch("httpx2.AsyncClient.get", side_effect=lambda url, *_args, **_kwargs: responses[url]):
         result = await matches.match_list(AsyncMock())
 
     names = {match.id: (match.team1.name, match.team2.name) for match in result}
@@ -105,7 +123,7 @@ async def test_completed_matches_clamp_pages_and_keep_results_in_order(monkeypat
         matches.completed_matches_url(2): (FIXTURE_DIR / "matches_results_page2.html").read_bytes(),
     }
 
-    with patch("httpx.AsyncClient.get", side_effect=http_get(pages)) as get:
+    with patch("httpx2.AsyncClient.get", side_effect=http_get(pages)) as get:
         result = await matches.get_completed_matches(AsyncMock(), pages=9999)
 
     assert len(result) == 100
@@ -121,7 +139,7 @@ async def test_completed_matches_do_not_return_partial_results(monkeypatch, http
     pages = {constants.PAST_MATCHES_URL: (FIXTURE_DIR / "matches_results_page1.html").read_bytes()}
     failures = {matches.completed_matches_url(2): 502}
 
-    with patch("httpx.AsyncClient.get", side_effect=http_get(pages, failures=failures)), pytest.raises(ScrapingError):
+    with patch("httpx2.AsyncClient.get", side_effect=http_get(pages, failures=failures)), pytest.raises(ScrapingError):
         await matches.get_completed_matches(AsyncMock(), pages=2)
 
 
@@ -175,6 +193,57 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             "players": ["3"],
             "events": ["4"],
         }
+
+        # Instant Live Activity start for an in-progress match
+        mock_apns = AsyncMock()
+        mock_apns.create_channel.return_value = "channel-live-123"
+        monkeypatch.setattr(connections, "apns_client", mock_apns)
+
+        from app.schemas.matches import Event, MatchData, MatchVideos, MatchWithDetails, TeamWithImage
+
+        live_detail = MatchWithDetails(
+            teams=[
+                TeamWithImage(id="1", name="Alpha", tag="ALP", score=1, img="https://cdn.vlr.gg/a.png"),
+                TeamWithImage(id="2", name="Beta", tag="BET", score=0, img="https://cdn.vlr.gg/b.png"),
+            ],
+            bans=[],
+            event=Event(id="99", img="https://cdn.vlr.gg/e.png", series="Series", stage="Stage", status="live"),
+            videos=MatchVideos(streams=[], vods=[]),
+            map_count=1,
+            total_maps=3,
+            data=[MatchData(map="Ascent", teams=[], members=[], rounds=[])],
+            previous_encounters=[],
+        )
+        completed_detail = live_detail.model_copy(
+            update={"event": live_detail.event.model_copy(update={"status": "completed"})}
+        )
+
+        with patch("app.services.matches.match_by_id", AsyncMock(return_value=live_detail)):
+            start_response = client.post(f"{base}/matches/123/live-activity", headers=headers)
+            assert start_response.status_code == 204
+            assert start_response.headers["Cache-Control"] == "no-store"
+            mock_apns.create_channel.assert_awaited_once()
+            mock_apns.send_start.assert_awaited_once()
+            token_arg, channel_arg, state_arg = mock_apns.send_start.call_args[0]
+            assert (token_arg, channel_arg) == ("aabb", "channel-live-123")
+            assert (state_arg.total_maps, state_arg.current_map.number) == (3, 1)
+
+            # Re-triggering reuses the existing broadcast channel without recreating it
+            retrigger = client.post(f"{base}/matches/123/live-activity", headers=headers)
+            assert retrigger.status_code == 204
+            assert mock_apns.create_channel.await_count == 1
+            assert mock_apns.send_start.await_count == 2
+
+        with patch("app.services.matches.match_by_id", AsyncMock(return_value=completed_detail)):
+            assert client.post(f"{base}/matches/456/live-activity", headers=headers).status_code == 400
+
+        unknown = "/api/v1/live-updates/clients/99999999-9999-4999-8999-999999999999"
+        assert client.post(f"{unknown}/matches/123/live-activity", headers=headers).status_code == 404
+
+        android_client = "/api/v1/live-updates/clients/22222222-2222-4222-8222-222222222222"
+        client.put(f"{android_client}/token", headers=headers, json={"token": "tok:123", "platform": "android"})
+        assert client.post(f"{android_client}/matches/123/live-activity", headers=headers).status_code == 400
+
         assert client.delete(f"{base}/token", headers=headers).status_code == 204
     finally:
         asyncio.run(engine.dispose())

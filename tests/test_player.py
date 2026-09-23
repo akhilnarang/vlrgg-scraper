@@ -37,7 +37,7 @@ async def test_player_response_includes_identity_stats_history_and_cache(http_ge
         patch("app.services.player.cache.get", side_effect=cache_get),
         patch("app.services.player.cache.set", side_effect=cache_set),
         patch(
-            "httpx.AsyncClient.get",
+            "httpx2.AsyncClient.get",
             side_effect=http_get(_player_pages(), fallback=(FIXTURE_DIR / "player_matches_45_empty.html").read_bytes()),
         ) as get,
     ):

@@ -3,12 +3,10 @@ import http
 
 import dateutil.parser
 from bs4 import BeautifulSoup, Tag
-from app.exceptions import ScrapingError
 
-from app import schemas, utils, cache
-import app.constants as constants
+from app import cache, constants, schemas, utils
 from app.core.connections import get_http_client
-
+from app.exceptions import ScrapingError
 
 # VLR returns 50 completed match cards per page. When fetching "all" pages we request
 # them in batches of this size and stop as soon as a page yields no cards.
@@ -266,6 +264,8 @@ def parse_match(match_data: Tag) -> dict:
         response["roster_core"] = utils.clean_string(core.get_text())
     if len(teams) > 1 and (opp_core := teams[1].find("div", class_="m-item-team-core")):
         response["opponent_roster_core"] = utils.clean_string(opp_core.get_text())
+    if len(teams) > 1 and (opp_tag := teams[1].find("span", class_="m-item-team-tag")):
+        response["opponent_tag"] = utils.clean_string(opp_tag.get_text()) or None
 
     response["date"] = utils.fix_datetime_tz(
         dateutil.parser.parse(match_data.find("div", class_="m-item-date").get_text(), ignoretz=True)

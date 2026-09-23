@@ -1,10 +1,6 @@
-import re
 from datetime import datetime
 from urllib.parse import urljoin, urlparse, urlsplit
 from zoneinfo import ZoneInfo
-
-from fastapi import HTTPException
-from sentry_sdk.types import Event, Hint
 
 from app import constants
 from app.constants import PREFIX
@@ -156,39 +152,6 @@ def expand_url(url: str | list[str] | None) -> str | None:
         return f"{PREFIX}{url}"
     else:
         return f"https://{url}"
-
-
-def before_send(event: Event, hint: Hint) -> Event | None:
-    """
-    Filter and enrich Sentry events.
-    - Drop client errors (4xx) — not actionable
-    - Keep server errors (5xx) — ScrapingError, InternalServerError, etc.
-    - Enrich ScrapingError with upstream URL/status context
-    """
-    if "exc_info" in hint:
-        exc_value = hint["exc_info"][1]
-        if isinstance(exc_value, HTTPException) and exc_value.status_code < 500:
-            return None
-
-        # Enrich ScrapingError with scraping context for Sentry dashboard
-        from app.exceptions import ScrapingError
-
-        if isinstance(exc_value, ScrapingError):
-            event.setdefault("contexts", {})["scraping"] = {
-                "url": exc_value.url,
-                "upstream_status": exc_value.upstream_status,
-            }
-            # Fingerprint by URL pattern — normalize IDs to {id} to avoid cardinality explosion
-            url_pattern = exc_value.url.split("?")[0] if exc_value.url else "unknown"
-            # Replace numeric path segments: /event/2760/foo → /event/{id}/foo
-            url_pattern = re.sub(r"/\d+", "/{id}", url_pattern)
-            event["fingerprint"] = [
-                "scraping-error",
-                str(exc_value.upstream_status or "unknown"),
-                url_pattern,
-            ]
-
-    return event
 
 
 def simplify_name(name: str) -> str:

@@ -9,15 +9,16 @@ from zoneinfo import ZoneInfo
 
 import dateutil.parser
 from bs4 import BeautifulSoup, Tag
-from app.exceptions import ScrapingError, BadRequestError
 from pydantic import HttpUrl
 from redis.asyncio import Redis
 
-from app import schemas, cache
-import app.constants as constants
+from app import cache, constants, schemas
 from app.core.config import settings
 from app.core.connections import get_http_client
+from app.exceptions import BadRequestError, ScrapingError
 from app.utils import clean_number_string, clean_string, get_class, get_href, get_image_url, simplify_name
+
+logger = logging.getLogger(__name__)
 
 
 # VLR serves a fixed number of event cards per page. When fetching "all" pages we request
@@ -185,7 +186,7 @@ async def parse_event(event: Tag, client: Redis) -> schemas.Event:
     try:
         status = constants.EventStatus(raw_status)
     except ValueError:
-        logging.warning(
+        logger.warning(
             "Unknown VLR event status %r for event_id=%s; falling back to UNKNOWN", raw_status, event_id
         )
         status = constants.EventStatus.UNKNOWN
@@ -549,7 +550,7 @@ def parse_event_standings(data: Tag | None) -> list[dict[str, str | int]]:
         # separator changes rather than taking down the whole event endpoint.
         numbers = re.findall(r"\d+", value)
         if len(numbers) < 2:
-            logging.warning("Could not parse VLR standings record %r; using 0-0", value)
+            logger.warning("Could not parse VLR standings record %r; using 0-0", value)
             return 0, 0
         return int(numbers[0]), int(numbers[1])
 
@@ -581,7 +582,7 @@ def parse_event_standings(data: Tag | None) -> list[dict[str, str | int]]:
             round_difference = clean_number_string(stats[4].get_text())
             round_delta = clean_number_string(stats[5].get_text())
         else:
-            logging.warning("Unexpected VLR standings row with %d stat columns; skipping", len(stats))
+            logger.warning("Unexpected VLR standings row with %d stat columns; skipping", len(stats))
             return None
 
         standing: dict[str, str | int] = {

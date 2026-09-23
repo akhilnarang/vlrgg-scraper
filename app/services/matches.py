@@ -8,13 +8,12 @@ from itertools import chain
 import dateutil.parser
 from bs4 import BeautifulSoup, Tag
 from bs4.element import ResultSet
-from app.exceptions import ScrapingError
 from redis.asyncio import Redis
 
-from app import schemas, cache
-import app.constants as constants
+from app import cache, constants, schemas
 from app.core.config import settings
 from app.core.connections import get_http_client
+from app.exceptions import ScrapingError
 from app.utils import (
     clean_number_string,
     clean_string,
@@ -55,6 +54,10 @@ async def match_by_id(id: str, redis_client: Redis | None) -> schemas.MatchWithD
     map_ret = get_map_data(soup.find_all("div", class_="vm-stats"))
     h2h_matches = get_previous_encounters_data(soup.find("div", class_="wf-card match-h2h"))
     teams = await get_team_data(soup.find_all("div", class_="match-header-vs"), client=redis_client)
+    # Only a played map's round timeline shows the tags, in header order.
+    if rounds := soup.find("div", class_="vlr-rounds"):
+        for team, tag in zip(teams, rounds.find_all("div", class_="team")):
+            team["tag"] = clean_string(tag.get_text()) or None
     return schemas.MatchWithDetails(
         teams=teams,
         bans=bans,
@@ -63,6 +66,7 @@ async def match_by_id(id: str, redis_client: Redis | None) -> schemas.MatchWithD
         videos=video_data,
         data=map_ret[0],
         map_count=map_ret[1],
+        total_maps=get_total_maps(soup),
         previous_encounters=h2h_matches,
     )
 
@@ -798,3 +802,17 @@ def parse_score(data: Tag) -> int | None:
     if (score := data.get_text().strip()).isdigit():
         return int(score)
     return None
+
+
+def get_total_maps(soup: BeautifulSoup) -> int:
+    """Determine the maximum number of maps in the series (e.g. 1, 3, or 5).
+
+    :param soup: Match page BeautifulSoup.
+    :return: Total maps scheduled for the match.
+    """
+    for note in soup.find_all("div", class_="match-header-vs-note"):
+        if match := re.search(r"bo(\d+)", note.get_text(), re.IGNORECASE):
+            return int(match.group(1))
+    nav = soup.find_all(class_="vm-stats-gamesnav-item")
+    total = sum(1 for item in nav if item.get("data-game-id") != "all")
+    return total or 1

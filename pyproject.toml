@@ -8,7 +8,7 @@ authors = [
 ]
 dependencies = [
     "fastapi[all]>=0.121.0,<0.142",
-    "httpx[http2]",
+    "httpx2[http2]",
     "PyJWT[crypto]",
     "beautifulsoup4",
     "uvicorn[standard]",
@@ -16,7 +16,7 @@ dependencies = [
     "uvicorn-worker",
     "python-dateutil",
     "firebase-admin",
-    "sentry-sdk[arq,fastapi,httpx,starlette]",
+    "sentry-sdk[arq,fastapi,starlette]",
     "lxml",
     "redis[hiredis]",
     "arq",

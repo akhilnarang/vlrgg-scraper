@@ -13,7 +13,7 @@ async def test_standings_follow_the_public_response_contract():
         content=(Path(__file__).parent / "fixtures" / "standings_2021.html").read_bytes(),
     )
 
-    with patch("httpx.AsyncClient.get", return_value=response):
+    with patch("httpx2.AsyncClient.get", return_value=response):
         result = await standings.standings_list(2021)
 
     assert result.year == 2021

@@ -16,6 +16,7 @@ class Team(BaseModel):
 class TeamWithImage(Team):
     img: HttpUrl
     id: str | None = None
+    tag: str | None = None  # short name, e.g. "PRX"; None until a map has been played
 
 
 class Event(BaseModel):
@@ -117,6 +118,7 @@ class MatchWithDetails(BaseModel):
     event: Event
     videos: MatchVideos
     map_count: int
+    total_maps: int = 1
     data: list[MatchData]
     previous_encounters: list[PreviousEncounters]
 
@@ -145,9 +147,10 @@ class Match(BaseModel):
 
 
 class PushTeam(BaseModel):
-    """Team name, image, and series score in a compact push state."""
+    """Team name, tag, image, and series score in a compact push state."""
 
     name: str
+    tag: str | None = None
     img: HttpUrl | None = None
     score: int | None = None
 
@@ -157,6 +160,7 @@ class PushCurrentMap(BaseModel):
 
     name: str
     scores: list[int | None]
+    number: int | None = None
 
 
 class CompactState(BaseModel):
@@ -165,6 +169,7 @@ class CompactState(BaseModel):
     match_id: str
     observed_at: int
     terminal: bool
+    total_maps: int = 1
     teams: list[PushTeam]
     current_map: PushCurrentMap | None = None
 

@@ -45,6 +45,9 @@ PUSH_FETCH_FAILURES_KEY = "vlrgg:push:fetch_failures:{}"
 PUSH_FETCH_FAILURES_TTL = 600  # seconds; failures are consecutive per-minute runs
 
 
+DEAD_TOKEN_REASONS = frozenset({"BadDeviceToken", "Unregistered", "ExpiredToken"})
+
+
 class MatchStatus(StrEnum):
     COMPLETED = "completed"
     ONGOING = "ongoing"

@@ -99,6 +99,15 @@ Authorization: Bearer <api-key>
 {"teams":["1"],"matches":["123"],"players":[],"events":["99"]}
 ```
 
+To immediately start a Live Activity for an in-progress match without waiting for the next cron run:
+
+```http
+POST /api/v1/live-updates/clients/{client_id}/matches/{match_id}/live-activity
+Authorization: Bearer <api-key>
+```
+
+Returns `204 No Content` on success, `404` if the client has no registered iOS token, and `400` if the match is not live.
+
 Invalid tokens (including a non-hex iOS token) or favorite IDs return `422 Unprocessable Entity`.
 
 The one-minute job checks matches whose listing status is `live`. Android live scores
@@ -133,6 +142,7 @@ All endpoints return standard HTTP status codes:
 - `404`: Not Found
 - `422`: Validation Error (Pydantic validation errors)
 - `500`: Internal Server Error
+- `503`: VLR.gg can't be reached (DNS failure, refused connection, timeout)
 
 Error response format:
 ```json

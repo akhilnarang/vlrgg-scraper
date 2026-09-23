@@ -18,6 +18,7 @@ class MatchBase(BaseModel):
     event: str
     stage: str
     opponent: str
+    opponent_tag: str | None = None
     date: datetime
     roster_core: str | None = None
     opponent_roster_core: str | None = None

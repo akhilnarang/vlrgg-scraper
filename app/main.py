@@ -1,80 +1,36 @@
 import logging
-import os
 import socket
-import subprocess
 from collections.abc import AsyncIterator, Callable
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 
-import httpx
+import httpx2
 import redis.asyncio as redis
 import sentry_sdk
 from arq.connections import RedisSettings
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.gzip import GZipMiddleware
-from rich.logging import RichHandler
-from sentry_sdk.integrations.arq import ArqIntegration
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.httpx import HttpxIntegration
-from sentry_sdk.integrations.starlette import StarletteIntegration
 
-from app import constants, i18n
+from app import constants, exceptions, i18n
 from app.api import deps
 from app.api.v1.api import router
 from app.api.v1.endpoints.internal import router as internal_router
 from app.core import connections
 from app.core.config import settings
 from app.core.live_push import start_live_push, stop_live_push
+from app.core.observability import configure_logging, init_sentry
 from app.cron import arq_worker
-from app.utils import before_send
 from app.web.media import router as media_router
 
 logger = logging.getLogger(__name__)
 
-# Git SHA for Sentry release tracking
-_RELEASE = os.environ.get("GIT_SHA")
-if not _RELEASE:
-    with suppress(OSError, subprocess.CalledProcessError):
-        _RELEASE = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL).strip()
-
-logging.basicConfig(
-    format="[%(levelname)s] (%(asctime)s) %(module)s:%(pathname)s:%(funcName)s:%(lineno)s:: %(message)s",
-    level=logging.INFO,
-    datefmt="%d-%m-%y %H:%M:%S",
-    handlers=[RichHandler(rich_tracebacks=True)],
-)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-
-
-def _traces_sampler(sampling_context: dict) -> float:
-    """100% sampling for cron jobs, 8% for API requests. Respects parent sampling decisions."""
-    if (parent := sampling_context.get("parent_sampled")) is not None:
-        return 1.0 if parent else 0.0
-    if sampling_context.get("transaction_context", {}).get("op") == "queue.task.arq":
-        return 1.0
-    return 0.08
-
-
-# Initialize Sentry SDK if a DSN is defined in our environment
-if settings.SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
-        release=_RELEASE,
-        integrations=[
-            StarletteIntegration(),
-            FastApiIntegration(),
-            HttpxIntegration(),
-            ArqIntegration(),
-        ],
-        traces_sampler=_traces_sampler,
-        before_send=before_send,
-    )
+configure_logging()
+init_sentry()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator:
     logger.info("Creating shared HTTP client")
-    connections.http_client = httpx.AsyncClient(
+    connections.http_client = httpx2.AsyncClient(
         timeout=constants.REQUEST_TIMEOUT, headers={"User-Agent": constants.USER_AGENT}
     )
     try:
@@ -118,6 +74,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.add_middleware(GZipMiddleware, minimum_size=500)  # type: ignore[arg-type]
+exceptions.register_exception_handlers(app)
 
 _HOSTNAME = socket.gethostname()
 

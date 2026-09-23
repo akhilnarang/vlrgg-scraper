@@ -1639,10 +1639,13 @@ teams:
   img: https://owcdn.net/img/6610f026c1a9e.png
   name: NRG
   score: 3
+  tag: NRG
 - id: '2593'
   img: https://owcdn.net/img/62a40cc2b5e29.png
   name: FNATIC
   score: 2
+  tag: FNC
+total_maps: 5
 veto:
 - action: ban
   action_label: Ban
