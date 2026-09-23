@@ -1,8 +1,9 @@
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
-from fastapi import Depends, Response
+from fastapi import Depends, Path, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from redis.asyncio import Redis
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -78,6 +79,11 @@ def get_subscription_store(
     :return: Subscription store.
     """
     return SubscriptionStore(session)
+
+
+MatchId = Annotated[str, Path(pattern=r"^\d{1,10}$")]
+RedisDep = Annotated[Redis, Depends(get_redis_client)]
+SubscriptionStoreDep = Annotated[SubscriptionStore, Depends(get_subscription_store)]
 
 
 def set_no_store(response: Response) -> None:

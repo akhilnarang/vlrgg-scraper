@@ -193,6 +193,57 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             "players": ["3"],
             "events": ["4"],
         }
+
+        # Instant Live Activity start for an in-progress match
+        mock_apns = AsyncMock()
+        mock_apns.create_channel.return_value = "channel-live-123"
+        monkeypatch.setattr(connections, "apns_client", mock_apns)
+
+        from app.schemas.matches import Event, MatchData, MatchVideos, MatchWithDetails, TeamWithImage
+
+        live_detail = MatchWithDetails(
+            teams=[
+                TeamWithImage(id="1", name="Alpha", tag="ALP", score=1, img="https://cdn.vlr.gg/a.png"),
+                TeamWithImage(id="2", name="Beta", tag="BET", score=0, img="https://cdn.vlr.gg/b.png"),
+            ],
+            bans=[],
+            event=Event(id="99", img="https://cdn.vlr.gg/e.png", series="Series", stage="Stage", status="live"),
+            videos=MatchVideos(streams=[], vods=[]),
+            map_count=1,
+            total_maps=3,
+            data=[MatchData(map="Ascent", teams=[], members=[], rounds=[])],
+            previous_encounters=[],
+        )
+        completed_detail = live_detail.model_copy(
+            update={"event": live_detail.event.model_copy(update={"status": "completed"})}
+        )
+
+        with patch("app.services.matches.match_by_id", AsyncMock(return_value=live_detail)):
+            start_response = client.post(f"{base}/matches/123/live-activity", headers=headers)
+            assert start_response.status_code == 204
+            assert start_response.headers["Cache-Control"] == "no-store"
+            mock_apns.create_channel.assert_awaited_once()
+            mock_apns.send_start.assert_awaited_once()
+            token_arg, channel_arg, state_arg = mock_apns.send_start.call_args[0]
+            assert (token_arg, channel_arg) == ("aabb", "channel-live-123")
+            assert (state_arg.total_maps, state_arg.current_map.number) == (3, 1)
+
+            # Re-triggering reuses the existing broadcast channel without recreating it
+            retrigger = client.post(f"{base}/matches/123/live-activity", headers=headers)
+            assert retrigger.status_code == 204
+            assert mock_apns.create_channel.await_count == 1
+            assert mock_apns.send_start.await_count == 2
+
+        with patch("app.services.matches.match_by_id", AsyncMock(return_value=completed_detail)):
+            assert client.post(f"{base}/matches/456/live-activity", headers=headers).status_code == 400
+
+        unknown = "/api/v1/live-updates/clients/99999999-9999-4999-8999-999999999999"
+        assert client.post(f"{unknown}/matches/123/live-activity", headers=headers).status_code == 404
+
+        android_client = "/api/v1/live-updates/clients/22222222-2222-4222-8222-222222222222"
+        client.put(f"{android_client}/token", headers=headers, json={"token": "tok:123", "platform": "android"})
+        assert client.post(f"{android_client}/matches/123/live-activity", headers=headers).status_code == 400
+
         assert client.delete(f"{base}/token", headers=headers).status_code == 204
     finally:
         asyncio.run(engine.dispose())

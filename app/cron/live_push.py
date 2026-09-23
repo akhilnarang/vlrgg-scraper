@@ -24,7 +24,7 @@ from app.utils import is_live
 logger = logging.getLogger(__name__)
 
 # APNs reasons meaning the device token will never work again.
-_DEAD_TOKEN_REASONS = frozenset({"BadDeviceToken", "Unregistered", "ExpiredToken"})
+_DEAD_TOKEN_REASONS = constants.DEAD_TOKEN_REASONS
 
 
 async def live_push_cron(ctx: dict) -> None:

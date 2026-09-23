@@ -49,6 +49,14 @@ class SubscriptionStore:
         if row is not None:
             await self._session.delete(row)
 
+    async def get_token(self, client_id: str) -> DeviceToken | None:
+        """Read a client's stored device token.
+
+        :param client_id: Client UUID.
+        :return: Device token row, or None.
+        """
+        return await self._session.get(DeviceToken, client_id)
+
     async def clear_token(self, token: str) -> None:
         """Clear a rejected APNs token across clients.
 
