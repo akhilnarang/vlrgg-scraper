@@ -1,10 +1,10 @@
-"""Minimal SQLite store for APNs tokens, favorites, and match channels."""
+"""Minimal SQLite store for push tokens, favorites, and match channels."""
 
 from sqlalchemy import delete, exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import constants
-from app.constants import FavoriteType
+from app.constants import FavoriteType, Platform
 from app.db.models import Client, DeviceToken, Favorite, LiveActivityStart, MatchPushState
 from app.exceptions import NotFoundError
 from app.schemas.matches import Favorites
@@ -22,23 +22,25 @@ class SubscriptionStore:
         """
         self._session = session
 
-    async def register_token(self, client_id: str, token: str) -> None:
-        """Store a client's validated APNs token.
+    async def register_token(self, client_id: str, token: str, platform: Platform = Platform.IOS) -> None:
+        """Store a client's validated push token.
 
         :param client_id: Client UUID.
-        :param token: Validated lowercase APNs token.
+        :param token: Validated APNs (lowercase hex) or FCM token.
+        :param platform: Platform the token belongs to.
         :return: None.
         """
         if await self._session.get(Client, client_id) is None:
             self._session.add(Client(id=client_id))
         row = await self._session.get(DeviceToken, client_id)
         if row is None:
-            self._session.add(DeviceToken(client_id=client_id, token=token))
+            self._session.add(DeviceToken(client_id=client_id, token=token, platform=platform))
         else:
             row.token = token
+            row.platform = platform
 
     async def delete_token(self, client_id: str) -> None:
-        """Delete a client's APNs token if it exists.
+        """Delete a client's push token if it exists.
 
         :param client_id: Client UUID.
         :return: None.
@@ -117,7 +119,7 @@ class SubscriptionStore:
         """Find matching clients that have not received a start attempt.
 
         :param routing: The match routing IDs.
-        :return: Client IDs and APNs tokens awaiting a start.
+        :return: iOS client IDs and APNs tokens awaiting a start.
         """
         started = exists(
             select(LiveActivityStart.id).where(
@@ -130,7 +132,7 @@ class SubscriptionStore:
                 select(Client.id, DeviceToken.token)
                 .join(DeviceToken, DeviceToken.client_id == Client.id)
                 .join(Favorite, Favorite.client_id == Client.id)
-                .where(self._favorite_filter(routing), ~started)
+                .where(DeviceToken.platform == Platform.IOS, self._favorite_filter(routing), ~started)
                 .distinct()
             )
         ).all()

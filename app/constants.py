@@ -68,6 +68,13 @@ class FavoriteType(StrEnum):
     PLAYER = "player"
 
 
+class Platform(StrEnum):
+    """Client platform that owns a push token."""
+
+    IOS = "iOS"
+    ANDROID = "android"
+
+
 FAVORITE_GROUPS = {
     FavoriteType.TEAM: "teams",
     FavoriteType.MATCH: "matches",
