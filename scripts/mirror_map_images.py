@@ -18,6 +18,7 @@ from pathlib import Path
 import httpx2
 
 MAPS_PAGE = "https://playvalorant.com/en-us/maps/"
+DEFAULT_CDN_BASE_URL = "https://files.akhilnarang.dev/cdn/valorant/"
 DIMENSIONS = re.compile(r"-(\d+)x(\d+)\.\w+$")
 
 
@@ -99,6 +100,7 @@ def main() -> None:
     :return: None.
     """
     output = Path(sys.argv[1] if len(sys.argv) > 1 else "map-assets")
+    cdn_base_url = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_CDN_BASE_URL
     output.mkdir(parents=True, exist_ok=True)
     with httpx2.Client(timeout=30, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"}) as client:
         page = client.get(MAPS_PAGE).raise_for_status().text
@@ -114,7 +116,13 @@ def main() -> None:
                 path = output / f"{slug}-{kind}.jpg"
                 path.write_bytes(client.get(url, params={"fm": "jpg", "q": 90}).raise_for_status().content)
                 width, height = dimensions(url)
-                manifest[slug][kind] = {"file": path.name, "source": url, "width": width, "height": height}
+                manifest[slug][kind] = {
+                    "url": f"{cdn_base_url.rstrip('/')}/{path.name}",
+                    "file": path.name,
+                    "width": width,
+                    "height": height,
+                    "upstream_source": url,
+                }
             print(f"{slug}: minimap {manifest[slug]['minimap']['width']}px, banner {banner.rsplit('-', 1)[-1]}")
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"{len(manifest)} maps -> {output}")
