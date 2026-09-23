@@ -1,7 +1,6 @@
 """Minimal client token and favorites endpoints for live updates."""
 
 import json
-import logging
 import time
 from uuid import UUID
 
@@ -10,18 +9,12 @@ from redis.asyncio import Redis
 
 from app import constants
 from app.api import deps
-from app.constants import Platform
-from app.core import connections
 from app.cron import synthetic_match
-from app.exceptions import BadRequestError, ConflictError, NotFoundError, ScrapingError, ServiceUnavailableError
+from app.exceptions import BadRequestError, ConflictError, NotFoundError, ScrapingError
 from app.schemas.matches import CompactState, Favorites, MatchWithDetails, TokenRegistration
-from app.services import matches
-from app.services.apns import APNsError
-from app.services.push import project_state
+from app.services import matches, push
 from app.services.subscription_store import SubscriptionStore
 from app.utils import is_live
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(
     dependencies=[Depends(deps.verify_token), Depends(deps.require_live_push), Depends(deps.set_no_store)]
@@ -69,38 +62,16 @@ async def start_live_activity(
     store: deps.SubscriptionStoreDep,
     redis_client: deps.RedisDep,
 ) -> None:
-    """Instantly trigger an APNs push-to-start for a live match."""
+    """Instantly trigger a live match push (APNs push-to-start for iOS, direct FCM message for Android)."""
     token_row = await store.get_token(str(client_id))
     if token_row is None:
         raise NotFoundError("Client token not registered")
-    if token_row.platform != Platform.IOS:
-        raise BadRequestError("Live activities are only supported on iOS")
 
     state, channel_id = await _resolve_live_state(match_id, store, redis_client)
     if state.terminal:
         raise BadRequestError("Match has already ended")
 
-    apns = connections.apns_client
-    if apns is None:
-        raise ServiceUnavailableError("APNs client is not configured")
-
-    if channel_id is None:
-        try:
-            channel_id = await apns.create_channel()
-        except APNsError as exc:
-            logger.warning("APNs channel creation failed for match %s: %s", match_id, exc.reason)
-            raise ServiceUnavailableError(f"APNs channel creation failed: {exc.reason}") from exc
-        await store.save_match(match_id, channel_id, state.semantic())
-
-    await store.mark_started(str(client_id), match_id)
-
-    try:
-        await apns.send_start(token_row.token, channel_id, state)
-    except APNsError as exc:
-        if exc.reason in constants.DEAD_TOKEN_REASONS:
-            await store.clear_token(token_row.token)
-        logger.warning("APNs start failed for client %s, match %s: %s", client_id, match_id, exc.reason)
-        raise ServiceUnavailableError(f"APNs start failed: {exc.reason}") from exc
+    await push.deliver_instant_start(str(client_id), token_row, match_id, state, channel_id)
 
 
 async def _resolve_live_state(
@@ -120,7 +91,7 @@ async def _resolve_live_state(
     detail = await _fetch_match_detail(match_id, redis_client)
     if not is_live(detail.event.status):
         raise BadRequestError("Match is not live")
-    if (state := project_state(match_id, detail)) is None:
+    if (state := push.project_state(match_id, detail)) is None:
         raise BadRequestError("Match data is incomplete")
     return state, channel_id
 

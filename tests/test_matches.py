@@ -1,6 +1,7 @@
 import asyncio
+import json
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -157,7 +158,8 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
     database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
     asyncio.run(upgrade_to_head(database_url))
     engine = create_engine(database_url)
-    monkeypatch.setattr(connections, "subscription_sessions", async_sessionmaker(engine, expire_on_commit=False))
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(connections, "subscription_sessions", sessions)
     monkeypatch.setattr(deps.settings, "ENABLE_LIVE_PUSH", True)
     monkeypatch.setattr(deps.settings, "API_KEYS", {"test": "secret"})
 
@@ -237,12 +239,96 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
         with patch("app.services.matches.match_by_id", AsyncMock(return_value=completed_detail)):
             assert client.post(f"{base}/matches/456/live-activity", headers=headers).status_code == 400
 
+        # A rejected first start retains its new channel while removing the token despite the HTTP 503.
+        from app.services.apns import APNsError
+        from app.services.subscription_store import SubscriptionStore
+
+        mock_apns.send_start.side_effect = APNsError(410, "Unregistered")
+        with patch("app.services.matches.match_by_id", AsyncMock(return_value=live_detail)):
+            failed_ios = client.post(f"{base}/matches/789/live-activity", headers=headers)
+        assert (failed_ios.status_code, failed_ios.json()) == (503, {"detail": "APNs start failed: Unregistered"})
+        assert client.post(f"{base}/matches/123/live-activity", headers=headers).status_code == 404
+
+        async def saved_channel():
+            async with sessions() as session:
+                return await SubscriptionStore(session).get_match("789")
+
+        assert asyncio.run(saved_channel()).channel_id == "channel-live-123"
+
         unknown = "/api/v1/live-updates/clients/99999999-9999-4999-8999-999999999999"
         assert client.post(f"{unknown}/matches/123/live-activity", headers=headers).status_code == 404
 
+        from datetime import timedelta
+
+        from firebase_admin import messaging
+
+        from app.services.push import Routing
+
         android_client = "/api/v1/live-updates/clients/22222222-2222-4222-8222-222222222222"
-        client.put(f"{android_client}/token", headers=headers, json={"token": "tok:123", "platform": "android"})
-        assert client.post(f"{android_client}/matches/123/live-activity", headers=headers).status_code == 400
+        assert (
+            client.put(
+                f"{android_client}/token", headers=headers, json={"token": "tok:123", "platform": "android"}
+            ).status_code
+            == 204
+        )
+        fcm_app = MagicMock()
+        send_fcm = AsyncMock(return_value=messaging.BatchResponse([messaging.SendResponse({"name": "sent"}, None)]))
+        with (
+            patch("app.services.matches.match_by_id", AsyncMock(return_value=live_detail)),
+            patch("app.core.config.settings.GOOGLE_APPLICATION_CREDENTIALS", ""),
+        ):
+            unavailable = client.post(f"{android_client}/matches/123/live-activity", headers=headers)
+            assert (unavailable.status_code, unavailable.json()) == (503, {"detail": "FCM client is not configured"})
+
+        with (
+            patch("app.services.matches.match_by_id", AsyncMock(return_value=live_detail)),
+            patch("app.core.config.settings.GOOGLE_APPLICATION_CREDENTIALS", "/fake/creds.json"),
+            patch("app.services.fcm.get_app", return_value=fcm_app),
+            patch("firebase_admin.messaging.send_each_async", send_fcm),
+        ):
+            android_resp = client.post(f"{android_client}/matches/123/live-activity", headers=headers)
+            assert android_resp.status_code == 204
+            send_fcm.assert_awaited_once()
+            message = send_fcm.call_args.kwargs["messages"][0]
+            assert send_fcm.call_args.kwargs == {"messages": [message], "dry_run": False, "app": fcm_app}
+            assert message.token == "tok:123"
+            assert message.notification is None and message.condition is None
+            assert message.android.collapse_key == "match-123"
+            assert message.android.priority == "high" and message.android.ttl == timedelta(seconds=120)
+            assert message.data["type"] == "match-live-v1"
+            state_data = json.loads(message.data["state"])
+            assert (state_data["match_id"], state_data["total_maps"], state_data["current_map"]["number"]) == (
+                "123",
+                3,
+                1,
+            )
+            assert [team["score"] for team in state_data["teams"]] == [1, 0]
+
+            # Android delivery must not suppress a later automatic iOS start for this client.
+            assert (
+                client.put(f"{android_client}/favorites", headers=headers, json={"matches": ["123"]}).status_code == 204
+            )
+            assert client.put(f"{android_client}/token", headers=headers, json={"token": "CCDD"}).status_code == 204
+
+            async def pending_ios_starts():
+                async with sessions() as session:
+                    return await SubscriptionStore(session).pending_starts(Routing("123", None, [], []))
+
+            assert asyncio.run(pending_ios_starts()) == [("22222222-2222-4222-8222-222222222222", "ccdd")]
+            assert (
+                client.put(
+                    f"{android_client}/token", headers=headers, json={"token": "tok:123", "platform": "android"}
+                ).status_code
+                == 204
+            )
+
+            # Firebase's unregistered response must remove the token despite the HTTP 503.
+            send_fcm.return_value = messaging.BatchResponse(
+                [messaging.SendResponse(None, messaging.UnregisteredError("registration token expired"))]
+            )
+            failed = client.post(f"{android_client}/matches/123/live-activity", headers=headers)
+            assert (failed.status_code, failed.json()) == (503, {"detail": "FCM start failed"})
+            assert client.post(f"{android_client}/matches/123/live-activity", headers=headers).status_code == 404
 
         assert client.delete(f"{base}/token", headers=headers).status_code == 204
     finally:

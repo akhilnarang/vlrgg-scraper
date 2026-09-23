@@ -4,6 +4,9 @@ import json
 import time
 from typing import NamedTuple
 
+from app.constants import Platform
+from app.db.models import DeviceToken
+from app.exceptions import ServiceUnavailableError
 from app.schemas.matches import CompactState, MatchData, MatchWithDetails, PushCurrentMap, PushTeam
 from app.utils import is_final
 
@@ -15,6 +18,47 @@ class Routing(NamedTuple):
     event_id: str | None
     team_ids: list[str]
     player_ids: list[str]
+
+
+async def deliver_instant_start(
+    client_id: str,
+    token_row: DeviceToken,
+    match_id: str,
+    state: CompactState,
+    channel_id: str | None,
+) -> None:
+    """Deliver an immediate live-match start to one registered device.
+
+    :param client_id: Client UUID.
+    :param token_row: Registered device token and platform.
+    :param match_id: Match identifier.
+    :param state: Current compact match state.
+    :param channel_id: Existing APNs broadcast channel, if any.
+    :return: None.
+    :raises ServiceUnavailableError: If the platform push provider is unavailable or rejects the start.
+    """
+    from app.services import apns, fcm
+
+    if token_row.platform == Platform.ANDROID:
+        await fcm.deliver_start(client_id, token_row.token, state)
+    else:
+        await apns.deliver_start(client_id, token_row.token, match_id, state, channel_id)
+
+
+async def clear_rejected_token(token: str) -> None:
+    """Remove a provider-rejected token in its own transaction.
+
+    :param token: Token rejected by APNs or FCM.
+    :return: None.
+    """
+    from app.core import connections
+    from app.services.subscription_store import SubscriptionStore
+
+    sessions = connections.subscription_sessions
+    if sessions is None:
+        raise ServiceUnavailableError("Live updates are unavailable")
+    async with sessions.begin() as session:
+        await SubscriptionStore(session).clear_token(token)
 
 
 def routing_ids(match_id: str, detail: MatchWithDetails) -> Routing:
