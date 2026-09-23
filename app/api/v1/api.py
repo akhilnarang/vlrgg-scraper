@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints.events import router as events_router
+from app.api.v1.endpoints.live_updates import router as live_updates_router
 from app.api.v1.endpoints.matches import router as matches_router
 from app.api.v1.endpoints.news import router as news_router
 from app.api.v1.endpoints.player import router as player_router
@@ -22,7 +23,9 @@ router.include_router(rankings_router, prefix="/rankings", tags=["Rankings"])
 router.include_router(standings_router, prefix="/standings", tags=["Standings"])
 router.include_router(version_router, prefix="/version", tags=["Version"])
 router.include_router(search_router, prefix="/search", tags=["Search"])
+router.include_router(live_updates_router, prefix="/live-updates", tags=["Live Updates"])
 
 if settings.LLM_API_KEY:
     from app.api.v1.endpoints.ask import router as ask_router
+
     router.include_router(ask_router, prefix="/ask", tags=["Ask"])

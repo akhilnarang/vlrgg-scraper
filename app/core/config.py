@@ -11,9 +11,13 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str
 
+    DATABASE_URL: str = "sqlite+aiosqlite:///db.sqlite3"
+
     ENABLE_CACHE: bool = False
     ENABLE_ID_MAP_DB: bool = False
 
+    ENABLE_LIVE_PUSH: bool = False
+    APNS_CREDENTIALS_FILE: str | None = None
     GOOGLE_APPLICATION_CREDENTIALS: str | None = None
 
     TIMEZONE: str
@@ -30,6 +34,11 @@ class Settings(BaseSettings):
     LLM_RATE_LIMIT_WINDOW: int = 60
 
     model_config = SettingsConfigDict(env_file=".env")
+
+    @property
+    def needs_redis(self) -> bool:
+        """Return whether an enabled feature needs Redis."""
+        return self.ENABLE_CACHE or self.ENABLE_LIVE_PUSH
 
 
 settings = Settings()  # type: ignore

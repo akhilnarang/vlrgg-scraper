@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from pydantic import BaseModel, HttpUrl, computed_field
+from pydantic import BaseModel, Field, HttpUrl, computed_field, field_validator
 
 from app import i18n
-from app.constants import MatchStatus, VetoAction
+from app.constants import MAX_FAVORITES_PER_GROUP, MAX_TOKEN_LENGTH, MatchStatus, VetoAction
 
 
 class Team(BaseModel):
@@ -140,3 +140,73 @@ class Match(BaseModel):
     @property
     def status_label(self) -> str:
         return i18n.label("match_status", self.status)
+
+
+class PushTeam(BaseModel):
+    """Team name, image, and series score in a compact push state."""
+
+    name: str
+    img: HttpUrl | None = None
+    score: int | None = None
+
+
+class PushCurrentMap(BaseModel):
+    """Current map and its team scores."""
+
+    name: str
+    scores: list[int | None]
+
+
+class CompactState(BaseModel):
+    """Compact match state delivered through APNs and FCM."""
+
+    match_id: str
+    observed_at: int
+    terminal: bool
+    teams: list[PushTeam]
+    current_map: PushCurrentMap | None = None
+
+    def semantic(self) -> str:
+        """Serialize state without observation time for change detection.
+
+        :return: Stable JSON representation of the score state.
+        """
+        return self.model_dump_json(exclude={"observed_at"})
+
+
+class TokenRegistration(BaseModel):
+    """Validated APNs push-to-start token registration."""
+
+    token: str = Field(max_length=MAX_TOKEN_LENGTH, pattern=r"^(?:[0-9a-fA-F]{2})+$")
+
+    @field_validator("token")
+    @classmethod
+    def normalize_token(cls, value: str) -> str:
+        """Normalize an APNs token to lowercase hexadecimal.
+
+        :param value: Validated hexadecimal token.
+        :return: Lowercase token.
+        """
+        return value.lower()
+
+
+class Favorites(BaseModel):
+    """Client favorites grouped by entity type."""
+
+    teams: list[str] = Field(default_factory=list, max_length=MAX_FAVORITES_PER_GROUP)
+    matches: list[str] = Field(default_factory=list, max_length=MAX_FAVORITES_PER_GROUP)
+    players: list[str] = Field(default_factory=list, max_length=MAX_FAVORITES_PER_GROUP)
+    events: list[str] = Field(default_factory=list, max_length=MAX_FAVORITES_PER_GROUP)
+
+    @field_validator("teams", "matches", "players", "events")
+    @classmethod
+    def validate_ids(cls, values: list[str]) -> list[str]:
+        """Reject nonnumeric or out-of-range favorite IDs.
+
+        :param values: IDs for a favorite group.
+        :return: Validated IDs.
+        :raises ValueError: If an ID is not a positive ASCII integer.
+        """
+        if any(not value.isascii() or not value.isdigit() or not 1 <= int(value) <= 9_999_999_999 for value in values):
+            raise ValueError("favorite IDs must be positive ASCII digits")
+        return values

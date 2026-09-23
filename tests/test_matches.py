@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -122,3 +123,53 @@ async def test_completed_matches_do_not_return_partial_results(monkeypatch, http
 
     with patch("httpx.AsyncClient.get", side_effect=http_get(pages, failures=failures)), pytest.raises(ScrapingError):
         await matches.get_completed_matches(AsyncMock(), pages=2)
+
+
+def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from app.api import deps
+    from app.api.v1.endpoints.live_updates import router
+    from app.core import connections
+    from app.db.engine import create_engine
+    from app.db.migrations import upgrade_to_head
+
+    database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
+    asyncio.run(upgrade_to_head(database_url))
+    engine = create_engine(database_url)
+    monkeypatch.setattr(connections, "subscription_sessions", async_sessionmaker(engine, expire_on_commit=False))
+    monkeypatch.setattr(deps.settings, "ENABLE_LIVE_PUSH", True)
+    monkeypatch.setattr(deps.settings, "API_KEYS", {"test": "secret"})
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/v1/live-updates")
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer secret"}
+    base = "/api/v1/live-updates/clients/11111111-1111-4111-8111-111111111111"
+
+    try:
+        assert client.get(f"{base}/favorites", headers=headers).status_code == 404
+        token_response = client.put(f"{base}/token", headers=headers, json={"token": "AABB"})
+        assert token_response.status_code == 204
+        assert token_response.headers["Cache-Control"] == "no-store"
+        assert (
+            client.put(
+                f"{base}/favorites",
+                headers=headers,
+                json={"teams": ["1"], "matches": ["2"], "players": ["3"], "events": ["4"]},
+            ).status_code
+            == 204
+        )
+        favorites_response = client.get(f"{base}/favorites", headers=headers)
+        assert favorites_response.headers["Cache-Control"] == "no-store"
+        assert favorites_response.json() == {
+            "teams": ["1"],
+            "matches": ["2"],
+            "players": ["3"],
+            "events": ["4"],
+        }
+        assert client.delete(f"{base}/token", headers=headers).status_code == 204
+    finally:
+        asyncio.run(engine.dispose())

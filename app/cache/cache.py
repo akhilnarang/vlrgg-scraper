@@ -3,8 +3,8 @@ import logging
 import redis.asyncio as redis
 from redis.exceptions import RedisError
 
+from ..core import connections
 from ..core.config import settings
-from ..core.connections import redis_pool
 
 
 def get_client() -> redis.Redis:
@@ -13,7 +13,7 @@ def get_client() -> redis.Redis:
 
     :return: The redis client object
     """
-    return redis.Redis(connection_pool=redis_pool)
+    return redis.Redis(connection_pool=connections.redis_pool)
 
 
 async def get(key: str, client: redis.Redis | None = None) -> bytes | None:

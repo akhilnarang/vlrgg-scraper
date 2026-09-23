@@ -1,11 +1,17 @@
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 import httpx
 from redis.asyncio import ConnectionPool
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+
+from app.services.apns import APNsClient
 
 redis_pool: ConnectionPool | None = None
 http_client: httpx.AsyncClient | None = None
+apns_client: APNsClient | None = None
+database_engine: AsyncEngine | None = None
+subscription_sessions: async_sessionmaker[AsyncSession] | None = None
 
 
 @asynccontextmanager

@@ -1,13 +1,45 @@
 import asyncio
+import json
+import sqlite3
+from contextlib import closing
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from zoneinfo import ZoneInfo
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app import cron
 from app.constants import MatchStatus
+from app.cron import jobs, live_push, worker
+from app.db.models import LiveActivityStart
+from app.exceptions import ScrapingError
+from app.schemas.matches import Favorites
+
+
+def _live_detail(status: str, series: tuple[int, int]):
+    from app.schemas.matches import Event, MatchData, MatchVideos, MatchWithDetails, Team, TeamWithImage
+
+    return MatchWithDetails(
+        teams=[
+            TeamWithImage(id="1", name="Alpha", score=series[0], img="https://cdn.vlr.gg/a.png"),
+            TeamWithImage(id="2", name="Beta", score=series[1], img="https://cdn.vlr.gg/b.png"),
+        ],
+        bans=[],
+        event=Event(id="99", img="https://cdn.vlr.gg/e.png", series="Series", stage="Stage", status=status),
+        videos=MatchVideos(streams=[], vods=[]),
+        map_count=1,
+        data=[
+            MatchData(
+                map="Ascent",
+                teams=[Team(name="Alpha", score=13), Team(name="Beta", score=9)],
+                members=[],
+                rounds=[],
+            )
+        ],
+        previous_encounters=[],
+    )
 
 
 @pytest.mark.asyncio
@@ -28,10 +60,10 @@ async def test_arq_worker_recovers_after_redis_disconnect():
     )
 
     with (
-        patch("app.cron.create_worker", side_effect=[failed_worker, replacement_worker]),
-        patch("app.cron._ARQ_RESTART_DELAY", 0),
+        patch("app.cron.worker.create_worker", side_effect=[failed_worker, replacement_worker]),
+        patch("app.cron.worker._ARQ_RESTART_DELAY", 0),
     ):
-        arq_worker = cron.ArqWorker()
+        arq_worker = worker.ArqWorker()
         await arq_worker.start()
         await asyncio.wait_for(replacement_started.wait(), timeout=1)
         await arq_worker.stop()
@@ -39,7 +71,7 @@ async def test_arq_worker_recovers_after_redis_disconnect():
 
 @pytest.mark.asyncio
 async def test_fcm_cron_sends_valid_matches_and_reports_failures():
-    current_time = datetime.now(tz=ZoneInfo(cron.settings.TIMEZONE))
+    current_time = datetime.now(tz=ZoneInfo(jobs.settings.TIMEZONE))
     valid_match = SimpleNamespace(
         id="123",
         status=MatchStatus.UPCOMING,
@@ -63,13 +95,13 @@ async def test_fcm_cron_sends_valid_matches_and_reports_failures():
     firebase_app = object()
 
     with (
-        patch("app.cron.matches.get_upcoming_matches", AsyncMock(return_value=[valid_match, invalid_match])),
-        patch("app.cron.matches.match_by_id", AsyncMock(side_effect=[match_details, error])),
-        patch("app.cron.capture_exception") as capture_exception,
-        patch("app.cron._get_fcm_app", return_value=firebase_app),
-        patch("app.cron.messaging.send_each_async", AsyncMock()) as send_each_async,
+        patch("app.cron.jobs.matches.get_upcoming_matches", AsyncMock(return_value=[valid_match, invalid_match])),
+        patch("app.cron.jobs.matches.match_by_id", AsyncMock(side_effect=[match_details, error])),
+        patch("app.cron.jobs.capture_exception") as capture_exception,
+        patch("app.cron.jobs.get_app", return_value=firebase_app),
+        patch("app.cron.jobs.messaging.send_each_async", AsyncMock()) as send_each_async,
     ):
-        await cron.fcm_notification_cron({"redis": AsyncMock()})
+        await jobs.fcm_notification_cron({"redis": AsyncMock()})
 
     capture_exception.assert_called_once_with(error)
     send_each_async.assert_awaited_once()
@@ -80,3 +112,201 @@ async def test_fcm_cron_sends_valid_matches_and_reports_failures():
     assert messages[0].data["title"] == "Team A vs Team B"
     assert messages[0].data["match_id"] == "123"
     assert await_args.kwargs["app"] is firebase_app
+
+
+@pytest.mark.asyncio
+async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_path):
+    import httpx
+    from firebase_admin import messaging
+
+    from app.core import connections
+    from app.db.engine import create_engine
+    from app.db.migrations import upgrade_to_head
+    from app.services import apns as apns_service
+    from app.services.subscription_store import SubscriptionStore
+
+    database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
+    await upgrade_to_head(database_url)
+    engine = create_engine(database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    client_id = "11111111-1111-4111-8111-111111111111"
+    async with sessions.begin() as session:
+        store = SubscriptionStore(session)
+        await store.register_token(client_id, "aabb")
+        await store.replace_favorites(client_id, Favorites(matches=["123"]))
+        await store.save_match("456", None, None)  # an Android-only row whose page is deleted
+
+    listed = SimpleNamespace(id="123", status=MatchStatus.LIVE)
+    # After cycle 1, match 123 leaves the live listing; its stored row keeps it in the work set.
+    # Its page then keeps failing (as when VLR blackholed our IP) and it ends with the last score
+    # on the third consecutive failure. Match 456 returns 404 and ends at once. The synthetic
+    # match below covers the regular final-page path.
+    fetches = {
+        "123": [
+            _live_detail("upcoming", (1, 0)),
+            ScrapingError(upstream_status=502),
+            httpx.ConnectError("All connection attempts failed"),
+            httpx.ConnectTimeout("timed out"),
+        ],
+        "456": [ScrapingError(upstream_status=404)],
+    }
+
+    async def fetch(match_id, redis_client):
+        outcome = fetches[match_id].pop(0)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(live_push.matches, "get_upcoming_matches", AsyncMock(side_effect=[[listed], [], [], []]))
+    match_by_id_mock = AsyncMock(side_effect=fetch)
+    monkeypatch.setattr(live_push.matches, "match_by_id", match_by_id_mock)
+    monkeypatch.setattr(live_push.settings, "ENABLE_LIVE_PUSH", True)
+    monkeypatch.setattr(live_push.settings, "GOOGLE_APPLICATION_CREDENTIALS", "configured")
+
+    requests = []
+    started_before_send = []
+    blocked_during_channel_create = []
+
+    async def handler(request):
+        requests.append(request)
+        if request.method == "POST" and request.url.path.endswith("/channels"):
+            # API writes must not wait on the cron's SQLite write lock during a provider call.
+            try:
+                with closing(sqlite3.connect(tmp_path / "db.sqlite3", timeout=0.1, isolation_level=None)) as db:
+                    db.execute("BEGIN IMMEDIATE")
+                    db.rollback()
+                blocked_during_channel_create.append(False)
+            except sqlite3.OperationalError:
+                blocked_during_channel_create.append(True)
+            return httpx.Response(201, headers={"apns-channel-id": "channel-123"})
+        if "/3/device/" in request.url.path:
+            match_id = json.loads(request.content)["aps"]["attributes"]["match_id"]
+            async with sessions() as session:
+                started = await session.scalar(
+                    select(LiveActivityStart.id).where(
+                        LiveActivityStart.client_id == client_id,
+                        LiveActivityStart.match_id == match_id,
+                    )
+                )
+            # Recorded, not asserted here: the cron logs and skips exceptions raised during a send.
+            started_before_send.append(started is not None)
+        return httpx.Response(200)
+
+    credentials = apns_service.APNsCredentials(
+        environment="sandbox",
+        team_id="team",
+        key_id="key",
+        bundle_id="com.example.app",
+        private_key_path=str(tmp_path / "unused.p8"),
+    )
+    apns = apns_service.APNsClient(credentials, transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(apns, "_jwt", lambda: "provider-token")
+    monkeypatch.setattr(connections, "subscription_sessions", sessions)
+    monkeypatch.setattr(connections, "apns_client", apns)
+    firebase_app = object()
+    monkeypatch.setattr(live_push.fcm, "get_app", lambda: firebase_app)
+
+    fcm_calls = []
+
+    async def send_each_async(*, messages, dry_run, app):
+        fcm_calls.append(messages)
+        return messaging.BatchResponse(
+            [messaging.SendResponse({"name": f"projects/x/messages/{index}"}, None) for index in range(len(messages))]
+        )
+
+    monkeypatch.setattr("app.services.fcm.messaging.send_each_async", send_each_async)
+
+    ticks = {}
+
+    def set_tick(key, value, nx=False):
+        if nx and key in ticks:
+            return None
+        ticks[key] = int(value)
+        return True
+
+    def increment(key):
+        ticks[key] = ticks.get(key, 0) + 1
+        return ticks[key]
+
+    redis = AsyncMock()
+    redis.set.side_effect = set_tick
+    redis.exists.side_effect = lambda key: key in ticks
+    redis.delete.side_effect = lambda key: ticks.pop(key, None)
+    redis.incr.side_effect = increment
+
+    async def stored_match_ids():
+        async with sessions() as session:
+            return sorted(await SubscriptionStore(session).list_match_ids())
+
+    try:
+        await live_push.live_push_cron({"redis": redis})
+        async with sessions() as session:
+            row = await SubscriptionStore(session).get_match("123")
+        assert row is not None and row.channel_id == "channel-123"
+        assert await stored_match_ids() == ["123"]
+        assert any("/3/device/aabb" in request.url.path for request in requests)
+        assert fcm_calls and "'match-123' in topics" in fcm_calls[0][0].condition
+
+        for _ in range(2):
+            await live_push.live_push_cron({"redis": redis})
+            assert await stored_match_ids() == ["123"]
+        await live_push.live_push_cron({"redis": redis})
+        assert await stored_match_ids() == []
+        assert not [key for key in ticks if key.startswith("vlrgg:push:fetch_failures:")]
+        assert match_by_id_mock.await_count == 5
+        end_payloads = [
+            json.loads(request.content)["aps"]
+            for request in requests
+            if request.url.path.endswith("/broadcasts/apps/com.example.app")
+        ]
+        assert [aps["event"] for aps in end_payloads] == ["end"]
+        assert [team["score"] for team in end_payloads[0]["content-state"]["teams"]] == [1, 0]
+        assert any(request.method == "DELETE" for request in requests)
+        assert len(fcm_calls) == 2
+        assert json.loads(fcm_calls[1][0].data["state"])["terminal"] is True
+
+        from fastapi import FastAPI
+
+        from app import constants
+        from app.api import deps
+        from app.api.v1.endpoints.live_updates import router
+
+        async with sessions.begin() as session:
+            await SubscriptionStore(session).replace_favorites(client_id, Favorites(matches=[constants.TEST_MATCH_ID]))
+        monkeypatch.setattr(live_push.matches, "get_upcoming_matches", AsyncMock(return_value=[]))
+        app = FastAPI()
+        app.include_router(router, prefix="/api/v1/live-updates")
+        app.dependency_overrides[deps.get_redis_client] = lambda: redis
+        monkeypatch.setattr(deps.settings, "API_KEYS", {"test": "secret"})
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as api:
+            response = await api.post("/api/v1/live-updates/test-match", headers={"Authorization": "Bearer secret"})
+            duplicate = await api.post("/api/v1/live-updates/test-match", headers={"Authorization": "Bearer secret"})
+        assert response.status_code == 204
+        assert duplicate.status_code == 409
+        assert ticks[constants.TEST_TICK_KEY] == 0
+
+        for _ in range(6):
+            await live_push.live_push_cron({"redis": redis})
+        assert constants.TEST_TICK_KEY not in ticks
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as api:
+            restarted = await api.post("/api/v1/live-updates/test-match", headers={"Authorization": "Bearer secret"})
+        assert restarted.status_code == 204
+        async with sessions() as session:
+            store = SubscriptionStore(session)
+            assert await store.get_match(constants.TEST_MATCH_ID) is None
+            assert (await store.get_favorites(client_id)).matches == [constants.TEST_MATCH_ID]
+        assert sum("/3/device/aabb" in request.url.path for request in requests) == 2
+        assert started_before_send == [True, True]
+        assert blocked_during_channel_create == [False, False]
+        test_events = [
+            json.loads(request.content)["aps"]["event"]
+            for request in requests
+            if request.url.path.endswith("/broadcasts/apps/com.example.app")
+        ]
+        assert test_events == ["end", "update", "update", "update", "update", "end"]
+        assert f"'match-{constants.TEST_MATCH_ID}' in topics" in fcm_calls[-1][0].condition
+        assert json.loads(fcm_calls[-1][0].data["state"])["terminal"] is True
+        assert match_by_id_mock.await_count == 5  # synthetic observations never hit VLR
+    finally:
+        await apns.aclose()
+        await engine.dispose()

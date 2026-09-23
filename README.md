@@ -7,6 +7,7 @@ An unofficial FastAPI-based scraper for [vlr.gg](https://www.vlr.gg), providing 
 - **Comprehensive Data**: Scrapes events, matches, teams, players, rankings, standings, and news from vlr.gg
 - **RESTful API**: FastAPI-powered endpoints with automatic OpenAPI documentation
 - **Caching**: Redis-based caching for improved performance
+- **Live match updates**: Optional APNs Live Activities and FCM topic messages for matches that are running
 - **Background Jobs**: Cron jobs for periodic data updates
 - **Async Support**: Asynchronous HTTP requests for efficient scraping
 
@@ -19,7 +20,7 @@ The application follows a modular architecture:
 - **Schema Layer** (`app/schemas/`): Pydantic models for data validation
 - **Cache Layer** (`app/cache/`): Redis integration for caching
 - **Core** (`app/core/`): Configuration and database connections
-- **Cron** (`app/cron/`): Background job scheduling with arq
+- **Cron** (`app/cron/worker.py`, `jobs.py`, `live_push.py`): arq scheduling and jobs
 
 ## API Endpoints
 
@@ -35,6 +36,8 @@ The application follows a modular architecture:
 | `GET /api/v1/search` | Search teams, players, and events |
 | `GET /api/v1/version` | API version info |
 | `POST /api/v1/ask` | Natural-language Q&A over VLR data (LLM-powered; enabled when `LLM_API_KEY` is set) |
+| `PUT /api/v1/live-updates/clients/{id}/token` | Store an APNs push-to-start token |
+| `PUT /api/v1/live-updates/clients/{id}/favorites` | Replace team, match, player, and event favorites |
 
 See [API Documentation](docs/api.md) for detailed endpoint specs.
 
@@ -50,7 +53,7 @@ See [API Documentation](docs/api.md) for detailed endpoint specs.
 
 ### Prerequisites
 
-- Python 3.13+
+- Python 3.14+
 - [uv](https://astral.sh/uv) for dependency management
 
 ### Installation
@@ -91,9 +94,15 @@ Environment variables (see `app/core/config.py`):
 
 - `REDIS_HOST`: Redis server host
 - `REDIS_PASSWORD`: Redis password
+- `ENABLE_LIVE_PUSH`: Enable the live push cron and client endpoints (default `false`)
+- `APNS_CREDENTIALS_FILE`: Path to the APNs credential JSON file
+- `DATABASE_URL`: SQLite database (default `sqlite+aiosqlite:///db.sqlite3`)
 - `INTERNAL_API_KEY`: API key for internal endpoints
 - `TIMEZONE`: Server timezone
 - `GOOGLE_APPLICATION_CREDENTIALS`: Path to Firebase credentials (for notifications)
+
+When live push is enabled, startup applies the Alembic migration automatically. Run
+`uv run scripts/backup.py [backup-path]` for an online SQLite backup.
 
 ## Deployment
 
