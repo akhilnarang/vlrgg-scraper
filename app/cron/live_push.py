@@ -3,6 +3,7 @@ import logging
 from collections.abc import Awaitable
 from http import HTTPStatus
 
+import httpx2
 from firebase_admin import App
 from redis.asyncio import Redis
 from sentry_sdk import get_current_scope
@@ -52,7 +53,10 @@ async def live_push_cron(ctx: dict) -> None:
                 store = SubscriptionStore(session)
                 if isinstance(detail, BaseException):
                     gone = isinstance(detail, ScrapingError) and detail.upstream_status == HTTPStatus.NOT_FOUND
-                    if not (gone or await _fetch_failure_limit_reached(client, failures_key)):
+                    # An unreachable VLR says nothing about the match, so it never counts toward ending it.
+                    if isinstance(detail, httpx2.TransportError) or not (
+                        gone or await _fetch_failure_limit_reached(client, failures_key)
+                    ):
                         raise detail
                     logger.warning("ending match %s: VLR page unavailable (%r)", match_id, detail)
                     await _end_unavailable_match(store, fcm_app, match_id)

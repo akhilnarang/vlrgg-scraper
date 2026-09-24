@@ -144,15 +144,17 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
 
     listed = SimpleNamespace(id="123", status=MatchStatus.LIVE)
     # After cycle 1, match 123 leaves the live listing; its stored row keeps it in the work set.
-    # Its page then keeps failing (as when VLR blackholed our IP) and it ends with the last score
-    # on the third consecutive failure. Match 456 returns 404 and ends at once. The synthetic
-    # match below covers the regular final-page path.
+    # Its page then keeps failing and it ends with the last score on the third consecutive error
+    # response. A timeout mid-run (VLR blackholing our network) is not a verdict on the match, so
+    # it neither ends it nor counts. Match 456 returns 404 and ends at once. The synthetic match
+    # below covers the regular final-page path.
     fetches = {
         "123": [
             _live_detail("upcoming", (1, 0)),
             ScrapingError(upstream_status=502),
-            httpx2.ConnectError("All connection attempts failed"),
             httpx2.ConnectTimeout("timed out"),
+            ScrapingError(upstream_status=503),
+            ScrapingError(upstream_status=500),
         ],
         "456": [ScrapingError(upstream_status=404)],
     }
@@ -163,7 +165,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             raise outcome
         return outcome
 
-    monkeypatch.setattr(live_push.matches, "get_upcoming_matches", AsyncMock(side_effect=[[listed], [], [], []]))
+    monkeypatch.setattr(live_push.matches, "get_upcoming_matches", AsyncMock(side_effect=[[listed], [], [], [], []]))
     match_by_id_mock = AsyncMock(side_effect=fetch)
     monkeypatch.setattr(live_push.matches, "match_by_id", match_by_id_mock)
     monkeypatch.setattr(live_push.settings, "ENABLE_LIVE_PUSH", True)
@@ -253,13 +255,14 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert any("/3/device/aabb" in request.url.path for request in requests)
         assert fcm_calls and "'live-match-123' in topics" in fcm_calls[0][0].condition
 
-        for _ in range(2):
+        for failures in (1, 1, 2):
             await live_push.live_push_cron({"redis": redis})
             assert await stored_match_ids() == ["123"]
+            assert ticks["vlrgg:push:fetch_failures:123"] == failures
         await live_push.live_push_cron({"redis": redis})
         assert await stored_match_ids() == []
         assert not [key for key in ticks if key.startswith("vlrgg:push:fetch_failures:")]
-        assert match_by_id_mock.await_count == 5
+        assert match_by_id_mock.await_count == 6
         end_payloads = [
             json.loads(request.content)["aps"]
             for request in requests
@@ -323,7 +326,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert last_fcm_state["terminal"] is True
         assert last_fcm_state["total_maps"] == 3
         assert last_fcm_state["current_map"]["number"] == 1
-        assert match_by_id_mock.await_count == 5  # synthetic observations never hit VLR
+        assert match_by_id_mock.await_count == 6  # synthetic observations never hit VLR
     finally:
         await apns.aclose()
         await engine.dispose()
