@@ -1,7 +1,7 @@
 import json
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///db.sqlite3"
 
     ENABLE_CACHE: bool = False
-    ENABLE_ID_MAP_DB: bool = False
+    ENABLE_ID_MAPPING: bool = False
 
     ENABLE_LIVE_PUSH: bool = False
     APNS_CREDENTIALS_FILE: str | None = None
@@ -89,6 +89,19 @@ class Settings(BaseSettings):
         :return: Nonempty, stripped addresses.
         """
         return _parse_string_list(value, "HTTP_LOCAL_ADDRESSES")
+
+    @model_validator(mode="after")
+    def require_cache_for_id_mapping(self) -> Self:
+        """Refuse ID mapping without the cache that stores the mapping.
+
+        Without it every lookup misses and each listed match falls back to a VLR detail fetch.
+
+        :return: The validated settings.
+        :raises ValueError: If ID mapping is enabled without the cache.
+        """
+        if self.ENABLE_ID_MAPPING and not self.ENABLE_CACHE:
+            raise ValueError("ENABLE_ID_MAPPING requires ENABLE_CACHE")
+        return self
 
     @property
     def needs_redis(self) -> bool:

@@ -117,7 +117,7 @@ async def get_team_data(data: ResultSet, client: Redis | None) -> list[dict]:
                         team_mapping[simplify_name(match.group(1))] = team_data["id"]
         response.append(team_data)
 
-    if team_mapping and settings.ENABLE_ID_MAP_DB:
+    if team_mapping and settings.ENABLE_ID_MAPPING:
         await cache.hset("team", mapping=team_mapping, client=client)
     return response
 
@@ -641,7 +641,7 @@ async def parse_matches(dates: ResultSet, match_data: ResultSet, client: Redis) 
     # Batch cache lookups: 2 Redis calls instead of 2×N
     team_id_map: dict[str, str | None] = {}
     event_id_map: dict[str, str | None] = {}
-    if settings.ENABLE_ID_MAP_DB:
+    if settings.ENABLE_ID_MAPPING:
         unique_team_keys = list(dict.fromkeys(all_team_keys))  # dedupe, preserve order
         unique_event_keys = list(dict.fromkeys(all_event_keys))
 
@@ -727,7 +727,7 @@ async def parse_match(
         date_string = parsed_date + " " + time
 
     team1_id = team2_id = event_id = None
-    if settings.ENABLE_ID_MAP_DB:
+    if settings.ENABLE_ID_MAPPING:
         team1_key = simplify_name(team1_name)
         team2_key = simplify_name(team2_name)
         team1_id = team_id_map.get(team1_key)

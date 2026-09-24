@@ -4,7 +4,7 @@ import json
 import time
 from typing import NamedTuple
 
-from app.constants import Platform
+from app.constants import MAP_WIN_ROUNDS, Platform
 from app.db.models import DeviceToken
 from app.exceptions import ServiceUnavailableError
 from app.schemas.matches import CompactState, MatchData, MatchWithDetails, PushCurrentMap, PushTeam
@@ -100,6 +100,7 @@ def project_state(match_id: str, detail: MatchWithDetails) -> CompactState | Non
         total_maps=detail.total_maps,
         teams=[PushTeam(name=team.name, tag=team.tag, img=team.img, score=team.score) for team in detail.teams],
         current_map=current,
+        map_winners=_map_winners(detail),
     )
 
 
@@ -128,6 +129,24 @@ def _current_map(detail: MatchWithDetails, terminal: bool) -> PushCurrentMap | N
     selected = started[-1] if started else (maps[-1] if terminal else maps[0])
     number = maps.index(selected) + 1 if selected in maps else None
     return PushCurrentMap(name=selected.map, number=number, scores=_aligned_scores(selected, detail))
+
+
+def _map_winners(detail: MatchWithDetails) -> list[str | None]:
+    """Find the winning team of each finished map.
+
+    :param detail: Scraped match details.
+    :return: One entry per map up to ``total_maps``: the winner's team ID, or None if not finished.
+    """
+    maps = [item for item in detail.data if item.map.strip() and item.map.strip().casefold() != "tbd"]
+    winners: list[str | None] = [None] * max(detail.total_maps, len(maps))
+    for index, map_data in enumerate(maps):
+        first, second = _aligned_scores(map_data, detail)
+        if first is None or second is None:
+            continue
+        # A map ends at 13 rounds with a two-round lead, which also covers overtime.
+        if max(first, second) >= MAP_WIN_ROUNDS and abs(first - second) >= 2:
+            winners[index] = detail.teams[0 if first > second else 1].id
+    return winners
 
 
 def _aligned_scores(map_data: MatchData, detail: MatchWithDetails) -> list[int | None]:

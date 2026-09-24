@@ -19,6 +19,7 @@ from app.core.config import settings
 from app.core.live_push import start_live_push, stop_live_push
 from app.core.observability import configure_logging, init_sentry
 from app.cron import arq_worker
+from app.db.lifecycle import start_database, stop_database
 from app.web.media import router as media_router
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
         event_hooks={"request": [connections.rotate_user_agent]},
     )
     try:
+        await start_database()
         if settings.ENABLE_LIVE_PUSH:
             await start_live_push()
         if settings.needs_redis:
@@ -66,6 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
                 if connections.redis_pool:
                     await connections.redis_pool.aclose()
         await stop_live_push()
+        await stop_database()
         logger.info("Closing shared HTTP client")
         await connections.http_client.aclose()
         connections.http_client = None
@@ -101,5 +104,5 @@ else:
     app.include_router(router, prefix="/api/v1")
     sentry_sdk.set_tag("api_key", "Unauthenticated")
 
-if settings.ENABLE_CACHE and settings.ENABLE_ID_MAP_DB:
+if settings.ENABLE_ID_MAPPING:
     app.include_router(internal_router, prefix="/api/v1/internal", dependencies=[Depends(deps.verify_internal_token)])

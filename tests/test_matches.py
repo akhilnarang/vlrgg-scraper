@@ -111,7 +111,7 @@ async def test_match_list_keeps_each_upcoming_date_group(monkeypatch, http_respo
             constants.PAST_MATCHES_URL, (FIXTURE_DIR / "matches_results.html").read_bytes()
         ),
     }
-    monkeypatch.setattr(matches.settings, "ENABLE_ID_MAP_DB", False)
+    monkeypatch.setattr(matches.settings, "ENABLE_ID_MAPPING", False)
 
     with patch("httpx2.AsyncClient.get", side_effect=lambda url, *_args, **_kwargs: responses[url]):
         result = await matches.match_list(AsyncMock())
@@ -124,7 +124,7 @@ async def test_match_list_keeps_each_upcoming_date_group(monkeypatch, http_respo
 
 @pytest.mark.asyncio
 async def test_completed_matches_clamp_pages_and_keep_results_in_order(monkeypatch, http_get):
-    monkeypatch.setattr(matches.settings, "ENABLE_ID_MAP_DB", False)
+    monkeypatch.setattr(matches.settings, "ENABLE_ID_MAPPING", False)
     pages = {
         constants.PAST_MATCHES_URL: (FIXTURE_DIR / "matches_results_page1.html").read_bytes(),
         matches.completed_matches_url(2): (FIXTURE_DIR / "matches_results_page2.html").read_bytes(),
@@ -142,7 +142,7 @@ async def test_completed_matches_clamp_pages_and_keep_results_in_order(monkeypat
 
 @pytest.mark.asyncio
 async def test_completed_matches_do_not_return_partial_results(monkeypatch, http_get):
-    monkeypatch.setattr(matches.settings, "ENABLE_ID_MAP_DB", False)
+    monkeypatch.setattr(matches.settings, "ENABLE_ID_MAPPING", False)
     pages = {constants.PAST_MATCHES_URL: (FIXTURE_DIR / "matches_results_page1.html").read_bytes()}
     failures = {matches.completed_matches_url(2): 502}
 
@@ -207,7 +207,7 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
         mock_apns.create_channel.return_value = "channel-live-123"
         monkeypatch.setattr(connections, "apns_client", mock_apns)
 
-        from app.schemas.matches import Event, MatchData, MatchVideos, MatchWithDetails, TeamWithImage
+        from app.schemas.matches import Event, MatchData, MatchVideos, MatchWithDetails, Team, TeamWithImage
 
         live_detail = MatchWithDetails(
             teams=[
@@ -219,7 +219,18 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             videos=MatchVideos(streams=[], vods=[]),
             map_count=1,
             total_maps=3,
-            data=[MatchData(map="Ascent", teams=[], members=[], rounds=[])],
+            data=[
+                # Beta took map 1 in overtime; VLR can list a map's teams in either order.
+                MatchData(
+                    map="Ascent",
+                    teams=[Team(name="Beta", score=14), Team(name="Alpha", score=12)],
+                    members=[],
+                    rounds=[],
+                ),
+                MatchData(
+                    map="Bind", teams=[Team(name="Alpha", score=12), Team(name="Beta", score=11)], members=[], rounds=[]
+                ),
+            ],
             previous_encounters=[],
         )
         completed_detail = live_detail.model_copy(
@@ -234,7 +245,7 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             mock_apns.send_start.assert_awaited_once()
             token_arg, channel_arg, state_arg = mock_apns.send_start.call_args[0]
             assert (token_arg, channel_arg) == ("aabb", "channel-live-123")
-            assert (state_arg.total_maps, state_arg.current_map.number) == (3, 1)
+            assert (state_arg.total_maps, state_arg.current_map.number) == (3, 2)
 
             # Re-triggering reuses the existing broadcast channel without recreating it
             retrigger = client.post(f"{base}/matches/123/live-activity", headers=headers)
@@ -306,8 +317,10 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             assert (state_data["match_id"], state_data["total_maps"], state_data["current_map"]["number"]) == (
                 "123",
                 3,
-                1,
+                2,
             )
+            # Winner's team ID per finished map; null for the map in progress and the unplayed one.
+            assert state_data["map_winners"] == ["2", None, None]
             assert [team["score"] for team in state_data["teams"]] == [1, 0]
 
             # Android delivery must not suppress a later automatic iOS start for this client.

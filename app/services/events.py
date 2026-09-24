@@ -205,7 +205,7 @@ async def parse_event(event: Tag, client: Redis) -> schemas.Event:
         location=location,
         img=img,
     )
-    if settings.ENABLE_ID_MAP_DB:
+    if settings.ENABLE_ID_MAPPING:
         await cache.hset("event", {simplify_name(title): event_id}, client)
     return parsed_event
 
@@ -325,7 +325,7 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
     event["standings"] = parse_event_standings(soup.find("div", class_="event-container"))
 
     # Populate cache if enabled and client provided
-    if settings.ENABLE_ID_MAP_DB and cache_client:
+    if settings.ENABLE_ID_MAPPING and cache_client:
         await cache.hset("event", {simplify_name(event["title"]): id}, cache_client)
 
     return cast(ParsedEventData, event)
