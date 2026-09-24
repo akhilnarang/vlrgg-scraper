@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.14"
 
 [options]
-exclude-newer = "2026-09-20T14:38:02.087247828Z"
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P3D"
 
 [[package]]
@@ -100,7 +100,7 @@ requires-dist = [
     { name = "alembic" },
     { name = "arq" },
     { name = "beautifulsoup4" },
-    { name = "fastapi", extras = ["all"], specifier = ">=0.121.0,<0.142" },
+    { name = "fastapi", extras = ["all"], specifier = ">=0.141.1,<0.142" },
     { name = "firebase-admin" },
     { name = "gunicorn" },
     { name = "httpx2", extras = ["http2"] },
