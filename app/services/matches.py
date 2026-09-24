@@ -50,7 +50,7 @@ async def match_by_id(id: str, redis_client: Redis | None) -> schemas.MatchWithD
 
     bans = get_ban_data(soup.find_all("div", class_="match-header-note"))
     event = get_event_data(soup)
-    video_data = get_video_data(soup.find("div", class_="match-streams-bets-container"))
+    video_data = get_video_data(soup)
     map_ret = get_map_data(soup.find_all("div", class_="vm-stats"))
     h2h_matches = get_previous_encounters_data(soup.find("div", class_="wf-card match-h2h"))
     teams = await get_team_data(soup.find_all("div", class_="match-header-vs"), client=redis_client)
@@ -198,36 +198,27 @@ def get_video_data(data: Tag) -> dict[str, list]:
     :param data: The data about the videos
     :return: The parsed URLs
     """
-    response: dict[str, list] = {
+    return {
         "streams": [
-            {
-                "name": name.get_text().strip(),
-                "url": normalized_url,
-            }
-            for stream in data.find("div", class_="match-streams").find_all("div", class_="wf-card")
-            if (name := stream.find("span"))
-            and (url := stream.find("a", class_="match-streams-btn-external"))
-            and (normalized_url := expand_url(url.get("href"))) is not None
+            {"name": name.get_text().strip(), "url": normalized_url}
+            for stream in data.find_all("div", class_="sm-btn", attrs={"data-type": "broadcast"})
+            if (name := stream.find(class_="sm-name"))
+            and (link := stream.find("a", class_="sm-ext") or stream.find("a", class_="sm-body"))
+            and (normalized_url := expand_url(link.get("href"))) is not None
         ],
         "vods": [
-            {"name": vod.get_text().strip(), "url": normalized_url}
-            for vod in data.find("div", class_="match-vods").find_all("a", class_="wf-card")
-            if (normalized_url := expand_url(vod.get("href"))) is not None
-        ],
-    }
-
-    response["streams"].extend(
-        [
             {
-                "name": stream.find("span").get_text().strip(),
+                "name": f"Map {number.get_text().strip()}"
+                if (number := vod.find(class_="sm-vod-num"))
+                else name.get_text().strip(),
                 "url": normalized_url,
             }
-            for stream in data.find_all("a", class_="match-streams-btn")
-            if stream.find("span") and (normalized_url := expand_url(stream.get("href"))) is not None
-        ]
-    )
-
-    return response
+            for vod in data.find_all("div", class_="sm-vod")
+            if (name := vod.find(class_="sm-vod-name"))
+            and (link := vod.find("a", class_="sm-ext") or vod.find("a", class_="sm-body"))
+            and (normalized_url := expand_url(link.get("href"))) is not None
+        ],
+    }
 
 
 def get_map_data(data: ResultSet) -> tuple[list, int]:
