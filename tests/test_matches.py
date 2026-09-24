@@ -27,6 +27,12 @@ async def test_match_details_follow_the_public_response_contract(http_response):
     member = result.data[0].members[0]
     assert (member.id, member.name, member.team) == ("2114", "Kinguyen", "Team A")
     assert (member.agents[0].title, member.rating, member.kills) == ("Raze", 1.42, 29)
+    # VLR's stream grid: broadcasts only (watch parties excluded), including off-platform links.
+    assert [(stream.name, str(stream.url)) for stream in result.videos.streams] == [
+        ("VCT", "https://www.youtube.com/@ValorantEsports/live"),
+        ("VAL KR", "https://play.sooplive.co.kr/valorant"),
+    ]
+    assert [(vod.name, str(vod.url)) for vod in result.videos.vods] == [("Map 1", "https://youtu.be/abc123?t=132")]
     # Fixture note isn't a per-step veto, so it must surface as unknown with the raw text, never be dropped.
     assert [(v.team, v.action, v.map) for v in result.veto] == [(None, "unknown", "Map ban: Bind, Haven")]
     assert [

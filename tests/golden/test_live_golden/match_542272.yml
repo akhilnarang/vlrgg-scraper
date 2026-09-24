@@ -1679,82 +1679,82 @@ videos:
   streams:
   - name: Valorant
     url: https://www.twitch.tv/valorant
-  - name: Valorant Brazil
+  - name: VAL BR
     url: https://www.twitch.tv/valorant_br
-  - name: Valorant LATAM
+  - name: VAL LATAM
     url: https://www.twitch.tv/valorant_la
-  - name: Valorant FR
+  - name: VAL FR
     url: https://www.twitch.tv/valorant_fr
-  - name: Valorant Spain
+  - name: VAL ES
     url: https://www.twitch.tv/valorant_es
-  - name: Valorant TR
+  - name: VAL TR
     url: https://www.twitch.tv/valorant_tur
-  - name: Esports Finland
+  - name: Esports FI
     url: https://www.twitch.tv/esportsfinland
-  - name: Valorant ID
+  - name: VAL ID
     url: https://www.twitch.tv/valorant_id
-  - name: Valorant Japan
+  - name: VAL JP
     url: https://www.twitch.tv/valorant_jpn
-  - name: Valorant PH
+  - name: VAL PH
     url: https://www.twitch.tv/valorant_ph
-  - name: Valorant TW
+  - name: VAL TW
     url: https://www.twitch.tv/valorant_tw
-  - name: Valorant TH
+  - name: VAL TH
     url: https://www.twitch.tv/valorant_th
-  - name: Valorant Esports CN
+  - name: VCT CN
     url: https://www.twitch.tv/valorantesports_cn
   - name: Maincast
     url: https://www.twitch.tv/valorant_maincast
   - name: hitpointcz
     url: https://www.twitch.tv/hitpointcz2
-  - name: VCT (YT)
+  - name: VCT
     url: https://www.youtube.com/@ValorantEsports/live
-  - name: VAL Esports BR (YT)
+  - name: VCT BR
     url: https://www.youtube.com/@valesportsbr/live
-  - name: VAL Esports LA (YT)
+  - name: VCT LATAM
     url: https://www.youtube.com/@VALORANTEsportsLA/live
-  - name: VCL FR (YT)
+  - name: VCL FR
     url: https://www.youtube.com/@valorantchallengersfr/live
-  - name: Valorant Spain (YT)
+  - name: VAL ES
     url: https://www.youtube.com/@VALORANTes/live
-  - name: Valorant TR (YT)
+  - name: VAL TR
     url: https://www.youtube.com/@VALORANTtr/live
-  - name: VAL Esports ID (YT)
+  - name: VCT ID
     url: https://www.youtube.com/@VALORANTEsportsIndonesia/live
-  - name: Valorant INSA (YT)
+  - name: VAL INSA
     url: https://www.youtube.com/@VALORANTinsa/live
-  - name: Valorant Japan (YT)
+  - name: VAL JP
     url: https://www.youtube.com/@VALORANTjp/live
-  - name: VAL Esports KR (YT)
+  - name: VCT KR
     url: https://www.youtube.com/@ValorantEsportsKR/live
-  - name: VAL Esports PH (YT)
+  - name: VCT PH
     url: https://www.youtube.com/@VALORANTEsportsPH/live
-  - name: VAL Esports TW (YT)
+  - name: VCT TW
     url: https://www.youtube.com/@VALORANTEsportsTW/live
-  - name: VAL Esports TH (YT)
+  - name: VCT TH
     url: https://www.youtube.com/@VALORANTEsportsTH/live
-  - name: VCT Vietnam (YT)
+  - name: VCT VN
     url: https://www.youtube.com/@VALORANTChampionsTourVietnam/live
-  - name: Valorant (SOOP)
+  - name: Valorant
     url: https://play.sooplive.co.kr/valoranten
-  - name: Valorant ID (SOOP)
+  - name: VAL ID
     url: https://play.sooplive.co.kr/valorantid
-  - name: Valorant KR (SOOP)
+  - name: VAL KR
     url: https://play.sooplive.co.kr/valorant
-  - name: Valorant TH (SOOP)
+  - name: VAL TH
     url: https://play.sooplive.co.kr/valorantth
-  - name: Valorant VN (ONLive)
+  - name: VAL VN
     url: https://play.onlive.vn/valorant
-  - name: Valorant KR (CHZZK)
+  - name: VAL KR
     url: https://chzzk.naver.com/live/4e10683fd32d6fb6d38924cb9bf483a3
-  - name: VCT (Bilibili)
+  - name: VCT CN
     url: https://live.bilibili.com/22908869
-  - name: VCT (Douyu)
+  - name: VCT CN
     url: https://www.douyu.com/602
-  - name: VCT (Huya)
+  - name: VCT CN
     url: https://www.huya.com/660679
   vods:
-  - name: Full Match
+  - name: Full match
     url: https://www.twitch.tv/videos/2583785366?t=2h14m17s
   - name: Map 1
     url: https://youtu.be/WPm6FMkZ3Qo?t=132
