@@ -3,10 +3,12 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from sentry_sdk import get_current_scope
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import constants, schemas
+from app.core import connections
 from app.core.config import settings
-from app.services import events, matches, news, rankings, standings
+from app.services import events, matches, news, rankings, scrape_store, standings
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +21,28 @@ async def rankings_cron(ctx: dict) -> None:
     """
     get_current_scope().set_transaction_name("Rankings Cron")
 
+    ranking_list = await rankings.ranking_list()
     await ctx["redis"].set(
-        "rankings",
-        schemas.RankingListAdapter.dump_json(await rankings.ranking_list()),
-        ex=constants.CACHE_TTL_RANKINGS,
+        "rankings", schemas.RankingListAdapter.dump_json(ranking_list), ex=constants.CACHE_TTL_RANKINGS
     )
+    if (sessions := connections.subscription_sessions) is None:
+        return
+    try:
+        async with sessions.begin() as session:
+            for region in ranking_list:
+                for team in region.teams:
+                    await scrape_store.upsert_team(
+                        session,
+                        str(team.id),
+                        name=team.name,
+                        logo=str(team.logo),
+                        rank=team.rank,
+                        country=team.country,
+                        region=region.region,
+                    )
+    except SQLAlchemyError:
+        # The store never fails the cron; the rankings cache is its job.
+        logger.warning("could not store ranked teams", exc_info=True)
 
 
 async def matches_cron(ctx: dict) -> None:

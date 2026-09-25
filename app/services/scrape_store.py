@@ -3,12 +3,13 @@
 import time
 from collections.abc import Iterable
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import schemas
-from app.db.models import Player
+from app.constants import IdMapKind
+from app.db.models import IdMapping, Player, Team
 
 
 async def upsert_player(session: AsyncSession, player_id: str, player: schemas.Player) -> None:
@@ -52,3 +53,34 @@ async def player_team_ids(session: AsyncSession, player_ids: Iterable[str]) -> d
     """
     rows = await session.execute(select(Player.id, Player.team_id).where(Player.id.in_(list(player_ids))))
     return dict(rows.tuples().all())
+
+
+async def upsert_team(session: AsyncSession, team_id: str, **fields: str | int | None) -> None:
+    """Store the team fields one scrape carries, keeping stored values for the fields it does not.
+
+    :param session: Caller-owned database session.
+    :param team_id: VLR team ID.
+    :param fields: `Team` columns (e.g. `name`, `tag`, `rank`); a None value leaves the stored value.
+    :return: None.
+    """
+    now = int(time.time())
+    statement = insert(Team).values(id=team_id, source="vlr", first_seen_at=now, last_fetched_at=now, **fields)
+    updates = {name: func.coalesce(statement.excluded[name], getattr(Team, name)) for name in fields}
+    await session.execute(
+        statement.on_conflict_do_update(index_elements=[Team.id], set_={**updates, "last_fetched_at": now})
+    )
+
+
+async def upsert_id_map(session: AsyncSession, kind: IdMapKind, mapping: dict[str, str]) -> None:
+    """Store simplified names and the VLR IDs they resolve to.
+
+    :param session: Caller-owned database session.
+    :param kind: Whether the names are teams or events.
+    :param mapping: VLR ID keyed by simplified name.
+    :return: None.
+    """
+    for key, value in mapping.items():
+        statement = insert(IdMapping).values(kind=kind, key=key, id=value)
+        await session.execute(
+            statement.on_conflict_do_update(index_elements=[IdMapping.kind, IdMapping.key], set_={"id": value})
+        )
