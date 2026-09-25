@@ -160,3 +160,5 @@ MAX_FAVORITES_PER_GROUP = 200
 MAP_WIN_ROUNDS = 13  # rounds needed to win a map, with a two-round lead in overtime
 MAX_TOKEN_LENGTH = 4096
 ACTIVITY_ATTRIBUTES_TYPE = "MatchActivityAttributes"
+APNS_START_EXPIRATION = 600  # seconds APNs keeps a push-to-start for a device it cannot reach
+APNS_STORE_LATEST_BROADCAST = 1  # channel message-storage-policy: keep the latest update for offline devices

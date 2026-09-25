@@ -2,6 +2,7 @@ import asyncio
 import json
 import re
 import sqlite3
+import time
 from contextlib import closing
 from datetime import datetime, timedelta
 from types import SimpleNamespace
@@ -316,6 +317,12 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         live_topics = re.findall(r"'([^']+)' in topics", " ".join(m.condition for call in fcm_calls for m in call))
         assert live_topics and all(topic.startswith("live-") for topic in live_topics)
         assert blocked_during_channel_create == [False, False]
+        # A start is sent once and never retried, so APNs must hold it for a device that is briefly unreachable,
+        # and channels keep the latest broadcast for devices that were offline when it was sent.
+        starts = [r for r in requests if "/3/device/" in r.url.path]
+        assert starts and all(int(r.headers["apns-expiration"]) > time.time() + 300 for r in starts)
+        channels = [r for r in requests if r.method == "POST" and r.url.path.endswith("/channels")]
+        assert [json.loads(r.content)["message-storage-policy"] for r in channels] == [1, 1]
         test_events = [
             json.loads(request.content)["aps"]["event"]
             for request in requests
