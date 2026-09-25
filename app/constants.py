@@ -44,6 +44,8 @@ TEST_TICK_KEY = "vlrgg:push:test_tick"
 PUSH_FETCH_FAILURE_LIMIT = 3
 PUSH_FETCH_FAILURES_KEY = "vlrgg:push:fetch_failures:{}"
 PUSH_FETCH_FAILURES_TTL = 600  # seconds; failures are consecutive per-minute runs
+# The live push cron fetches the VLR listing only while a cached match is live or starts within this lead.
+PUSH_LISTING_LEAD = timedelta(minutes=15)
 
 
 DEAD_TOKEN_REASONS = frozenset({"BadDeviceToken", "Unregistered", "ExpiredToken"})

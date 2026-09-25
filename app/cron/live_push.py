@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from collections.abc import Awaitable
+from datetime import UTC, datetime
 from http import HTTPStatus
 
 import httpx2
@@ -9,7 +10,8 @@ from redis.asyncio import Redis
 from sentry_sdk import get_current_scope
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import constants
+from app import constants, schemas
+from app.cache import cache
 from app.core import connections
 from app.core.config import settings
 from app.cron import synthetic_match
@@ -71,18 +73,37 @@ async def live_push_cron(ctx: dict) -> None:
 async def _listed_live_ids(client: Redis) -> set[str]:
     """Return the match IDs the VLR listing shows as live, plus a running test match.
 
+    The listing is fetched from VLR only while the cached match list (refreshed every five minutes) has a match
+    that is live or starts within ``PUSH_LISTING_LEAD``, so idle minutes cost no VLR request.
+
     :param client: Redis client.
-    :return: Live match IDs; empty when the listing cannot be fetched.
+    :return: Live match IDs; empty when the listing cannot be fetched or no match is due.
     """
+    listed = []
     try:
-        listed = await matches.get_upcoming_matches(redis_client=client)
+        if await _match_due(client):
+            listed = await matches.get_upcoming_matches(redis_client=client)
     except Exception:
         logger.warning("could not list live matches", exc_info=True)
-        listed = []
     live_ids = {match.id for match in listed if is_live(match.status)}
     if await client.exists(constants.TEST_TICK_KEY):
         live_ids.add(constants.TEST_MATCH_ID)
     return live_ids
+
+
+async def _match_due(client: Redis) -> bool:
+    """Check whether the cached match list has a match that is live or about to start.
+
+    :param client: Redis client.
+    :return: Whether the live listing is worth fetching; ``True`` when the cache is empty.
+    """
+    if not (data := await cache.get("matches", client=client)):
+        return True
+    horizon = datetime.now(UTC) + constants.PUSH_LISTING_LEAD
+    return any(
+        is_live(match.status) or (match.status != constants.MatchStatus.COMPLETED and match.time <= horizon)
+        for match in schemas.MatchListAdapter.validate_json(data)
+    )
 
 
 def _fetch_detail(client: Redis, match_id: str) -> Awaitable[MatchWithDetails]:
