@@ -209,7 +209,18 @@ async def _send_fcm(store: SubscriptionStore, fcm_app: App | None, state: Compac
         return
     try:
         player_ids = await store.active_player_ids(routing.player_ids)
-        await fcm.publish(fcm_app, fcm.build_messages(state, routing, player_ids))
+        message_ids = await fcm.publish(fcm_app, fcm.build_messages(state, routing, player_ids))
+        current = state.current_map
+        # One line per send, so a stale or missing phone notification can be traced to a send or its absence.
+        logger.info(
+            "FCM sent match %s map %s %s series %s terminal=%s: %s",
+            state.match_id,
+            current.number if current else None,
+            "-".join(map(str, current.scores)) if current else None,
+            "-".join(str(team.score) for team in state.teams),
+            state.terminal,
+            message_ids,
+        )
     except Exception:
         logger.warning("FCM update failed for match %s", state.match_id, exc_info=True)
 

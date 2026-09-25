@@ -154,14 +154,15 @@ async def send_to_token(app: App, token: str, state: CompactState) -> None:
         raise FCMError(str(exc), is_unregistered=isinstance(exc, messaging.UnregisteredError)) from exc
 
 
-async def publish(app: App, messages: list[messaging.Message]) -> None:
+async def publish(app: App, messages: list[messaging.Message]) -> list[str]:
     """Send a batch of score messages through Firebase.
 
     :param app: Firebase application.
     :param messages: Topic messages to send.
-    :return: None.
+    :return: Firebase message IDs, one per message.
     :raises RuntimeError: If Firebase rejects any message.
     """
     response = await messaging.send_each_async(messages=messages, dry_run=False, app=app)
     if response.failure_count:
         raise RuntimeError("FCM rejected a live match message")
+    return [result.message_id for result in response.responses]
