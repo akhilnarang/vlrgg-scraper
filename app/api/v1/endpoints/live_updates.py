@@ -30,8 +30,8 @@ async def trigger_test_match(client: deps.RedisDep) -> None:
 
 @router.put("/clients/{client_id}/token", status_code=status.HTTP_204_NO_CONTENT)
 async def put_token(client_id: UUID, body: TokenRegistration, store: deps.SubscriptionStoreDep) -> None:
-    """Store a client's APNs push-to-start or FCM token."""
-    await store.register_token(str(client_id), body.token, body.platform)
+    """Store a client's APNs push-to-start or FCM token, and whether it has live updates on."""
+    await store.register_token(str(client_id), body.token, body.platform, body.live_updates)
 
 
 @router.delete("/clients/{client_id}/token", status_code=status.HTTP_204_NO_CONTENT)
@@ -72,6 +72,8 @@ async def start_live_activity(
     token_row = await store.get_token(str(client_id))
     if token_row is None:
         raise NotFoundError("Client token not registered")
+    if await store.live_updates_off(str(client_id)):
+        raise ConflictError("Live updates are turned off")
 
     state, channel_id = await _resolve_live_state(match_id, store, redis_client)
     if state.terminal:

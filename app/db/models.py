@@ -17,6 +17,7 @@ class Client(Base):
     __tablename__ = "clients"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    live_updates: Mapped[bool | None] = mapped_column(nullable=True)
 
 
 class DeviceToken(Base):

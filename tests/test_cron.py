@@ -142,6 +142,10 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         await store.register_token(android_id, "fcm-token:APA91b", Platform.ANDROID)
         await store.add_favorites(android_id, Favorites(matches=["123", TEST_MATCH_ID]))
         await store.save_match("456", None, None)  # an Android-only row whose page is deleted
+        # Follows the match but turned live updates off, so it must never get a Live Activity.
+        live_off_id = "33333333-3333-4333-8333-333333333333"
+        await store.register_token(live_off_id, "ccdd", live_updates=False)
+        await store.add_favorites(live_off_id, Favorites(matches=["123"]))
 
     listed = SimpleNamespace(id="123", status=MatchStatus.LIVE)
     # After cycle 1, match 123 leaves the live listing; its stored row keeps it in the work set.
@@ -255,6 +259,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert row is not None and row.channel_id == "channel-123"
         assert await stored_match_ids() == ["123"]
         assert any("/3/device/aabb" in request.url.path for request in requests)
+        assert not any("/3/device/ccdd" in request.url.path for request in requests)
         assert fcm_calls and "'live-match-123' in topics" in fcm_calls[0][0].condition
 
         for failures in (1, 1, 2):
@@ -394,6 +399,23 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         redis.get.return_value = schemas.MatchListAdapter.dump_json(cached)
         await live_push.live_push_cron({"redis": redis})
         listing.assert_awaited_once()
+
+        # Android live updates go out only while an Android client follows the match with live updates on.
+        listing.return_value = [SimpleNamespace(id="789", status=MatchStatus.LIVE)]
+        fetches["789"] = [_live_detail("live", (0, 0)), _live_detail("live", (1, 0))]
+        async with sessions.begin() as session:
+            store = SubscriptionStore(session)
+            await store.register_token(android_id, "fcm-token:APA91b", Platform.ANDROID, live_updates=False)
+            await store.add_favorites(android_id, Favorites(matches=["789"]))
+        sent = len(fcm_calls)
+        await live_push.live_push_cron({"redis": redis})
+        assert len(fcm_calls) == sent
+        async with sessions.begin() as session:
+            await SubscriptionStore(session).register_token(
+                android_id, "fcm-token:APA91b", Platform.ANDROID, live_updates=True
+            )
+        await live_push.live_push_cron({"redis": redis})
+        assert any("'live-match-789' in topics" in m.condition for call in fcm_calls[sent:] for m in call)
     finally:
         await apns.aclose()
         await engine.dispose()
