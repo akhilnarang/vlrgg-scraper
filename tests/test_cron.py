@@ -237,6 +237,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         return ticks[key]
 
     redis = AsyncMock()
+    redis.get.return_value = None
     redis.set.side_effect = set_tick
     redis.exists.side_effect = lambda key: key in ticks
     redis.delete.side_effect = lambda key: ticks.pop(key, None)
@@ -327,6 +328,36 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert last_fcm_state["total_maps"] == 3
         assert last_fcm_state["current_map"]["number"] == 1
         assert match_by_id_mock.await_count == 6  # synthetic observations never hit VLR
+
+        # With nothing live or starting soon in the cached list, idle minutes must not fetch VLR's listing.
+        from app import schemas
+
+        monkeypatch.setattr("app.cache.cache.settings.ENABLE_CACHE", True)
+        listing = AsyncMock(return_value=[])
+        monkeypatch.setattr(live_push.matches, "get_upcoming_matches", listing)
+        now = datetime.now(ZoneInfo("UTC"))
+        cached = [
+            schemas.Match(
+                id=match_id,
+                team1=schemas.MatchTeam(name="A"),
+                team2=schemas.MatchTeam(name="B"),
+                status=status,
+                time=now + offset,
+                event="Event",
+                series="Series",
+            )
+            for match_id, status, offset in (
+                ("1", MatchStatus.COMPLETED, timedelta(hours=-1)),
+                ("2", MatchStatus.UPCOMING, timedelta(hours=2)),
+            )
+        ]
+        redis.get.return_value = schemas.MatchListAdapter.dump_json(cached)
+        await live_push.live_push_cron({"redis": redis})
+        listing.assert_not_awaited()
+        cached[1].time = now + timedelta(minutes=5)
+        redis.get.return_value = schemas.MatchListAdapter.dump_json(cached)
+        await live_push.live_push_cron({"redis": redis})
+        listing.assert_awaited_once()
     finally:
         await apns.aclose()
         await engine.dispose()
