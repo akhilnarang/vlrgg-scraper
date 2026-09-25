@@ -23,22 +23,38 @@ class SubscriptionStore:
         """
         self._session = session
 
-    async def register_token(self, client_id: str, token: str, platform: Platform = Platform.IOS) -> None:
+    async def register_token(
+        self, client_id: str, token: str, platform: Platform = Platform.IOS, live_updates: bool | None = None
+    ) -> None:
         """Store a client's validated push token.
 
         :param client_id: Client UUID.
         :param token: Validated APNs (lowercase hex) or FCM token.
         :param platform: Platform the token belongs to.
+        :param live_updates: Whether the client has live updates turned on; None keeps the stored setting.
         :return: None.
         """
-        if await self._session.get(Client, client_id) is None:
-            self._session.add(Client(id=client_id))
+        client = await self._session.get(Client, client_id)
+        if client is None:
+            client = Client(id=client_id)
+            self._session.add(client)
+        if live_updates is not None:
+            client.live_updates = live_updates
         row = await self._session.get(DeviceToken, client_id)
         if row is None:
             self._session.add(DeviceToken(client_id=client_id, token=token, platform=platform))
         else:
             row.token = token
             row.platform = platform
+
+    async def live_updates_off(self, client_id: str) -> bool:
+        """Check whether a client reported live updates as turned off.
+
+        :param client_id: Client UUID.
+        :return: True only when the client sent `live_updates: false`; unknown clients and null are not off.
+        """
+        client = await self._session.get(Client, client_id)
+        return client is not None and client.live_updates is False
 
     async def delete_token(self, client_id: str) -> None:
         """Delete a client's push token if it exists.
@@ -155,7 +171,7 @@ class SubscriptionStore:
         return or_(*clauses)
 
     async def pending_starts(self, routing: Routing) -> list[tuple[str, str]]:
-        """Find matching clients that have not received a start attempt.
+        """Find matching clients that have not received a start attempt and haven't turned live updates off.
 
         :param routing: The match routing IDs.
         :return: iOS client IDs and APNs tokens awaiting a start.
@@ -171,7 +187,12 @@ class SubscriptionStore:
                 select(Client.id, DeviceToken.token)
                 .join(DeviceToken, DeviceToken.client_id == Client.id)
                 .join(Favorite, Favorite.client_id == Client.id)
-                .where(DeviceToken.platform == Platform.IOS, self._favorite_filter(routing), ~started)
+                .where(
+                    DeviceToken.platform == Platform.IOS,
+                    Client.live_updates.is_not(False),
+                    self._favorite_filter(routing),
+                    ~started,
+                )
                 .distinct()
             )
         ).all()
@@ -194,6 +215,25 @@ class SubscriptionStore:
             return False
         self._session.add(LiveActivityStart(client_id=client_id, match_id=match_id))
         return True
+
+    async def has_live_android_follower(self, routing: Routing) -> bool:
+        """Check whether an Android client follows the match and hasn't turned live updates off.
+
+        :param routing: The match routing IDs.
+        :return: Whether any such client exists.
+        """
+        follower = await self._session.scalar(
+            select(Favorite.client_id)
+            .join(DeviceToken, DeviceToken.client_id == Favorite.client_id)
+            .join(Client, Client.id == Favorite.client_id)
+            .where(
+                DeviceToken.platform == Platform.ANDROID,
+                Client.live_updates.is_not(False),
+                self._favorite_filter(routing),
+            )
+            .limit(1)
+        )
+        return follower is not None
 
     async def active_player_ids(self, player_ids: list[str]) -> list[str]:
         """Find participating players with any stored favorite.

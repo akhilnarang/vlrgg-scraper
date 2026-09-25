@@ -216,15 +216,16 @@ async def _end_unavailable_match(store: SubscriptionStore, fcm_app: App | None, 
     # Only matches with an APNs channel have a stored score; Android-only rows are just removed.
     if row.last_state_json is not None:
         state = push.final_from_last_sent(row.last_state_json)
-        # Without the match page, event, team, and player IDs are unknown, so only the match topic gets this.
-        await _send_fcm(store, fcm_app, state, Routing(match_id, None, [], []))
+        # Without the match page, event and player IDs are unknown; the stored teams still carry theirs.
+        team_ids = [team.id for team in state.teams if team.id]
+        await _send_fcm(store, fcm_app, state, Routing(match_id, None, team_ids, []))
         if row.channel_id:
             await _end_apns(row.channel_id, state)
     await store.delete_match(match_id)
 
 
 async def _send_fcm(store: SubscriptionStore, fcm_app: App | None, state: CompactState, routing: Routing) -> None:
-    """Send the state to the match's FCM topics, logging any failure.
+    """Send the state to the match's FCM topics when an Android client follows it with live updates on.
 
     :param store: Subscription store.
     :param fcm_app: Firebase app, or None when FCM is not configured.
@@ -235,6 +236,8 @@ async def _send_fcm(store: SubscriptionStore, fcm_app: App | None, state: Compac
     if fcm_app is None:
         return
     try:
+        if not await store.has_live_android_follower(routing):
+            return
         player_ids = await store.active_player_ids(routing.player_ids)
         message_ids = await fcm.publish(fcm_app, fcm.build_messages(state, routing, player_ids))
         current = state.current_map

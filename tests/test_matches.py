@@ -191,9 +191,31 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
         assert token_response.headers["Cache-Control"] == "no-store"
         fcm_token = {"token": "dGVzdA_x-1:APA91bH", "platform": "android"}
         assert client.put(f"{base}/token", headers=headers, json=fcm_token).status_code == 204
+
+        # Android reports whether live updates are on; a registration without the field keeps the stored setting.
+        from app.db.models import Client
+
+        async def live_updates_setting():
+            async with sessions() as session:
+                return (await session.get(Client, "11111111-1111-4111-8111-111111111111")).live_updates
+
+        assert asyncio.run(live_updates_setting()) is None
+        assert (
+            client.put(f"{base}/token", headers=headers, json={**fcm_token, "live_updates": False}).status_code == 204
+        )
+        assert client.put(f"{base}/token", headers=headers, json=fcm_token).status_code == 204
+        assert asyncio.run(live_updates_setting()) is False
+        # Turned off, the client can't start a live update either.
+        with patch("app.services.push.deliver_instant_start", AsyncMock()) as instant_start:
+            turned_off = client.post(f"{base}/matches/123/live-activity", headers=headers)
+        assert turned_off.status_code == 409
+        instant_start.assert_not_awaited()
         # Omitting platform keeps existing iOS clients working, and iOS still requires a hex APNs token.
         assert client.put(f"{base}/token", headers=headers, json={"token": fcm_token["token"]}).status_code == 422
-        assert client.put(f"{base}/token", headers=headers, json={"token": "AABB"}).status_code == 204
+        assert (
+            client.put(f"{base}/token", headers=headers, json={"token": "AABB", "live_updates": True}).status_code
+            == 204
+        )
         assert (
             client.put(
                 f"{base}/favorites",

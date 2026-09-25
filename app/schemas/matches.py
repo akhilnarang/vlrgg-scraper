@@ -188,6 +188,7 @@ class TokenRegistration(BaseModel):
 
     token: str = Field(max_length=MAX_TOKEN_LENGTH, pattern=r"^[A-Za-z0-9_:-]+$")
     platform: Platform = Platform.IOS
+    live_updates: bool | None = None
 
     @model_validator(mode="after")
     def validate_token(self) -> Self:
