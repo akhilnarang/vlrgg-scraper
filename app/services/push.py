@@ -98,7 +98,9 @@ def project_state(match_id: str, detail: MatchWithDetails) -> CompactState | Non
         observed_at=int(time.time()),
         terminal=terminal,
         total_maps=detail.total_maps,
-        teams=[PushTeam(name=team.name, tag=team.tag, img=team.img, score=team.score) for team in detail.teams],
+        teams=[
+            PushTeam(id=team.id, name=team.name, tag=team.tag, img=team.img, score=team.score) for team in detail.teams
+        ],
         current_map=current,
         map_winners=_map_winners(detail),
     )

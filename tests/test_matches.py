@@ -330,7 +330,8 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             )
             # Winner's team ID per finished map; null for the map in progress and the unplayed one.
             assert state_data["map_winners"] == ["2", None, None]
-            assert [team["score"] for team in state_data["teams"]] == [1, 0]
+            # Team IDs let clients match map_winners to a team.
+            assert [(team["id"], team["score"]) for team in state_data["teams"]] == [("1", 1), ("2", 0)]
 
             # Android delivery must not suppress a later automatic iOS start for this client.
             assert (
