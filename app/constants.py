@@ -1,3 +1,4 @@
+from datetime import timedelta
 from enum import StrEnum
 
 PREFIX = "https://www.vlr.gg"
@@ -85,6 +86,12 @@ FAVORITE_GROUPS = {
     FavoriteType.EVENT: "events",
 }
 
+FAVORITE_MATCHES_PER_ENTITY = 5  # matches returned per favorite, for live + upcoming and again for results
+FAVORITE_RESULTS_WINDOW = timedelta(hours=24)  # how far back optional favorite results reach
+FAVORITE_PLAYER_REFRESH_DELAY = 2  # seconds between player page fetches in the players cron
+FAVORITE_PLAYER_REFRESH_BATCH = 10  # most player pages fetched per players cron run (every 30 min)
+FAVORITE_PLAYER_MAX_AGE = 86400  # seconds before a stored favorite player is fetched again
+
 
 class EventStatus(StrEnum):
     COMPLETED = "completed"
@@ -143,7 +150,11 @@ CACHE_TTL_STANDINGS = 90000  # 25 hours (cron: daily at midnight)
 # single agent run and rapid repeats, without serving stale data.
 CACHE_TTL_TEAM = 60  # 1 minute
 CACHE_TTL_PLAYER = 60  # 1 minute
+# Match detail is the most-requested VLR page (app widgets poll it in bursts). Cached only on
+# the API route, so the live-push cron still fetches fresh; short enough for live scores.
+CACHE_TTL_MATCH = 30
 
 MAX_FAVORITES_PER_GROUP = 200
+MAP_WIN_ROUNDS = 13  # rounds needed to win a map, with a two-round lead in overtime
 MAX_TOKEN_LENGTH = 4096
 ACTIVITY_ATTRIBUTES_TYPE = "MatchActivityAttributes"

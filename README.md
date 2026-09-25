@@ -67,6 +67,8 @@ Environment variables (see `app/core/config.py`):
 
 - `REDIS_HOST`: Redis server host
 - `REDIS_PASSWORD`: Redis password
+- `ENABLE_CACHE`: Cache VLR responses in Redis and run the cache crons (default `false`)
+- `ENABLE_ID_MAPPING`: Resolve team and event IDs in match lists through Redis; requires `ENABLE_CACHE`, and enables the favorites endpoint and players cron (default `false`)
 - `ENABLE_LIVE_PUSH`: Enable the live push cron and client endpoints (default `false`)
 - `APNS_CREDENTIALS_FILE`: Path to the APNs credential JSON file
 - `DATABASE_URL`: SQLite database (default `sqlite+aiosqlite:///db.sqlite3`)
@@ -74,7 +76,7 @@ Environment variables (see `app/core/config.py`):
 - `TIMEZONE`: Server timezone
 - `GOOGLE_APPLICATION_CREDENTIALS`: Path to Firebase credentials (for notifications)
 
-When live push is enabled, startup applies the Alembic migration automatically. Run
+Startup applies the Alembic migrations automatically. Run
 `uv run scripts/backup.py [backup-path]` for an online SQLite backup.
 
 ## Deployment

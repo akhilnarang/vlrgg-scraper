@@ -172,6 +172,7 @@ class CompactState(BaseModel):
     total_maps: int = 1
     teams: list[PushTeam]
     current_map: PushCurrentMap | None = None
+    map_winners: list[str | None] = []  # winning team ID per map; None while in progress or unplayed
 
     def semantic(self) -> str:
         """Serialize state without observation time for change detection.

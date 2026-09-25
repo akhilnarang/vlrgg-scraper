@@ -61,7 +61,7 @@ async def get_subscription_session() -> AsyncGenerator[AsyncSession]:
     """
     sessions = connections.subscription_sessions
     if sessions is None:
-        raise ServiceUnavailableError("Live updates are unavailable")
+        raise ServiceUnavailableError("Database is unavailable")
     try:
         async with sessions.begin() as session:
             yield session
@@ -69,10 +69,11 @@ async def get_subscription_session() -> AsyncGenerator[AsyncSession]:
         raise ServiceUnavailableError("Subscription store is unavailable") from exc
 
 
-def get_subscription_store(
-    # Function scope commits before the response is sent, so a failed commit returns 503, not 2xx.
-    session: Annotated[AsyncSession, Depends(get_subscription_session, scope="function")],
-) -> SubscriptionStore:
+# Function scope commits before the response is sent, so a failed commit returns 503, not 2xx.
+DatabaseSessionDep = Annotated[AsyncSession, Depends(get_subscription_session, scope="function")]
+
+
+def get_subscription_store(session: DatabaseSessionDep) -> SubscriptionStore:
     """Bind a subscription store to the request session.
 
     :param session: Request-scoped database session.
@@ -87,7 +88,7 @@ SubscriptionStoreDep = Annotated[SubscriptionStore, Depends(get_subscription_sto
 
 
 def set_no_store(response: Response) -> None:
-    """Prevent caching of private live-update responses."""
+    """Prevent caching of private per-client responses."""
     response.headers["Cache-Control"] = "no-store"
 
 

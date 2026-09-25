@@ -179,6 +179,16 @@ class SubscriptionStore:
         )
         return sorted(rows, key=int)
 
+    async def favorited_player_ids(self) -> list[str]:
+        """List every player that any client has favorited.
+
+        :return: Distinct favorited player IDs.
+        """
+        rows = await self._session.scalars(
+            select(Favorite.entity_id).where(Favorite.entity_type == FavoriteType.PLAYER.value).distinct()
+        )
+        return sorted(rows, key=int)
+
     async def get_match(self, match_id: str) -> MatchPushState | None:
         """Read a match's broadcast channel and last state.
 

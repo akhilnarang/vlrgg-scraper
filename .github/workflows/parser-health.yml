@@ -14,7 +14,7 @@ jobs:
       REDIS_PASSWORD: ""
       TIMEZONE: UTC
       ENABLE_CACHE: "false"
-      ENABLE_ID_MAP_DB: "false"
+      ENABLE_ID_MAPPING: "false"
 
     steps:
     - name: Checkout repository
