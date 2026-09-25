@@ -1,6 +1,7 @@
 """Minimal SQLite store for push tokens, favorites, and match channels."""
 
-from sqlalchemy import delete, exists, or_, select
+from sqlalchemy import delete, exists, or_, select, tuple_
+from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import constants
@@ -65,24 +66,54 @@ class SubscriptionStore:
         """
         await self._session.execute(delete(DeviceToken).where(DeviceToken.token == token))
 
-    async def replace_favorites(self, client_id: str, favorites: Favorites) -> None:
-        """Replace a client's validated favorites with canonical IDs.
+    @staticmethod
+    def _favorite_rows(favorites: Favorites) -> list[tuple[str, str]]:
+        """Flatten favorites to unique (entity type, canonical ID) pairs.
+
+        :param favorites: Validated favorites.
+        :return: Pairs, with IDs stripped of leading zeros.
+        """
+        return list(
+            dict.fromkeys(
+                (entity_type.value, str(int(value)))
+                for entity_type, key in constants.FAVORITE_GROUPS.items()
+                for value in getattr(favorites, key)
+            )
+        )
+
+    async def add_favorites(self, client_id: str, favorites: Favorites) -> None:
+        """Add validated favorites to a client's, registering the client if needed.
 
         :param client_id: Client UUID.
-        :param favorites: Validated favorites.
+        :param favorites: Validated favorites; ones the client already has are ignored.
         :return: None.
         """
-        rows: list[tuple[str, str]] = []
-        for entity_type, key in constants.FAVORITE_GROUPS.items():
-            for value in dict.fromkeys(str(int(value)) for value in getattr(favorites, key)):
-                rows.append((entity_type.value, value))
         if await self._session.get(Client, client_id) is None:
             self._session.add(Client(id=client_id))
-        await self._session.execute(delete(Favorite).where(Favorite.client_id == client_id))
-        self._session.add_all(
-            Favorite(client_id=client_id, entity_type=entity_type, entity_id=entity_id)
-            for entity_type, entity_id in rows
-        )
+            await self._session.flush()
+        if rows := self._favorite_rows(favorites):
+            await self._session.execute(
+                insert(Favorite)
+                .values([{"client_id": client_id, "entity_type": kind, "entity_id": value} for kind, value in rows])
+                .on_conflict_do_nothing()
+            )
+
+    async def remove_favorites(self, client_id: str, favorites: Favorites) -> None:
+        """Remove validated favorites from a client's.
+
+        :param client_id: Client UUID.
+        :param favorites: Validated favorites; ones the client doesn't have are ignored.
+        :return: None.
+        :raises NotFoundError: If the client is not registered.
+        """
+        if await self._session.get(Client, client_id) is None:
+            raise NotFoundError("Client is not registered")
+        if rows := self._favorite_rows(favorites):
+            await self._session.execute(
+                delete(Favorite).where(
+                    Favorite.client_id == client_id, tuple_(Favorite.entity_type, Favorite.entity_id).in_(rows)
+                )
+            )
 
     async def get_favorites(self, client_id: str) -> Favorites:
         """Read a client's stored favorites by group.

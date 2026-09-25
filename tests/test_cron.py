@@ -137,10 +137,10 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
     async with sessions.begin() as session:
         store = SubscriptionStore(session)
         await store.register_token(client_id, "aabb")
-        await store.replace_favorites(client_id, Favorites(matches=["123"]))
+        await store.add_favorites(client_id, Favorites(matches=["123"]))
         android_id = "22222222-2222-4222-8222-222222222222"
         await store.register_token(android_id, "fcm-token:APA91b", Platform.ANDROID)
-        await store.replace_favorites(android_id, Favorites(matches=["123", TEST_MATCH_ID]))
+        await store.add_favorites(android_id, Favorites(matches=["123", TEST_MATCH_ID]))
         await store.save_match("456", None, None)  # an Android-only row whose page is deleted
 
     listed = SimpleNamespace(id="123", status=MatchStatus.LIVE)
@@ -286,7 +286,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         from app.api.v1.endpoints.live_updates import router
 
         async with sessions.begin() as session:
-            await SubscriptionStore(session).replace_favorites(client_id, Favorites(matches=[constants.TEST_MATCH_ID]))
+            await SubscriptionStore(session).add_favorites(client_id, Favorites(matches=[constants.TEST_MATCH_ID]))
         monkeypatch.setattr(live_push.matches, "get_upcoming_matches", AsyncMock(return_value=[]))
         app = FastAPI()
         app.include_router(router, prefix="/api/v1/live-updates")
@@ -308,7 +308,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         async with sessions() as session:
             store = SubscriptionStore(session)
             assert await store.get_match(constants.TEST_MATCH_ID) is None
-            assert (await store.get_favorites(client_id)).matches == [constants.TEST_MATCH_ID]
+            assert (await store.get_favorites(client_id)).matches == ["123", constants.TEST_MATCH_ID]
         assert sum("/3/device/aabb" in request.url.path for request in requests) == 2
         # Android FCM tokens are stored for later use but must never be sent to APNs.
         assert all(r.url.path.endswith("/aabb") for r in requests if "/3/device/" in r.url.path)

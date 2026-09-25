@@ -210,6 +210,20 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             "players": ["3"],
             "events": ["4"],
         }
+        # Apps send only what the user just favorited, so a PUT adds and never drops existing favorites.
+        assert client.put(f"{base}/favorites", headers=headers, json={"teams": ["5", "1"]}).status_code == 204
+        assert client.get(f"{base}/favorites", headers=headers).json()["teams"] == ["1", "5"]
+        # DELETE removes only the favorites in its body.
+        removal = {"teams": ["1"], "matches": ["2"], "events": ["9"]}
+        assert client.request("DELETE", f"{base}/favorites", headers=headers, json=removal).status_code == 204
+        assert client.get(f"{base}/favorites", headers=headers).json() == {
+            "teams": ["5"],
+            "matches": [],
+            "players": ["3"],
+            "events": ["4"],
+        }
+        unknown = "/api/v1/live-updates/clients/33333333-3333-4333-8333-333333333333/favorites"
+        assert client.request("DELETE", unknown, headers=headers, json=removal).status_code == 404
 
         # Instant Live Activity start for an in-progress match
         mock_apns = AsyncMock()
