@@ -51,6 +51,11 @@ PUSH_LISTING_LEAD = timedelta(minutes=15)
 DEAD_TOKEN_REASONS = frozenset({"BadDeviceToken", "Unregistered", "ExpiredToken"})
 
 
+class IdMapKind(StrEnum):
+    TEAM = "team"
+    EVENT = "event"
+
+
 class MatchStatus(StrEnum):
     COMPLETED = "completed"
     ONGOING = "ongoing"

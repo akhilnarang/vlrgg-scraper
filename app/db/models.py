@@ -78,3 +78,33 @@ class Player(Base):
     payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     first_seen_at: Mapped[int] = mapped_column()
     last_fetched_at: Mapped[int] = mapped_column()
+
+
+class Team(Base):
+    """A VLR team as last seen by any scrape, plus the Riot esports fields it is matched to."""
+
+    __tablename__ = "teams"
+
+    id: Mapped[str] = mapped_column(String(10), primary_key=True)
+    source: Mapped[str] = mapped_column(String(16))
+    name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tag: Mapped[str | None] = mapped_column(Text, nullable=True)
+    country: Mapped[str | None] = mapped_column(Text, nullable=True)
+    region: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rank: Mapped[int | None] = mapped_column(nullable=True)
+    logo: Mapped[str | None] = mapped_column(Text, nullable=True)
+    riot_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    riot_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    riot_logo: Mapped[str | None] = mapped_column(Text, nullable=True)
+    first_seen_at: Mapped[int] = mapped_column()
+    last_fetched_at: Mapped[int] = mapped_column()
+
+
+class IdMapping(Base):
+    """A simplified team or event name and the VLR ID it resolves to, as the Redis ID map holds it."""
+
+    __tablename__ = "id_map"
+
+    kind: Mapped[str] = mapped_column(String(8), primary_key=True)
+    key: Mapped[str] = mapped_column(Text, primary_key=True)
+    id: Mapped[str] = mapped_column(String(10))

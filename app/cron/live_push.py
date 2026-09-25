@@ -8,7 +8,8 @@ import httpx2
 from firebase_admin import App
 from redis.asyncio import Redis
 from sentry_sdk import get_current_scope
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app import constants, schemas
 from app.cache import cache
@@ -18,7 +19,7 @@ from app.cron import synthetic_match
 from app.db.models import MatchPushState
 from app.exceptions import ScrapingError
 from app.schemas.matches import CompactState, MatchWithDetails
-from app.services import fcm, matches, push
+from app.services import fcm, matches, push, scrape_store
 from app.services.apns import APNsClient, APNsError
 from app.services.push import Routing
 from app.services.subscription_store import SubscriptionStore
@@ -68,6 +69,32 @@ async def live_push_cron(ctx: dict) -> None:
             await client.delete(failures_key)
         except Exception:
             logger.warning("live push failed for match %s", match_id, exc_info=True)
+    await _store_teams(sessions, match_ids, details)
+
+
+async def _store_teams(
+    sessions: async_sessionmaker[AsyncSession], match_ids: list[str], details: list[MatchWithDetails | BaseException]
+) -> None:
+    """Store the teams of each fetched match, whose pages carry the tag.
+
+    :param sessions: Database session factory.
+    :param match_ids: Fetched match IDs.
+    :param details: Each match's details, or the error fetching it.
+    :return: None.
+    """
+    try:
+        async with sessions.begin() as session:
+            for match_id, detail in zip(match_ids, details, strict=True):
+                if match_id == constants.TEST_MATCH_ID or isinstance(detail, BaseException):
+                    continue
+                for team in detail.teams:
+                    if team.id:
+                        await scrape_store.upsert_team(
+                            session, team.id, name=team.name, tag=team.tag, logo=str(team.img)
+                        )
+    except SQLAlchemyError:
+        # The store never fails the cron; pushes have already been sent.
+        logger.warning("could not store match teams", exc_info=True)
 
 
 async def _listed_live_ids(client: Redis) -> set[str]:

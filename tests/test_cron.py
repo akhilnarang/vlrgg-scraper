@@ -329,6 +329,35 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert last_fcm_state["current_map"]["number"] == 1
         assert match_by_id_mock.await_count == 6  # synthetic observations never hit VLR
 
+        # Fetched match pages store their teams with tags; the synthetic test match stays out of the store.
+        from app import schemas
+        from app.cron import jobs
+        from app.db.models import Team
+
+        async def stored_teams():
+            async with sessions() as session:
+                return {team.id: (team.name, team.tag, team.rank) for team in await session.scalars(select(Team))}
+
+        assert await stored_teams() == {"1": ("Alpha", "ALP", None), "2": ("Beta", "BET", None)}
+        # A rankings run adds the rank and keeps the tag it doesn't carry.
+        ranked = schemas.Ranking(
+            region="Europe",
+            teams=[
+                schemas.TeamRanking(
+                    name="Alpha", id=1, logo="https://cdn.vlr.gg/a.png", rank=3, points=900, country="France"
+                )
+            ],
+        )
+        monkeypatch.setattr(jobs.rankings, "ranking_list", AsyncMock(return_value=[ranked]))
+        await jobs.rankings_cron({"redis": AsyncMock()})
+        assert (await stored_teams())["1"] == ("Alpha", "ALP", 3)
+        # VLR shows no tag before a match's first map; that must not erase the stored one.
+        from app.services import scrape_store
+
+        async with sessions.begin() as session:
+            await scrape_store.upsert_team(session, "1", name="Alpha", tag=None)
+        assert (await stored_teams())["1"] == ("Alpha", "ALP", 3)
+
         # With nothing live or starting soon in the cached list, idle minutes must not fetch VLR's listing.
         from app import schemas
 
