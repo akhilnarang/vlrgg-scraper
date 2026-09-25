@@ -45,23 +45,30 @@ async def test_match_details_follow_the_public_response_contract(http_response):
     ]
 
 
-def test_display_strings_follow_accept_language(http_response):
+def test_display_strings_follow_accept_language(monkeypatch, http_response):
     """Localized labels come from the device locale header; no header keeps the legacy English payload."""
     from fastapi import FastAPI
     from fastapi.middleware.gzip import GZipMiddleware
     from fastapi.testclient import TestClient
 
     from app import i18n
+    from app.api import deps
     from app.api.v1.endpoints.matches import router
 
     app = FastAPI()
     app.add_middleware(GZipMiddleware, minimum_size=0)
     app.middleware("http")(i18n.localize_response)
     app.include_router(router, prefix="/api/v1/matches")
+    store = {}
+    redis = AsyncMock()
+    redis.get.side_effect = store.get
+    redis.set.side_effect = lambda key, value, ttl: store.__setitem__(key, value)
+    app.dependency_overrides[deps.get_redis_client] = lambda: redis
+    monkeypatch.setattr("app.cache.cache.settings.ENABLE_CACHE", True)
 
     response = http_response("https://www.vlr.gg/12345", (FIXTURE_DIR / "match_12345.html").read_bytes())
     with (
-        patch("httpx2.AsyncClient.get", return_value=response),
+        patch("httpx2.AsyncClient.get", return_value=response) as vlr_get,
         patch("app.services.matches.get_team_data", AsyncMock(return_value=[])),
     ):
         client = TestClient(app)
@@ -70,6 +77,8 @@ def test_display_strings_follow_accept_language(http_response):
         unknown = client.get("/api/v1/matches/12345", headers={"Accept-Language": "xx"})
 
     assert english.status_code == hindi.status_code == 200
+    # Repeat requests within the TTL are served from cache, still localized per request.
+    assert vlr_get.call_count == 1
     assert english.headers["content-language"] == "en" and hindi.headers["content-language"] == "hi"
     en_event, hi_event = english.json()["event"], hindi.json()["event"]
     assert (en_event["status"], en_event["status_label"]) == ("completed", "Completed")

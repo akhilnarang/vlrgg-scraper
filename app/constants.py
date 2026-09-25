@@ -143,6 +143,9 @@ CACHE_TTL_STANDINGS = 90000  # 25 hours (cron: daily at midnight)
 # single agent run and rapid repeats, without serving stale data.
 CACHE_TTL_TEAM = 60  # 1 minute
 CACHE_TTL_PLAYER = 60  # 1 minute
+# Match detail is the most-requested VLR page (app widgets poll it in bursts). Cached only on
+# the API route, so the live-push cron still fetches fresh; short enough for live scores.
+CACHE_TTL_MATCH = 30
 
 MAX_FAVORITES_PER_GROUP = 200
 MAX_TOKEN_LENGTH = 4096
