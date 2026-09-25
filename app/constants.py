@@ -39,6 +39,7 @@ STANDINGS_URL = f"{PREFIX}/vct-{{}}/standings"
 
 TBD = "tbd"
 TEST_MATCH_ID = "3141592653"
+TEAM_LOGOS_URL = "https://files.akhilnarang.dev/cdn/valorant/teams.json"  # VLR team ID -> CDN logo
 TEST_TICK_KEY = "vlrgg:push:test_tick"
 # A tracked match whose page fails this many cron runs in a row is ended (e.g. VLR blocked our IP).
 PUSH_FETCH_FAILURE_LIMIT = 3

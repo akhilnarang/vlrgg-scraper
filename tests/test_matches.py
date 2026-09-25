@@ -178,6 +178,18 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
     monkeypatch.setattr(deps.settings, "ENABLE_LIVE_PUSH", True)
     monkeypatch.setattr(deps.settings, "API_KEYS", {"test": "secret"})
 
+    # The CDN logo manifest, as live push startup loads it; team 1 has a mirrored logo, team 2 does not.
+    import httpx2
+
+    from app.services import team_logos
+
+    cdn_logo = "https://files.akhilnarang.dev/cdn/valorant/teams/1.png"
+    manifest = httpx2.MockTransport(lambda request: httpx2.Response(200, json={"1": {"logo": {"url": cdn_logo}}}))
+    real_client = httpx2.AsyncClient
+    monkeypatch.setattr(team_logos.httpx2, "AsyncClient", lambda **kwargs: real_client(transport=manifest, **kwargs))
+    monkeypatch.setattr(team_logos, "_logos", {})
+    asyncio.run(team_logos.load())
+
     app = FastAPI()
     app.include_router(router, prefix="/api/v1/live-updates")
     client = TestClient(app)
@@ -332,6 +344,11 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             assert state_data["map_winners"] == ["2", None, None]
             # Team IDs let clients match map_winners to a team.
             assert [(team["id"], team["score"]) for team in state_data["teams"]] == [("1", 1), ("2", 0)]
+            # The CDN logo rides alongside VLR's img, which released apps still require.
+            assert [(team["img"], team["logo"]) for team in state_data["teams"]] == [
+                ("https://cdn.vlr.gg/a.png", cdn_logo),
+                ("https://cdn.vlr.gg/b.png", None),
+            ]
 
             # Android delivery must not suppress a later automatic iOS start for this client.
             assert (

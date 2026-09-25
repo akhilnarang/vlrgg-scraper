@@ -8,6 +8,7 @@ from app.constants import MAP_WIN_ROUNDS, Platform
 from app.db.models import DeviceToken
 from app.exceptions import ServiceUnavailableError
 from app.schemas.matches import CompactState, MatchData, MatchWithDetails, PushCurrentMap, PushTeam
+from app.services import team_logos
 from app.utils import is_final
 
 
@@ -99,7 +100,15 @@ def project_state(match_id: str, detail: MatchWithDetails) -> CompactState | Non
         terminal=terminal,
         total_maps=detail.total_maps,
         teams=[
-            PushTeam(id=team.id, name=team.name, tag=team.tag, img=team.img, score=team.score) for team in detail.teams
+            PushTeam(
+                id=team.id,
+                name=team.name,
+                tag=team.tag,
+                img=team.img,
+                logo=team_logos.logo_url(team.id),
+                score=team.score,
+            )
+            for team in detail.teams
         ],
         current_map=current,
         map_winners=_map_winners(detail),

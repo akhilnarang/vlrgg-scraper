@@ -2,7 +2,7 @@
 
 from app.core import connections
 from app.core.config import settings
-from app.services import apns, fcm
+from app.services import apns, fcm, team_logos
 
 
 async def start_live_push() -> None:
@@ -19,6 +19,7 @@ async def start_live_push() -> None:
     connections.apns_client = apns.build_client()
     if settings.GOOGLE_APPLICATION_CREDENTIALS:
         fcm.get_app()  # fail at startup on a bad service account, not on every cron run
+    await team_logos.load()
 
 
 async def stop_live_push() -> None:
