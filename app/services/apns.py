@@ -198,7 +198,7 @@ class APNsClient:
         response = await self.client.post(
             f"{self.manage_host}/1/apps/{self.credentials.bundle_id}/channels",
             headers=self._headers(),
-            json={"message-storage-policy": 0, "push-type": "LiveActivity"},
+            json={"message-storage-policy": constants.APNS_STORE_LATEST_BROADCAST, "push-type": "LiveActivity"},
         )
         self._check(response, (201,))
         channel = response.headers.get("apns-channel-id")
@@ -223,7 +223,7 @@ class APNsClient:
                     "apns-push-type": "liveactivity",
                     "apns-topic": f"{self.credentials.bundle_id}.push-type.liveactivity",
                     "apns-priority": "10",
-                    "apns-expiration": "0",
+                    "apns-expiration": str(int(time.time()) + constants.APNS_START_EXPIRATION),
                 }
             ),
             json={
