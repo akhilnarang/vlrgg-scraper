@@ -42,7 +42,7 @@ async def test_favorite_matches_follow_teams_players_events_and_matches(monkeypa
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     monkeypatch.setattr(connections, "subscription_sessions", sessions)
     async with sessions.begin() as session:
-        await SubscriptionStore(session).replace_favorites(
+        await SubscriptionStore(session).add_favorites(
             CLIENT_ID, Favorites(teams=["624"], events=["2766"], players=["9"], matches=["800"])
         )
 

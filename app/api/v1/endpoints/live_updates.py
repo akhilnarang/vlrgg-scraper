@@ -42,8 +42,14 @@ async def delete_token(client_id: UUID, store: deps.SubscriptionStoreDep) -> Non
 
 @router.put("/clients/{client_id}/favorites", status_code=status.HTTP_204_NO_CONTENT)
 async def put_favorites(client_id: UUID, body: Favorites, store: deps.SubscriptionStoreDep) -> None:
-    """Replace a client's favorites."""
-    await store.replace_favorites(str(client_id), body)
+    """Add to a client's favorites; existing ones are kept."""
+    await store.add_favorites(str(client_id), body)
+
+
+@router.delete("/clients/{client_id}/favorites", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_favorites(client_id: UUID, body: Favorites, store: deps.SubscriptionStoreDep) -> None:
+    """Remove the given favorites from a client's."""
+    await store.remove_favorites(str(client_id), body)
 
 
 @router.get("/clients/{client_id}/favorites")
