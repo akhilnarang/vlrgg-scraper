@@ -13,6 +13,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app import constants
 from app.constants import TEST_MATCH_ID, MatchStatus, Platform
 from app.cron import legacy_fcm, live_push, worker
 from app.db.models import LiveActivityStart
@@ -156,12 +157,14 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
     fetches = {
         "123": [
             _live_detail("upcoming", (1, 0)),
+            _live_detail("upcoming", (1, 0)),
+            _live_detail("upcoming", (1, 0)),
             ScrapingError(upstream_status=502),
             httpx2.ConnectTimeout("timed out"),
             ScrapingError(upstream_status=503),
             ScrapingError(upstream_status=500),
         ],
-        "456": [ScrapingError(upstream_status=404)],
+        "456": [ScrapingError(upstream_status=404)] * 2,
     }
 
     async def fetch(match_id, redis_client):
@@ -170,7 +173,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             raise outcome
         return outcome
 
-    monkeypatch.setattr(live_push.matches, "get_upcoming_matches", AsyncMock(side_effect=[[listed], [], [], [], []]))
+    monkeypatch.setattr(live_push.matches, "get_upcoming_matches", AsyncMock(side_effect=[[listed]] * 3 + [[]] * 4))
     match_by_id_mock = AsyncMock(side_effect=fetch)
     monkeypatch.setattr(live_push.matches, "match_by_id", match_by_id_mock)
     monkeypatch.setattr(live_push.settings, "ENABLE_LIVE_PUSH", True)
@@ -243,6 +246,14 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
 
     redis = AsyncMock()
     redis.get.return_value = None
+    # The broadcast is a round ahead of VLR's 13-9; one team matches on VLR's tag, the other on its name.
+    video = {
+        "status": "ok",
+        "observed_at": int(time.time()),
+        "map_number": 1,
+        "teams": [{"code": "ALP", "name": "Alpha Esports", "score": 13}, {"code": "XYZ", "name": "beta", "score": 10}],
+    }
+    redis.get.side_effect = lambda key: json.dumps(video) if key == constants.VIDEO_SCORE_KEY else None
     redis.set.side_effect = set_tick
     redis.exists.side_effect = lambda key: key in ticks
     redis.delete.side_effect = lambda key: ticks.pop(key, None)
@@ -253,14 +264,24 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             return sorted(await SubscriptionStore(session).list_match_ids())
 
     try:
-        await live_push.live_push_cron({"redis": redis})
+        # The tracker's update pushes its match at once, without touching other matches' VLR failures.
+        await live_push.live_push_job({"redis": redis})
         async with sessions() as session:
             row = await SubscriptionStore(session).get_match("123")
         assert row is not None and row.channel_id == "channel-123"
-        assert await stored_match_ids() == ["123"]
         assert any("/3/device/aabb" in request.url.path for request in requests)
         assert not any("/3/device/ccdd" in request.url.path for request in requests)
         assert fcm_calls and "'live-match-123' in topics" in fcm_calls[0][0].condition
+        assert json.loads(fcm_calls[0][0].data["state"])["current_map"]["scores"] == [13, 10]
+        # While the tracker is healthy, the minute cron leaves its match alone.
+        await live_push.live_push_cron({"redis": redis})
+        assert await stored_match_ids() == ["123"]
+        assert len(fcm_calls) == 1
+        # Once the tracker reports an error, VLR's 13-9 takes over but never pushes below the video's 13-10.
+        video["status"] = "error"
+        await live_push.live_push_cron({"redis": redis})
+        assert json.loads(fcm_calls[1][0].data["state"])["current_map"]["scores"] == [13, 10]
+        redis.get.side_effect = None
 
         for failures in (1, 1, 2):
             await live_push.live_push_cron({"redis": redis})
@@ -269,7 +290,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         await live_push.live_push_cron({"redis": redis})
         assert await stored_match_ids() == []
         assert not [key for key in ticks if key.startswith("vlrgg:push:fetch_failures:")]
-        assert match_by_id_mock.await_count == 6
+        assert match_by_id_mock.await_count == 9
         end_payloads = [
             json.loads(request.content)["aps"]
             for request in requests
@@ -279,14 +300,13 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         # The final state is rebuilt from the stored one, so the tags clients show must survive it.
         end_teams = end_payloads[0]["content-state"]["teams"]
         assert [(team["tag"], team["score"]) for team in end_teams] == [("ALP", 1), ("BET", 0)]
-        assert [team["tag"] for team in json.loads(fcm_calls[1][0].data["state"])["teams"]] == ["ALP", "BET"]
+        assert [team["tag"] for team in json.loads(fcm_calls[2][0].data["state"])["teams"]] == ["ALP", "BET"]
         assert any(request.method == "DELETE" for request in requests)
-        assert len(fcm_calls) == 2
-        assert json.loads(fcm_calls[1][0].data["state"])["terminal"] is True
+        assert len(fcm_calls) == 3
+        assert json.loads(fcm_calls[2][0].data["state"])["terminal"] is True
 
         from fastapi import FastAPI
 
-        from app import constants
         from app.api import deps
         from app.api.v1.endpoints.live_updates import router
 
@@ -339,7 +359,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert last_fcm_state["terminal"] is True
         assert last_fcm_state["total_maps"] == 3
         assert last_fcm_state["current_map"]["number"] == 1
-        assert match_by_id_mock.await_count == 6  # synthetic observations never hit VLR
+        assert match_by_id_mock.await_count == 9  # synthetic observations never hit VLR
 
         # Fetched match pages store their teams with tags; the synthetic test match stays out of the store.
         from app import schemas

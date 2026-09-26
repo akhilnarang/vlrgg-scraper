@@ -1,4 +1,5 @@
 import string
+import time
 from datetime import datetime
 from typing import Self
 
@@ -9,9 +10,11 @@ from app.constants import (
     LIVE_STATUSES,
     MAX_FAVORITES_PER_GROUP,
     MAX_TOKEN_LENGTH,
+    VIDEO_STALE_SECONDS,
     MatchStatus,
     Platform,
     VetoAction,
+    VideoStatus,
 )
 
 
@@ -209,6 +212,31 @@ class CompactState(BaseModel):
         :return: Stable JSON representation of the score state.
         """
         return self.model_dump_json(exclude={"observed_at"})
+
+
+class VideoTeam(BaseModel):
+    """One team as the broadcast video tracker identifies it."""
+
+    code: str  # Riot team code, usually the same as VLR's tag
+    name: str
+    score: int = Field(ge=0, le=99)
+
+
+class VideoScore(BaseModel):
+    """The latest map score read from the broadcast by the video tracker, and whether it is still reading."""
+
+    status: VideoStatus
+    observed_at: int  # Unix seconds of the tracker's last write
+    map_number: int = Field(ge=1)
+    teams: list[VideoTeam] = Field(min_length=2, max_length=2)
+
+    @property
+    def healthy(self) -> bool:
+        """Whether the tracker is reading the current map and wrote recently.
+
+        :return: True while the video, not VLR, should drive this match's pushes.
+        """
+        return self.status == VideoStatus.OK and time.time() - self.observed_at <= VIDEO_STALE_SECONDS
 
 
 class TokenRegistration(BaseModel):
