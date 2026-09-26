@@ -15,6 +15,8 @@ ExecStart=%h/vlrgg-scraper/.venv/bin/gunicorn app.main:app \
     --worker-class uvicorn_worker.UvicornWorker --workers 1 \
     --bind unix:%h/vlrgg-scraper/gunicorn.sock --umask 0o111 \
     --timeout 60 --graceful-timeout 60 --access-logfile -
+# HUP: gunicorn starts a worker with the new code, then gracefully stops the old one; the socket stays open.
+ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=5s
 TimeoutStopSec=90s
