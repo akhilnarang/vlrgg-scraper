@@ -6,6 +6,7 @@ from http import HTTPStatus
 
 import httpx2
 from firebase_admin import App
+from pydantic import ValidationError
 from redis.asyncio import Redis
 from sentry_sdk import get_current_scope
 from sqlalchemy.exc import SQLAlchemyError
@@ -18,12 +19,12 @@ from app.core.config import settings
 from app.cron import synthetic_match
 from app.db.models import MatchPushState
 from app.exceptions import ScrapingError
-from app.schemas.matches import CompactState, MatchWithDetails
+from app.schemas.matches import CompactState, MatchWithDetails, VideoScore
 from app.services import fcm, matches, push, scrape_store
 from app.services.apns import APNsClient, APNsError
 from app.services.push import Routing
 from app.services.subscription_store import SubscriptionStore
-from app.utils import is_live
+from app.utils import is_final, is_live
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +35,32 @@ _DEAD_TOKEN_REASONS = constants.DEAD_TOKEN_REASONS
 async def live_push_cron(ctx: dict) -> None:
     """Send compact updates for matches that are live or have stored push state.
 
+    A match the video tracker is healthily reading is left to its updates, except to end it.
+
     :param ctx: arq job context holding the Redis client.
     :return: None.
     """
     get_current_scope().set_transaction_name("Live Push Cron")
+    await _live_push(ctx, video_update=False)
+
+
+async def live_push_job(ctx: dict) -> None:
+    """Push the match whose score the video tracker just stored; enqueued by the tracker as ``LIVE_PUSH_JOB``.
+
+    :param ctx: arq job context holding the Redis client.
+    :return: None.
+    """
+    get_current_scope().set_transaction_name("Live Push Video")
+    await _live_push(ctx, video_update=True)
+
+
+async def _live_push(ctx: dict, *, video_update: bool) -> None:
+    """Send compact updates for live and stored matches.
+
+    :param ctx: arq job context holding the Redis client.
+    :param video_update: Whether the video tracker triggered this run, which then pushes only its match.
+    :return: None.
+    """
     sessions = connections.subscription_sessions
     if not settings.ENABLE_LIVE_PUSH or sessions is None:
         return
@@ -48,8 +71,16 @@ async def live_push_cron(ctx: dict) -> None:
         match_ids = sorted(live_ids | set(await SubscriptionStore(session).list_match_ids()))
     details = await asyncio.gather(*(_fetch_detail(client, match_id) for match_id in match_ids), return_exceptions=True)
     fcm_app = fcm.get_app() if settings.GOOGLE_APPLICATION_CREDENTIALS else None
+    video = await _video_score(client)
+    healthy = video is not None and video.healthy
 
     for match_id, detail in zip(match_ids, details, strict=True):
+        covered = not isinstance(detail, BaseException) and video is not None and push.apply_video_score(detail, video)
+        if video_update and not covered:
+            # A video run pushes only the tracker's match; counting VLR failures here would end matches too soon.
+            continue
+        if covered and healthy and not video_update and not is_final(detail.event.status):
+            continue  # the tracker's own updates push this match
         failures_key = constants.PUSH_FETCH_FAILURES_KEY.format(match_id)
         try:
             async with sessions() as session:
@@ -95,6 +126,21 @@ async def _store_teams(
     except SQLAlchemyError:
         # The store never fails the cron; pushes have already been sent.
         logger.warning("could not store match teams", exc_info=True)
+
+
+async def _video_score(client: Redis) -> VideoScore | None:
+    """Read the score the broadcast video tracker last stored.
+
+    :param client: Redis client.
+    :return: The video score, or None when there is none or it is invalid.
+    """
+    if not (data := await client.get(constants.VIDEO_SCORE_KEY)):
+        return None
+    try:
+        return VideoScore.model_validate_json(data)
+    except ValidationError:
+        logger.warning("ignoring invalid video score %r", data)
+        return None
 
 
 async def _listed_live_ids(client: Redis) -> set[str]:

@@ -3,9 +3,10 @@ import logging
 from asyncio import Task
 from typing import Any
 
-from arq import cron
+from arq import cron, func
 from arq.worker import create_worker
 
+from app import constants
 from app.core.config import settings
 from app.services.fcm import close_app
 
@@ -30,6 +31,7 @@ class ArqWorker:
         :return: None.
         """
         cron_jobs = []
+        functions = []
         if settings.ENABLE_CACHE:
             cron_jobs.extend(
                 [
@@ -52,19 +54,21 @@ class ArqWorker:
             cron_jobs.append(cron("app.cron.favorite_players.favorite_players_cron", hour=None, minute={10, 40}))
         if settings.ENABLE_LIVE_PUSH:
             # Every minute; the fixed job_id makes arq skip a run while the previous one is still going.
-            cron_jobs.append(cron("app.cron.live_push.live_push_cron", second=0, job_id="live_push_cron"))
+            cron_jobs.append(cron("app.cron.live_push.live_push_cron", second=0, job_id=constants.LIVE_PUSH_JOB_ID))
+            # Enqueued by the video tracker; keeping no result frees the shared job ID as soon as it finishes.
+            functions.append(func("app.cron.live_push.live_push_job", name=constants.LIVE_PUSH_JOB, keep_result=0))
 
-        self.task = asyncio.create_task(self._run(cron_jobs, kwargs))
+        self.task = asyncio.create_task(self._run({"cron_jobs": cron_jobs, "functions": functions}, kwargs))
 
-    async def _run(self, cron_jobs: list, kwargs: dict[str, Any]) -> None:
+    async def _run(self, jobs: dict[str, list], kwargs: dict[str, Any]) -> None:
         """Restart the arq worker if it exits unexpectedly.
 
-        :param cron_jobs: Scheduled arq jobs.
+        :param jobs: Scheduled and enqueueable arq jobs.
         :param kwargs: Arguments forwarded to the arq worker.
         :return: None.
         """
         while True:
-            worker = create_worker({"cron_jobs": cron_jobs}, **kwargs)
+            worker = create_worker(jobs, **kwargs)
             try:
                 await worker.async_run()
             except asyncio.CancelledError:

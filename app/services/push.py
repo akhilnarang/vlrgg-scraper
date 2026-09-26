@@ -7,7 +7,7 @@ from typing import NamedTuple
 from app.constants import MAP_WIN_ROUNDS, Platform
 from app.db.models import DeviceToken
 from app.exceptions import ServiceUnavailableError
-from app.schemas.matches import CompactState, MatchData, MatchWithDetails, PushCurrentMap, PushTeam
+from app.schemas.matches import CompactState, MatchData, MatchWithDetails, PushCurrentMap, PushTeam, VideoScore
 from app.utils import is_final
 
 
@@ -106,6 +106,41 @@ def project_state(match_id: str, detail: MatchWithDetails) -> CompactState | Non
     )
 
 
+def apply_video_score(detail: MatchWithDetails, video: VideoScore) -> bool:
+    """Raise a map's score to the one read from the broadcast, when it is ahead of VLR's.
+
+    Teams match on VLR's name or tag; VLR shows tags only once a map has a round timeline.
+    Only a higher round total is applied, so VLR never moves a score below the video's.
+
+    :param detail: Scraped match details, updated in place.
+    :param video: Score read from the broadcast video.
+    :return: Whether the video is of this match.
+    """
+    maps = _named_maps(detail)
+    if len(detail.teams) != 2 or video.map_number > len(maps):
+        return False
+    scores = {}
+    for team in detail.teams:
+        name = team.name.strip().casefold()
+        tag = (team.tag or "").casefold()
+        read = next(
+            (
+                item
+                for item in video.teams
+                if item.name.strip().casefold() == name or (tag and item.code.casefold() == tag)
+            ),
+            None,
+        )
+        if read is None:
+            return False
+        scores[name] = read.score
+    map_data = maps[video.map_number - 1]
+    if sum(scores.values()) > sum(team.score or 0 for team in map_data.teams):
+        for team in map_data.teams:
+            team.score = scores.get(team.name.strip().casefold(), team.score)
+    return True
+
+
 def final_from_last_sent(last_state_json: str) -> CompactState:
     """Rebuild the last sent score as a final state.
 
@@ -117,6 +152,15 @@ def final_from_last_sent(last_state_json: str) -> CompactState:
     )
 
 
+def _named_maps(detail: MatchWithDetails) -> list[MatchData]:
+    """List the match's maps that have a name.
+
+    :param detail: Scraped match details.
+    :return: Maps in series order, without unnamed or TBD entries.
+    """
+    return [item for item in detail.data if item.map.strip() and item.map.strip().casefold() != "tbd"]
+
+
 def _current_map(detail: MatchWithDetails, terminal: bool) -> PushCurrentMap | None:
     """Find the map to display in a compact score state.
 
@@ -124,7 +168,7 @@ def _current_map(detail: MatchWithDetails, terminal: bool) -> PushCurrentMap | N
     :param terminal: Whether the match is final.
     :return: Selected map, or None when no map is available.
     """
-    maps = [item for item in detail.data if item.map.strip() and item.map.strip().casefold() != "tbd"]
+    maps = _named_maps(detail)
     if not maps:
         return None
     started = [item for item in maps if item.rounds or any((team.score or 0) > 0 for team in item.teams)]
@@ -139,7 +183,7 @@ def _map_winners(detail: MatchWithDetails) -> list[str | None]:
     :param detail: Scraped match details.
     :return: One entry per map up to ``total_maps``: the winner's team ID, or None if not finished.
     """
-    maps = [item for item in detail.data if item.map.strip() and item.map.strip().casefold() != "tbd"]
+    maps = _named_maps(detail)
     winners: list[str | None] = [None] * max(detail.total_maps, len(maps))
     for index, map_data in enumerate(maps):
         first, second = _aligned_scores(map_data, detail)

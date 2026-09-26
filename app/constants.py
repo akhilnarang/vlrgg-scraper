@@ -46,6 +46,13 @@ PUSH_FETCH_FAILURES_KEY = "vlrgg:push:fetch_failures:{}"
 PUSH_FETCH_FAILURES_TTL = 600  # seconds; failures are consecutive per-minute runs
 # The live push cron fetches the VLR listing only while a cached match is live or starts within this lead.
 PUSH_LISTING_LEAD = timedelta(minutes=15)
+# The broadcast video tracker, a separate process, stores the score it reads under VIDEO_SCORE_KEY and then
+# enqueues LIVE_PUSH_JOB with LIVE_PUSH_JOB_ID, which the minute cron shares so the two runs never overlap.
+VIDEO_SCORE_KEY = "vlrgg:push:video_score"
+LIVE_PUSH_JOB = "live_push"
+LIVE_PUSH_JOB_ID = "live_push_cron"
+# The tracker refreshes its score every 30 seconds; an older one means it stopped, so VLR takes over.
+VIDEO_STALE_SECONDS = 90
 
 
 DEAD_TOKEN_REASONS = frozenset({"BadDeviceToken", "Unregistered", "ExpiredToken"})
@@ -54,6 +61,11 @@ DEAD_TOKEN_REASONS = frozenset({"BadDeviceToken", "Unregistered", "ExpiredToken"
 class IdMapKind(StrEnum):
     TEAM = "team"
     EVENT = "event"
+
+
+class VideoStatus(StrEnum):
+    OK = "ok"  # the tracker is reading the current map; only its updates push this match
+    ERROR = "error"  # no map is being read; VLR pushes, but never below the last video score
 
 
 class MatchStatus(StrEnum):
