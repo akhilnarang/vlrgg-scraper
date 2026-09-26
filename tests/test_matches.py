@@ -22,8 +22,13 @@ async def test_match_details_follow_the_public_response_contract(http_response):
     assert [(team.name, team.score, team.tag) for team in result.teams] == [("Team A", 2, "A"), ("Team B", 1, "B")]
     assert result.event.id == "2283"
     assert result.event.series == "Event Series"
-    assert result.map_count == 1
-    assert [(item.map, [team.score for team in item.teams]) for item in result.data] == [("Lotus", [13, 10])]
+    assert result.event.patch == "13.05"
+    assert result.map_count == 2
+    # A won map names its winner; a map VLR shows as 0-0 without rounds hasn't been played.
+    assert [(item.map, [team.score for team in item.teams], item.winner) for item in result.data] == [
+        ("Lotus", [13, 10], "Team A"),
+        ("Split", [None, None], None),
+    ]
     member = result.data[0].members[0]
     assert (member.id, member.name, member.team) == ("2114", "Kinguyen", "Team A")
     assert (member.agents[0].title, member.rating, member.kills) == ("Raze", 1.42, 29)
@@ -271,9 +276,14 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
                     teams=[Team(name="Beta", score=14), Team(name="Alpha", score=12)],
                     members=[],
                     rounds=[],
+                    winner="Beta",
                 ),
                 MatchData(
-                    map="Bind", teams=[Team(name="Alpha", score=12), Team(name="Beta", score=11)], members=[], rounds=[]
+                    map="Bind",
+                    teams=[Team(name="Alpha", score=12), Team(name="Beta", score=11)],
+                    members=[],
+                    rounds=[],
+                    live=True,
                 ),
             ],
             previous_encounters=[],
@@ -281,6 +291,9 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
         completed_detail = live_detail.model_copy(
             update={"event": live_detail.event.model_copy(update={"status": "completed"})}
         )
+        # The match detail response names the live map, with scores in the match's team order.
+        assert live_detail.model_dump()["current_map"] == {"name": "Bind", "scores": [12, 11], "number": 2}
+        assert completed_detail.model_dump()["current_map"] is None
 
         with patch("app.services.matches.match_by_id", AsyncMock(return_value=live_detail)):
             start_response = client.post(f"{base}/matches/123/live-activity", headers=headers)

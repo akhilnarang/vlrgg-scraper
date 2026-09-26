@@ -185,10 +185,8 @@ def get_event_data(soup: BeautifulSoup) -> dict:
         "date": event_date,
         "status": status,
     }
-    if (patch_data := event_data.find_all("div", class_="wf-tooltip")) and "patch" in (
-        patch_data := clean_string(patch_data[-1].get_text())
-    ):
-        ret["patch"] = clean_string(patch_data.split("\n")[0])
+    if patch := re.search(r"\bPatch\s+(\d+(?:\.\d+)+)", event_data.get_text()):
+        ret["patch"] = patch.group(1)
     return ret
 
 
@@ -241,6 +239,8 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
         for map_data in map_navigation
     }
 
+    live_map_ids = {map_data["data-game-id"] for map_data in map_navigation if "mod-live" in map_data.get("class", [])}
+
     # If the above dict is empty (i.e. no vm-stats-gamesnav-item), we know that there is a single map
     if maps == {}:
         if map_data := stats.find_all("div", class_="map"):
@@ -259,13 +259,16 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
     for map_data in map_stats:
         if (match_map_id := map_data["data-game-id"]) == "all" or maps.get(match_map_id, "").lower() == constants.TBD:
             continue
+        scores = map_data.find_all("div", class_="score")[:2]
         teams = [
             {
                 "name": map_data.find_all("div", class_="team-name")[i].get_text().strip(),
-                "score": map_data.find_all("div", class_="score")[i].get_text().strip(),
+                "score": scores[i].get_text().strip(),
             }
             for i in range(2)
         ]
+        winner = next((team["name"] for team, score in zip(teams, scores) if "mod-win" in score.get("class", [])), None)
+        live = match_map_id in live_map_ids
         team_short_name = [
             clean_string(elem.get_text())
             for elem in map_data.find("div", class_="vlr-rounds").find_all("div", class_="team")
@@ -318,7 +321,25 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
             if scoreboards
             else parse_overview_scoreboard(map_data, team_name_mapping)
         )
-        map_ret.append({"map": maps.get(match_map_id), "teams": teams, "members": members, "rounds": rounds})
+        # VLR prints 0-0 for maps that haven't started; report them as unknown rather than a 0-0 result.
+        if (
+            winner is None
+            and not live
+            and all(team["score"] == "0" for team in teams)
+            and not any(item["round_score"] for item in rounds)
+        ):
+            for team in teams:
+                team["score"] = None
+        map_ret.append(
+            {
+                "map": maps.get(match_map_id),
+                "teams": teams,
+                "members": members,
+                "rounds": rounds,
+                "live": live,
+                "winner": winner,
+            }
+        )
     return map_ret, map_count
 
 

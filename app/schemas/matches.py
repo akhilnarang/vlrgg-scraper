@@ -5,7 +5,14 @@ from typing import Self
 from pydantic import BaseModel, Field, HttpUrl, computed_field, field_validator, model_validator
 
 from app import i18n
-from app.constants import MAX_FAVORITES_PER_GROUP, MAX_TOKEN_LENGTH, MatchStatus, Platform, VetoAction
+from app.constants import (
+    LIVE_STATUSES,
+    MAX_FAVORITES_PER_GROUP,
+    MAX_TOKEN_LENGTH,
+    MatchStatus,
+    Platform,
+    VetoAction,
+)
 
 
 class Team(BaseModel):
@@ -80,6 +87,8 @@ class MatchData(BaseModel):
     teams: list[Team]
     members: list[TeamMember]
     rounds: list[Round]
+    live: bool = False
+    winner: str | None = None  # winning team's name once VLR marks the map as won
 
 
 class PreviousEncounters(BaseModel):
@@ -110,6 +119,14 @@ class MatchVideos(BaseModel):
     vods: list[Video]
 
 
+class PushCurrentMap(BaseModel):
+    """Current map and its team scores."""
+
+    name: str
+    scores: list[int | None]
+    number: int | None = None
+
+
 # Response for `GET /api/v1/matches/{match_id}`
 class MatchWithDetails(BaseModel):
     teams: list[TeamWithImage]
@@ -121,6 +138,25 @@ class MatchWithDetails(BaseModel):
     total_maps: int = 1
     data: list[MatchData]
     previous_encounters: list[PreviousEncounters]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def current_map(self) -> PushCurrentMap | None:
+        """The map being played, or up next between maps, with scores in team order; only for live matches."""
+        if self.event.status not in LIVE_STATUSES or len(self.teams) != 2:
+            return None
+        number, selected = next(
+            (item for item in enumerate(self.data, start=1) if item[1].live),
+            next(((index, item) for index, item in enumerate(self.data, start=1) if item.winner is None), (0, None)),
+        )
+        if selected is None:
+            return None
+        scores = {team.name.strip().casefold(): team.score for team in selected.teams}
+        return PushCurrentMap(
+            name=selected.map,
+            number=number,
+            scores=[scores.get(team.name.strip().casefold()) for team in self.teams],
+        )
 
 
 class MatchTeam(BaseModel):
@@ -154,14 +190,6 @@ class PushTeam(BaseModel):
     tag: str | None = None
     img: HttpUrl | None = None
     score: int | None = None
-
-
-class PushCurrentMap(BaseModel):
-    """Current map and its team scores."""
-
-    name: str
-    scores: list[int | None]
-    number: int | None = None
 
 
 class CompactState(BaseModel):

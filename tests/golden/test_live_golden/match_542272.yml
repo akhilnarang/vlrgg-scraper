@@ -6,8 +6,10 @@ bans:
 - NRG pick Abyss
 - FNC pick Ascent
 - Sunset remains
+current_map: null
 data:
-- map: Corrode
+- live: false
+  map: Corrode
   members:
   - acs: 375
     adr: 212
@@ -297,7 +299,9 @@ data:
     score: 13
   - name: FNATIC
     score: 3
-- map: Lotus
+  winner: NRG
+- live: false
+  map: Lotus
   members:
   - acs: 275
     adr: 170
@@ -608,7 +612,9 @@ data:
     score: 13
   - name: FNATIC
     score: 6
-- map: Abyss
+  winner: NRG
+- live: false
+  map: Abyss
   members:
   - acs: 216
     adr: 131
@@ -982,7 +988,9 @@ data:
     score: 13
   - name: FNATIC
     score: 15
-- map: Ascent
+  winner: FNATIC
+- live: false
+  map: Ascent
   members:
   - acs: 218
     adr: 140
@@ -1307,7 +1315,9 @@ data:
     score: 8
   - name: FNATIC
     score: 13
-- map: Sunset
+  winner: FNATIC
+- live: false
+  map: Sunset
   members:
   - acs: 355
     adr: 223
@@ -1611,11 +1621,12 @@ data:
     score: 13
   - name: FNATIC
     score: 5
+  winner: NRG
 event:
   date: <date>
   id: '2283'
   img: https://owcdn.net/img/63067806d167d.png
-  patch: null
+  patch: '11.05'
   series: Valorant Champions 2025
   stage: 'Playoffs: Grand Final'
   status: final
