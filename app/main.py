@@ -14,6 +14,7 @@ from app import constants, exceptions, i18n
 from app.api import deps
 from app.api.v1.api import router
 from app.api.v1.endpoints.internal import router as internal_router
+from app.api.v1.endpoints.video import router as video_router
 from app.core import connections
 from app.core.config import settings
 from app.core.live_push import start_live_push, stop_live_push
@@ -103,6 +104,9 @@ if settings.API_KEYS:
 else:
     app.include_router(router, prefix="/api/v1")
     sentry_sdk.set_tag("api_key", "Unauthenticated")
+
+if settings.ENABLE_LIVE_PUSH and settings.VIDEO_TOKEN_FILE:
+    app.include_router(video_router, prefix="/api/v1/video", dependencies=[Depends(deps.verify_video_token)])
 
 if settings.ENABLE_ID_MAPPING:
     app.include_router(internal_router, prefix="/api/v1/internal", dependencies=[Depends(deps.verify_internal_token)])

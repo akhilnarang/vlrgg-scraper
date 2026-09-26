@@ -1,17 +1,20 @@
 import string
+import time
 from datetime import datetime
 from typing import Self
 
-from pydantic import BaseModel, Field, HttpUrl, computed_field, field_validator, model_validator
+from pydantic import BaseModel, Field, HttpUrl, ValidationError, computed_field, field_validator, model_validator
 
 from app import i18n
 from app.constants import (
     LIVE_STATUSES,
     MAX_FAVORITES_PER_GROUP,
     MAX_TOKEN_LENGTH,
+    VIDEO_STALE_SECONDS,
     MatchStatus,
     Platform,
     VetoAction,
+    VideoStatus,
 )
 
 
@@ -209,6 +212,77 @@ class CompactState(BaseModel):
         :return: Stable JSON representation of the score state.
         """
         return self.model_dump_json(exclude={"observed_at"})
+
+
+class VideoTeam(BaseModel):
+    """One team as the broadcast video tracker identifies it."""
+
+    code: str = Field(max_length=16)
+    name: str = Field(max_length=100)
+    score: int = Field(ge=0, le=99)
+
+
+class VideoScore(BaseModel):
+    """The latest map score read from the broadcast by the video tracker, and whether it is still reading."""
+
+    status: VideoStatus
+    observed_at: int
+    map_number: int = Field(ge=1)
+    teams: list[VideoTeam] = Field(min_length=2, max_length=2)
+
+    @classmethod
+    def from_cache(cls, data: bytes | None) -> VideoScore | None:
+        """Parse a stored score.
+
+        :param data: Stored JSON, or None when nothing is stored.
+        :return: The score, or None when missing or no longer valid after a schema change.
+        """
+        try:
+            return cls.model_validate_json(data) if data else None
+        except ValidationError:
+            return None
+
+    def team_score(self, name: str, tag: str | None) -> int | None:
+        """Find a VLR team's score, matched on its name or tag; VLR shows tags only once a map has rounds.
+
+        :param name: VLR team name.
+        :param tag: VLR team tag, if shown.
+        :return: The team's score, or None when neither matches.
+        """
+        name, tag = name.strip().casefold(), (tag or "").casefold()
+        return next(
+            (
+                team.score
+                for team in self.teams
+                if team.name.strip().casefold() == name or (tag and team.code.casefold() == tag)
+            ),
+            None,
+        )
+
+    def same_score(self, other: VideoScore) -> bool:
+        """Check whether another read shows the same map and scores, as a heartbeat does.
+
+        :param other: Another read.
+        :return: Whether nothing changed between the two.
+        """
+        if self.map_number != other.map_number:
+            return False
+        return {team.code: team.score for team in self.teams} == {team.code: team.score for team in other.teams}
+
+    @property
+    def healthy(self) -> bool:
+        """Whether the tracker is reading the current map and wrote recently.
+
+        :return: True while the video, not VLR, should drive this match's pushes.
+        """
+        return self.status == VideoStatus.OK and 0 <= time.time() - self.observed_at <= VIDEO_STALE_SECONDS
+
+
+class VideoDelivery(BaseModel):
+    """The last video score pushed to phones, and the match it was pushed for."""
+
+    match_id: str
+    video: VideoScore
 
 
 class TokenRegistration(BaseModel):
