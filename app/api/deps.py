@@ -1,7 +1,9 @@
+import hmac
 from collections.abc import AsyncGenerator
+from pathlib import Path as FilePath
 from typing import Annotated
 
-from fastapi import Depends, Path, Response
+from fastapi import Depends, Header, Path, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis
 from sqlalchemy.exc import SQLAlchemyError
@@ -90,6 +92,21 @@ SubscriptionStoreDep = Annotated[SubscriptionStore, Depends(get_subscription_sto
 def set_no_store(response: Response) -> None:
     """Prevent caching of private per-client responses."""
     response.headers["Cache-Control"] = "no-store"
+
+
+def verify_video_token(x_video_token: Annotated[str | None, Header()] = None) -> None:
+    """Check the video tracker's token against the one it wrote to ``VIDEO_TOKEN_FILE``.
+
+    :param x_video_token: Token sent by the tracker.
+    :return: None.
+    :raises UnauthorizedError: If the header is missing, or the token file is missing, empty, or holds another token.
+    """
+    try:
+        expected = FilePath(settings.VIDEO_TOKEN_FILE or "").read_text().strip()
+    except OSError:
+        expected = ""
+    if not expected or not x_video_token or not hmac.compare_digest(x_video_token.encode(), expected.encode()):
+        raise UnauthorizedError(detail="Invalid token")
 
 
 def verify_internal_token(

@@ -6,13 +6,14 @@ import time
 from contextlib import closing
 from datetime import datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import DEFAULT, AsyncMock, patch
 from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app import constants
 from app.constants import TEST_MATCH_ID, MatchStatus, Platform
 from app.cron import legacy_fcm, live_push, worker
 from app.db.models import LiveActivityStart
@@ -148,13 +149,15 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         await store.add_favorites(live_off_id, Favorites(matches=["123"]))
 
     listed = SimpleNamespace(id="123", status=MatchStatus.LIVE)
-    # After cycle 1, match 123 leaves the live listing; its stored row keeps it in the work set.
+    # After the video steps, match 123 leaves the live listing; its stored row keeps it in the work set.
     # Its page then keeps failing and it ends with the last score on the third consecutive error
     # response. A timeout mid-run (VLR blackholing our network) is not a verdict on the match, so
     # it neither ends it nor counts. Match 456 returns 404 and ends at once. The synthetic match
     # below covers the regular final-page path.
     fetches = {
         "123": [
+            _live_detail("upcoming", (1, 0)),
+            _live_detail("upcoming", (1, 0)),
             _live_detail("upcoming", (1, 0)),
             ScrapingError(upstream_status=502),
             httpx2.ConnectTimeout("timed out"),
@@ -170,7 +173,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             raise outcome
         return outcome
 
-    monkeypatch.setattr(live_push.matches, "get_upcoming_matches", AsyncMock(side_effect=[[listed], [], [], [], []]))
+    monkeypatch.setattr(live_push.matches, "get_upcoming_matches", AsyncMock(side_effect=[[listed]] * 4 + [[]] * 4))
     match_by_id_mock = AsyncMock(side_effect=fetch)
     monkeypatch.setattr(live_push.matches, "match_by_id", match_by_id_mock)
     monkeypatch.setattr(live_push.settings, "ENABLE_LIVE_PUSH", True)
@@ -231,7 +234,12 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
 
     ticks = {}
 
-    def set_tick(key, value, nx=False):
+    videos = {}
+
+    def set_tick(key, value, nx=False, ex=None, get=False):
+        if key.startswith(("vlrgg:push:video", constants.PUSH_DETAILS_KEY)):
+            previous, videos[key] = videos.get(key), value
+            return previous
         if nx and key in ticks:
             return None
         ticks[key] = int(value)
@@ -243,6 +251,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
 
     redis = AsyncMock()
     redis.get.return_value = None
+    redis.get.side_effect = lambda key: videos.get(key, DEFAULT)
     redis.set.side_effect = set_tick
     redis.exists.side_effect = lambda key: key in ticks
     redis.delete.side_effect = lambda key: ticks.pop(key, None)
@@ -252,7 +261,35 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         async with sessions() as session:
             return sorted(await SubscriptionStore(session).list_match_ids())
 
+    from fastapi import Depends, FastAPI
+
+    from app.api import deps
+    from app.api.v1.endpoints.video import router as video_router
+
+    token_file = tmp_path / "video-token"
+    token_file.write_text("tracker-token")
+    monkeypatch.setattr(deps.settings, "VIDEO_TOKEN_FILE", str(token_file))
+    monkeypatch.setattr(live_push.cache, "get_client", lambda: redis)
+    video_app = FastAPI()
+    video_app.include_router(video_router, prefix="/api/v1/video", dependencies=[Depends(deps.verify_video_token)])
+    video_app.dependency_overrides[deps.get_redis_client] = lambda: redis
+    # VLR is ahead at 13-9; one team matches on VLR's tag, the other on its name.
+    video = {
+        "status": "ok",
+        "observed_at": int(time.time()),
+        "map_number": 1,
+        "teams": [{"code": "ALP", "name": "Alpha Esports", "score": 12}, {"code": "XYZ", "name": "beta", "score": 9}],
+    }
+
+    async def put_video(token="tracker-token"):
+        async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app=video_app), base_url="http://test") as api:
+            return await api.put("/api/v1/video/score", json=video, headers={"X-Video-Token": token})
+
+    def pushed_scores(call):
+        return json.loads(call[0].data["state"])["current_map"]["scores"]
+
     try:
+        # VLR brings the match live first: its channel, starts and first push come before the tracker writes.
         await live_push.live_push_cron({"redis": redis})
         async with sessions() as session:
             row = await SubscriptionStore(session).get_match("123")
@@ -261,33 +298,54 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert any("/3/device/aabb" in request.url.path for request in requests)
         assert not any("/3/device/ccdd" in request.url.path for request in requests)
         assert fcm_calls and "'live-match-123' in topics" in fcm_calls[0][0].condition
+        vlr_fetches = match_by_id_mock.await_count
+
+        assert (await put_video(token="guess")).status_code == 401
+        assert constants.VIDEO_SCORE_KEY not in videos and len(fcm_calls) == 1
+        # A tracker write is pushed at once from the cached details, and can't lower VLR's 13-9.
+        assert (await put_video()).status_code == 204
+        assert pushed_scores(fcm_calls[1]) == [13, 9]
+        assert match_by_id_mock.await_count == vlr_fetches
+        assert (await put_video()).status_code == 204  # a heartbeat with the same score
+        await live_push.live_push_cron({"redis": redis})
+        assert len(fcm_calls) == 2 and match_by_id_mock.await_count == vlr_fetches
+        # A tracker silent for over 90 s hands the match back to VLR.
+        silent = json.loads(videos[constants.VIDEO_SCORE_KEY])
+        silent["observed_at"] -= constants.VIDEO_STALE_SECONDS + 1
+        videos[constants.VIDEO_SCORE_KEY] = json.dumps(silent)
+        await live_push.live_push_cron({"redis": redis})
+        assert len(fcm_calls) == 3
+        video["status"] = "error"
+        video["teams"][0]["score"], video["teams"][1]["score"] = 13, 10
+        assert (await put_video()).status_code == 204
+        assert pushed_scores(fcm_calls[3]) == [13, 10]
+        await live_push.live_push_cron({"redis": redis})
+        assert len(fcm_calls) == 5
 
         for failures in (1, 1, 2):
             await live_push.live_push_cron({"redis": redis})
             assert await stored_match_ids() == ["123"]
             assert ticks["vlrgg:push:fetch_failures:123"] == failures
+            # A failed fetch keeps the match's last details, so the video can still push it.
+            assert "123" in json.loads(videos[constants.PUSH_DETAILS_KEY])
         await live_push.live_push_cron({"redis": redis})
         assert await stored_match_ids() == []
         assert not [key for key in ticks if key.startswith("vlrgg:push:fetch_failures:")]
-        assert match_by_id_mock.await_count == 6
+        assert match_by_id_mock.await_count == 8
         end_payloads = [
             json.loads(request.content)["aps"]
             for request in requests
             if request.url.path.endswith("/broadcasts/apps/com.example.app")
         ]
-        assert [aps["event"] for aps in end_payloads] == ["end"]
+        assert [aps["event"] for aps in end_payloads] == ["update", "end"]
         # The final state is rebuilt from the stored one, so the tags clients show must survive it.
-        end_teams = end_payloads[0]["content-state"]["teams"]
+        end_teams = end_payloads[-1]["content-state"]["teams"]
         assert [(team["tag"], team["score"]) for team in end_teams] == [("ALP", 1), ("BET", 0)]
-        assert [team["tag"] for team in json.loads(fcm_calls[1][0].data["state"])["teams"]] == ["ALP", "BET"]
+        assert [team["tag"] for team in json.loads(fcm_calls[5][0].data["state"])["teams"]] == ["ALP", "BET"]
         assert any(request.method == "DELETE" for request in requests)
-        assert len(fcm_calls) == 2
-        assert json.loads(fcm_calls[1][0].data["state"])["terminal"] is True
+        assert len(fcm_calls) == 6
+        assert json.loads(fcm_calls[5][0].data["state"])["terminal"] is True
 
-        from fastapi import FastAPI
-
-        from app import constants
-        from app.api import deps
         from app.api.v1.endpoints.live_updates import router
 
         async with sessions.begin() as session:
@@ -333,13 +391,13 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             for request in requests
             if request.url.path.endswith("/broadcasts/apps/com.example.app")
         ]
-        assert test_events == ["end", "update", "update", "update", "update", "end"]
+        assert test_events == ["update", "end", "update", "update", "update", "update", "end"]
         assert f"'live-match-{constants.TEST_MATCH_ID}' in topics" in fcm_calls[-1][0].condition
         last_fcm_state = json.loads(fcm_calls[-1][0].data["state"])
         assert last_fcm_state["terminal"] is True
         assert last_fcm_state["total_maps"] == 3
         assert last_fcm_state["current_map"]["number"] == 1
-        assert match_by_id_mock.await_count == 6  # synthetic observations never hit VLR
+        assert match_by_id_mock.await_count == 8  # synthetic observations never hit VLR
 
         # Fetched match pages store their teams with tags; the synthetic test match stays out of the store.
         from app import schemas

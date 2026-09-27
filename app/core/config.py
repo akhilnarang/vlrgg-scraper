@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     ENABLE_LIVE_PUSH: bool = False
     APNS_CREDENTIALS_FILE: str | None = None
     GOOGLE_APPLICATION_CREDENTIALS: str | None = None
+    VIDEO_TOKEN_FILE: str | None = None
 
     USER_AGENTS: Annotated[list[str], NoDecode] = ["val-esports-app/1.0"]
     HTTP_LOCAL_ADDRESSES: Annotated[list[str], NoDecode] = []
