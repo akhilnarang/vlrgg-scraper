@@ -22,7 +22,7 @@ dependencies = [
     "arq",
     "rich",
     "openai",
-    "sqlalchemy>=2,<3",
+    "sqlalchemy[asyncio]>=2,<3",
     "aiosqlite",
     "alembic",
 ]
