@@ -22,7 +22,7 @@ dependencies = [
     "arq",
     "rich",
     "openai",
-    "sqlalchemy[asyncio]>=2,<3",
+    "sqlalchemy[asyncio]>=2.1.0,<3",
     "aiosqlite",
     "alembic",
 ]
@@ -33,8 +33,8 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "pytest-regressions",
-    "ruff>=0.16.8",
-    "ty>=0.0.83",
+    "ruff>=0.16.9",
+    "ty>=0.0.84",
 ]
 
 [tool.uv]
