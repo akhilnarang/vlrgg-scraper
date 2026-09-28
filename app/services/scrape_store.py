@@ -41,7 +41,7 @@ async def player_fetch_times(session: AsyncSession, player_ids: Iterable[str]) -
     :return: Last fetch time (Unix seconds) keyed by player ID; unknown players are absent.
     """
     rows = await session.execute(select(Player.id, Player.last_fetched_at).where(Player.id.in_(list(player_ids))))
-    return dict(rows.tuples().all())
+    return dict(rows.all())
 
 
 async def player_team_ids(session: AsyncSession, player_ids: Iterable[str]) -> dict[str, str | None]:
@@ -52,7 +52,7 @@ async def player_team_ids(session: AsyncSession, player_ids: Iterable[str]) -> d
     :return: Team ID (or None when teamless) keyed by player ID; unknown players are absent.
     """
     rows = await session.execute(select(Player.id, Player.team_id).where(Player.id.in_(list(player_ids))))
-    return dict(rows.tuples().all())
+    return dict(rows.all())
 
 
 async def upsert_team(session: AsyncSession, team_id: str, **fields: str | int | None) -> None:
