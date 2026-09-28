@@ -47,20 +47,21 @@ async def live_push_cron(ctx: dict) -> None:
         return
 
     client = ctx["redis"]
-    video = await _video_score(client)
+    video = await push.video_score(client)
     left_to_video = await _match_left_to_video(client, video)
     live_ids = await _listed_live_ids(client)
     async with sessions() as session:
         match_ids = sorted((live_ids | set(await SubscriptionStore(session).list_match_ids())) - {left_to_video})
     details = await asyncio.gather(*(_fetch_detail(client, match_id) for match_id in match_ids), return_exceptions=True)
-    video = await _video_score(client)  # the tracker may have written a newer score during the fetches
+    video = await push.video_score(client)  # the tracker may have written a newer score during the fetches
     fcm_app = fcm.get_app() if settings.GOOGLE_APPLICATION_CREDENTIALS else None
     await _cache_details(client, match_ids, details, left_to_video)
+    video_match = await push.resolve_video_match(client, video) if video is not None else None
 
     for match_id, detail in zip(match_ids, details, strict=True):
         failures_key = constants.PUSH_FETCH_FAILURES_KEY.format(match_id)
-        scores = None
         delivered = False
+        represented = False
         try:
             async with sessions() as session:
                 store = SubscriptionStore(session)
@@ -72,16 +73,27 @@ async def live_push_cron(ctx: dict) -> None:
                     ):
                         raise detail
                     logger.warning("ending match %s: VLR page unavailable (%r)", match_id, detail)
-                    await _end_unavailable_match(store, fcm_app, match_id)
+                    await _end_unavailable_match(store, session, fcm_app, match_id)
                 else:
-                    if video is not None and (scores := push.video_team_scores(detail, video)) is not None:
+                    scores = video_match[2] if video_match is not None and video_match[0] == match_id else None
+                    if video is not None and scores is not None:
                         push.raise_map_scores(detail, video.map_number, scores)
+                        push.order_teams_for_broadcast(detail, video)
+                        # Without a stats panel the projection may still show the previous map.
+                        represented = push.represents_video(detail, video, scores)
                     delivered = await _push_match(
-                        store, session, fcm_app, match_id, detail, listed_live=match_id in live_ids
+                        store,
+                        session,
+                        fcm_app,
+                        match_id,
+                        detail,
+                        listed_live=match_id in live_ids,
+                        # Apply video pause only to the resolved match; game numbers are not unique across matches.
+                        video=video if scores is not None else None,
                     )
                 await session.commit()
             await client.delete(failures_key)
-            if video is not None and scores is not None and delivered:
+            if delivered and represented and video is not None:
                 await _mark_delivered(client, match_id, video)
         except Exception:
             logger.warning("live push failed for match %s", match_id, exc_info=True)
@@ -102,28 +114,79 @@ async def push_video_match() -> None:
         return
     client = cache.get_client()
     try:
-        if (video := await _video_score(client)) is None:
+        if (video := await push.video_score(client)) is None:
             return
-        fcm_app = fcm.get_app() if settings.GOOGLE_APPLICATION_CREDENTIALS else None
-        for match_id, cached in (await _cached_details(client)).items():
-            detail = MatchWithDetails.model_validate(cached)
-            if (scores := push.video_team_scores(detail, video)) is None:
-                continue
-            if not any(scores.values()):
-                return  # at a map's 0-0 VLR still shows the last map, so the cron pushes until a round is won
-            push.raise_map_scores(detail, video.map_number, scores)
-            async with sessions() as session:
-                delivered = await _push_match(
-                    SubscriptionStore(session), session, fcm_app, match_id, detail, listed_live=True
-                )
-                await session.commit()
-            if delivered:
-                await _mark_delivered(client, match_id, video)
-            return
+        await _deliver_video_match(sessions, client, video, refresh=False)
     except Exception:
         logger.warning("video push failed", exc_info=True)
     finally:
         await client.aclose()
+
+
+async def refresh_video_match() -> None:
+    """Re-send unchanged live state to Android followers on tracker heartbeats.
+
+    :return: None.
+    """
+    get_current_scope().set_transaction_name("Live Push Refresh")
+    sessions = connections.subscription_sessions
+    if not settings.ENABLE_LIVE_PUSH or sessions is None:
+        return
+    client = cache.get_client()
+    try:
+        if (video := await push.video_score(client)) is None or not video.healthy:
+            return
+        await _deliver_video_match(sessions, client, video, refresh=True)
+    except Exception:
+        logger.warning("video refresh failed", exc_info=True)
+    finally:
+        await client.aclose()
+
+
+async def _deliver_video_match(
+    sessions: async_sessionmaker[AsyncSession], client: Redis, video: VideoScore, *, refresh: bool
+) -> None:
+    """Deliver the match the tracker resolves to, immediately or as a rate-limited refresh.
+
+    :param sessions: Database session factory.
+    :param client: Redis client.
+    :param video: Latest tracker score.
+    :param refresh: Whether this re-sends unchanged state, FCM-only and rate-limited.
+    :return: None.
+    """
+    if (resolved := await push.resolve_video_match(client, video)) is None:
+        return
+    match_id, detail, scores = resolved
+    if refresh:
+        # Rate-limit unchanged re-sends to at most once per refresh window.
+        if not await client.set(
+            constants.PUSH_REFRESH_KEY.format(match_id), 1, nx=True, ex=constants.PUSH_REFRESH_SECONDS
+        ):
+            return
+    else:
+        # Reset the refresh window since this push carries the latest state.
+        await client.set(constants.PUSH_REFRESH_KEY.format(match_id), 1, ex=constants.PUSH_REFRESH_SECONDS)
+    if not any(scores.values()):
+        return  # at a map's 0-0 VLR still shows the last map, so the cron pushes until a round is won
+    push.raise_map_scores(detail, video.map_number, scores)
+    push.order_teams_for_broadcast(detail, video)
+    fcm_app = fcm.get_app() if settings.GOOGLE_APPLICATION_CREDENTIALS else None
+    if refresh:
+        state = push.project_state(match_id, detail, video)
+        if state is None or state.terminal:
+            return
+        async with sessions.begin() as session:
+            tokens = await SubscriptionStore(session).live_android_tokens(push.routing_ids(match_id, detail))
+        # The token read is committed before the send; publish_direct clears dead tokens in its own session.
+        await _send_fcm(tokens, fcm_app, state, refresh=True)
+        return
+    async with sessions() as session:
+        delivered = await _push_match(
+            SubscriptionStore(session), session, fcm_app, match_id, detail, listed_live=True, video=video
+        )
+        await session.commit()
+    if delivered and push.represents_video(detail, video, scores):
+        await _mark_delivered(client, match_id, video)
 
 
 async def _cache_details(
@@ -140,7 +203,7 @@ async def _cache_details(
     :param left_to_video: The match the video pushes, which this run didn't fetch but still tracks.
     :return: None.
     """
-    cached = await _cached_details(client)
+    cached = await push.cached_details(client)
     kept = {left_to_video: cached[left_to_video]} if left_to_video in cached else {}
     for match_id, detail in zip(match_ids, details, strict=True):
         if match_id == constants.TEST_MATCH_ID:
@@ -151,16 +214,6 @@ async def _cache_details(
         elif not is_final(detail.event.status):
             kept[match_id] = detail.model_dump(mode="json")
     await client.set(constants.PUSH_DETAILS_KEY, json.dumps(kept), ex=constants.PUSH_DETAILS_TTL)
-
-
-async def _cached_details(client: Redis) -> dict[str, dict]:
-    """Read the match details the last cron run kept.
-
-    :param client: Redis client.
-    :return: Each match's details as JSON-ready data, keyed by match ID.
-    """
-    data = await client.get(constants.PUSH_DETAILS_KEY)
-    return json.loads(data) if data else {}
 
 
 async def _mark_delivered(client: Redis, match_id: str, video: VideoScore) -> None:
@@ -201,15 +254,6 @@ async def _store_teams(
     except SQLAlchemyError:
         # The store never fails the cron; pushes have already been sent.
         logger.warning("could not store match teams", exc_info=True)
-
-
-async def _video_score(client: Redis) -> VideoScore | None:
-    """Read the score the broadcast video tracker last stored.
-
-    :param client: Redis client.
-    :return: The video score, or None when there is none or it is invalid.
-    """
-    return VideoScore.from_cache(await client.get(constants.VIDEO_SCORE_KEY))
 
 
 async def _match_left_to_video(client: Redis, video: VideoScore | None) -> str | None:
@@ -287,6 +331,7 @@ async def _push_match(
     detail: MatchWithDetails,
     *,
     listed_live: bool,
+    video: VideoScore | None = None,
 ) -> bool:
     """Deliver one match's state, finishing it when the match is final.
 
@@ -296,10 +341,11 @@ async def _push_match(
     :param match_id: Match identifier.
     :param detail: Scraped match details.
     :param listed_live: Whether the listing currently shows the match as live.
+    :param video: Tracker score for this match, or None.
     :return: Whether every provider send succeeded; True when there was nothing to send.
     :raises SQLAlchemyError: If a database operation fails.
     """
-    state = push.project_state(match_id, detail)
+    state = push.project_state(match_id, detail, video)
     if state is None:
         return True
     row = await store.get_match(match_id)
@@ -308,17 +354,19 @@ async def _push_match(
         await store.save_match(match_id, None, None)
         await session.commit()  # release the SQLite write lock before any provider call
     routing = push.routing_ids(match_id, detail)
+    tokens = await store.live_android_tokens(routing) if fcm_app is not None else []
+    await session.commit()  # finish the token read before the provider send
 
     if state.terminal:
-        await _send_fcm(store, fcm_app, state, routing)
+        sent = await _send_fcm(tokens, fcm_app, state)
         if row is not None and row.channel_id:
             await _end_apns(row.channel_id, state)
         await store.delete_match(match_id)
-        return True
+        return sent
 
     if not (listed_live or is_live(detail.event.status)):
         return True
-    sent = await _send_fcm(store, fcm_app, state, routing)
+    sent = await _send_fcm(tokens, fcm_app, state)
     if connections.apns_client is not None:
         sent = await _push_apns(store, session, connections.apns_client, state, routing, row) and sent
     return sent
@@ -336,10 +384,13 @@ async def _fetch_failure_limit_reached(client: Redis, failures_key: str) -> bool
     return failures >= constants.PUSH_FETCH_FAILURE_LIMIT
 
 
-async def _end_unavailable_match(store: SubscriptionStore, fcm_app: App | None, match_id: str) -> None:
+async def _end_unavailable_match(
+    store: SubscriptionStore, session: AsyncSession, fcm_app: App | None, match_id: str
+) -> None:
     """End a stored match whose VLR page is gone or keeps failing, using its last sent score.
 
     :param store: Subscription store.
+    :param session: Match-scoped database session.
     :param fcm_app: Firebase app, or None when FCM is not configured.
     :param match_id: Match identifier.
     :return: None.
@@ -353,42 +404,46 @@ async def _end_unavailable_match(store: SubscriptionStore, fcm_app: App | None, 
         state = push.final_from_last_sent(row.last_state_json)
         # Without the match page, event and player IDs are unknown; the stored teams still carry theirs.
         team_ids = [team.id for team in state.teams if team.id]
-        await _send_fcm(store, fcm_app, state, Routing(match_id, None, team_ids, []))
+        routing = Routing(match_id, None, team_ids, [])
+        tokens = await store.live_android_tokens(routing) if fcm_app is not None else []
+        await session.commit()  # finish the token read before the provider send
+        await _send_fcm(tokens, fcm_app, state)
         if row.channel_id:
             await _end_apns(row.channel_id, state)
     await store.delete_match(match_id)
 
 
-async def _send_fcm(store: SubscriptionStore, fcm_app: App | None, state: CompactState, routing: Routing) -> bool:
-    """Send the state to the match's FCM topics when an Android client follows it with live updates on.
+async def _send_fcm(tokens: list[str], fcm_app: App | None, state: CompactState, *, refresh: bool = False) -> bool:
+    """Send match state directly to active Android follower FCM tokens.
 
-    :param store: Subscription store.
+    The caller has already read the tokens, so no database transaction is open across the send.
+
+    :param tokens: Follower FCM registration tokens.
     :param fcm_app: Firebase app, or None when FCM is not configured.
     :param state: Compact score state.
-    :param routing: Match routing IDs.
+    :param refresh: Whether this re-sends unchanged state on a tracker heartbeat.
     :return: False if the send failed; True when it succeeded or there was nothing to send.
     """
-    if fcm_app is None:
+    if fcm_app is None or not tokens:
         return True
     try:
-        if not await store.has_live_android_follower(routing):
-            return True
-        player_ids = await store.active_player_ids(routing.player_ids)
-        message_ids = await fcm.publish(fcm_app, fcm.build_messages(state, routing, player_ids))
-        current = state.current_map
-        # One line per send, so a stale or missing phone notification can be traced to a send or its absence.
-        logger.info(
-            "FCM sent match %s map %s %s series %s terminal=%s: %s",
-            state.match_id,
-            current.number if current else None,
-            "-".join(map(str, current.scores)) if current else None,
-            "-".join(str(team.score) for team in state.teams),
-            state.terminal,
-            message_ids,
-        )
+        message_ids = await fcm.publish_direct(fcm_app, tokens, state)
     except Exception:
-        logger.warning("FCM update failed for match %s", state.match_id, exc_info=True)
+        logger.warning("FCM %s failed for match %s", "refresh" if refresh else "update", state.match_id, exc_info=True)
         return False
+    current = state.current_map
+    # One line per send, so a stale or missing phone notification can be traced to a send or its absence.
+    logger.info(
+        "FCM %s match %s map %s %s series %s terminal=%s direct=%d: %s",
+        "refreshed" if refresh else "sent",
+        state.match_id,
+        current.number if current else None,
+        "-".join(map(str, current.scores)) if current else None,
+        "-".join(str(team.score) for team in state.teams),
+        state.terminal,
+        len(tokens),
+        message_ids,
+    )
     return True
 
 

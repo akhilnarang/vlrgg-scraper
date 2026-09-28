@@ -228,7 +228,11 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
     stats = data[0]
 
     # Extract stats first
-    map_stats = stats.find_all("div", class_="vm-stats-game")
+    game_panels = {
+        map_data["data-game-id"]: map_data
+        for map_data in stats.find_all("div", class_="vm-stats-game")
+        if map_data["data-game-id"] != "all"
+    }
 
     # Get map names for matches with more than one map.
     map_navigation = stats.find_all(class_="vm-stats-gamesnav-item")
@@ -241,10 +245,14 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
 
     live_map_ids = {map_data["data-game-id"] for map_data in map_navigation if "mod-live" in map_data.get("class", [])}
 
+    # Games are ordered by navigation slot; data-game-id is an internal ID, not an index.
+    game_ids = [map_data["data-game-id"] for map_data in map_navigation if map_data.get("data-game-id") != "all"]
+
     # If the above dict is empty (i.e. no vm-stats-gamesnav-item), we know that there is a single map
     if maps == {}:
         if map_data := stats.find_all("div", class_="map"):
             maps = {stats["data-game-id"]: map_data[0].find("span").get_text().strip()}
+            game_ids = [stats["data-game-id"]]
             map_count = 1
         else:
             map_count = 0
@@ -256,8 +264,11 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
         )
 
     map_ret = []
-    for map_data in map_stats:
-        if (match_map_id := map_data["data-game-id"]) == "all" or maps.get(match_map_id, "").lower() == constants.TBD:
+    for number, match_map_id in enumerate(game_ids, start=1):
+        # A game VLR has not rendered a stats panel for, or still names TBD or N/A, has no entry.
+        if (map_data := game_panels.get(match_map_id)) is None:
+            continue
+        if maps.get(match_map_id, "").strip().casefold() in {constants.TBD, constants.NA}:
             continue
         scores = map_data.find_all("div", class_="score")[:2]
         teams = [
@@ -332,6 +343,7 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
                 team["score"] = None
         map_ret.append(
             {
+                "number": number,
                 "map": maps.get(match_map_id),
                 "teams": teams,
                 "members": members,

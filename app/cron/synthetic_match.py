@@ -40,6 +40,7 @@ async def next_observation(client: Redis) -> MatchWithDetails:
             "total_maps": 3,
             "data": [
                 {
+                    "number": 1,
                     "map": "Test Range",
                     "teams": [{"name": "Test Alpha", "score": alpha}, {"name": "Test Beta", "score": beta}],
                     "members": [],

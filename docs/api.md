@@ -76,6 +76,15 @@ Article detail responses are scraped on request, unlike the cached news list.
 Clients with locally cached article bodies should fetch an article again when
 its cached response has no blocks.
 
+## Match map entries
+
+`GET /matches/{id}` returns `data` with one entry per game whose stats panel VLR has
+rendered, in series order. Each entry's `number` is its true 1-based game number from
+VLR's map navigation, so a game VLR lists without a panel, or names TBD or N/A, is
+omitted without shifting a later game's number: entry numbers can skip. No entry has an
+empty `map` or empty `teams`. `map_count` counts the games VLR shows as played or in
+progress and can differ from the number of entries in `data`.
+
 ## Live match updates
 
 Live updates are disabled by default. When enabled, clients can store one APNs
@@ -90,8 +99,8 @@ Authorization: Bearer <api-key>
 
 `platform` is `iOS` (default) or `android`. iOS sends its hex APNs push-to-start
 token; Android sends its FCM registration token. Android tokens receive an immediate
-unicast FCM message on `POST .../live-activity`; recurring score updates stream
-through FCM topics.
+unicast FCM message on `POST .../live-activity`; recurring score updates are sent
+directly to the same registration token, never through a topic.
 
 ```http
 PUT /api/v1/live-updates/clients/{client_id}/favorites
@@ -112,17 +121,22 @@ Returns `204 No Content` on success (triggers an APNs push-to-start on iOS, or a
 Invalid tokens (including a non-hex iOS token) or favorite IDs return `422 Unprocessable Entity`.
 
 The one-minute job checks matches whose listing status is `live`. Android live scores
-are data-only FCM messages on the `live-match-{id}`, `live-event-{id}`, `live-team-{id}`,
-and `live-player-{id}` topics, which updated Android clients must subscribe to. The legacy
+are data-only, high-priority FCM messages sent directly to each follower's stored
+registration token; there is no topic fanout and no topic fallback. The legacy
 `match-`, `event-`, and `team-` topics carry only the "match starting soon" alert, because
 released app versions show every message on those as a notification; those installs keep
 getting just that alert. A matching iOS favorite creates one APNs broadcast
 channel and one push-to-start request per client. Final state ends and deletes the
 channel. If VLR returns 404 for a tracked match, or its page fails to load on three
 runs in a row (DNS failure, refused connection, timeout, or 5xx), it ends with the
-last score sent to iOS (the final Android message goes to `live-match-{id}` only).
+last score sent to iOS and to each Android follower's token.
 Provider errors are logged and skipped; there is no delivery history or retry state
 machine.
+
+The compact state carries `observed_at` (absolute server epoch seconds) and may carry a
+`pause` with its `kind` and an optional `reason`. A client derives "paused since" from
+`observed_at`: the inbound tracker field `pause.since` is that tracker's own relative
+second and is never forwarded.
 
 Favorite match `3141592653` on a test device, then `POST /api/v1/live-updates/test-match`
 with your API key to start a synthetic match. It updates each minute and ends on tick 6;

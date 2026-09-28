@@ -24,10 +24,10 @@ async def test_match_details_follow_the_public_response_contract(http_response):
     assert result.event.series == "Event Series"
     assert result.event.patch == "13.05"
     assert result.map_count == 2
-    # A won map names its winner; a map VLR shows as 0-0 without rounds hasn't been played.
-    assert [(item.map, [team.score for team in item.teams], item.winner) for item in result.data] == [
-        ("Lotus", [13, 10], "Team A"),
-        ("Split", [None, None], None),
+    # One entry per rendered game, each carrying its true navigation-slot number: game 2 has no panel.
+    assert [(item.number, item.map, [team.score for team in item.teams], item.winner) for item in result.data] == [
+        (1, "Lotus", [13, 10], "Team A"),
+        (3, "Split", [None, None], None),
     ]
     member = result.data[0].members[0]
     assert (member.id, member.name, member.team) == ("2114", "Kinguyen", "Team A")
@@ -48,6 +48,22 @@ async def test_match_details_follow_the_public_response_contract(http_response):
         ("FNC", "pick", "Lotus"),
         (None, "remains", "Sunset"),
     ]
+
+    # A panel-less decider VLR has named in its navigation still has no entry, and game 3 keeps number 3.
+    decider = (FIXTURE_DIR / "match_12345.html").read_text().replace("2 N/A", "2 Haven").encode()
+    with patch("httpx2.AsyncClient.get", return_value=http_response("https://www.vlr.gg/12345", decider)):
+        decider_result = await matches.match_by_id("12345", AsyncMock())
+
+    assert [(item.number, item.map) for item in decider_result.data] == [(1, "Lotus"), (3, "Split")]
+
+    # An all-TBD upcoming match renders no game identity, so no empty map or teams entry is emitted.
+    upcoming = (
+        (FIXTURE_DIR / "match_12345.html").read_text().replace("1 Lotus", "1 TBD").replace("3 Split", "3 TBD").encode()
+    )
+    with patch("httpx2.AsyncClient.get", return_value=http_response("https://www.vlr.gg/12345", upcoming)):
+        upcoming_result = await matches.match_by_id("12345", AsyncMock())
+
+    assert upcoming_result.data == []
 
 
 def test_display_strings_follow_accept_language(monkeypatch, http_response):
@@ -272,6 +288,7 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             data=[
                 # Beta took map 1 in overtime; VLR can list a map's teams in either order.
                 MatchData(
+                    number=1,
                     map="Ascent",
                     teams=[Team(name="Beta", score=14), Team(name="Alpha", score=12)],
                     members=[],
@@ -279,6 +296,7 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
                     winner="Beta",
                 ),
                 MatchData(
+                    number=2,
                     map="Bind",
                     teams=[Team(name="Alpha", score=12), Team(name="Beta", score=11)],
                     members=[],

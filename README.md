@@ -7,7 +7,7 @@ An unofficial FastAPI-based scraper for [vlr.gg](https://www.vlr.gg), providing 
 - **Comprehensive Data**: Scrapes events, matches, teams, players, rankings, standings, and news from vlr.gg
 - **RESTful API**: FastAPI-powered endpoints with automatic OpenAPI documentation
 - **Caching**: Redis-based caching for improved performance
-- **Live match updates**: Optional APNs Live Activities and FCM topic messages for matches that are running
+- **Live match updates**: Optional APNs Live Activities and direct FCM messages for matches that are running
 - **Background Jobs**: Cron jobs for periodic data updates
 - **Async Support**: Asynchronous HTTP requests for efficient scraping
 
