@@ -4,15 +4,25 @@ import json
 import time
 from typing import NamedTuple
 
-from app.constants import MAP_WIN_ROUNDS, Platform
+from redis.asyncio import Redis
+
+from app.constants import MAP_WIN_ROUNDS, NA, PUSH_DETAILS_KEY, TBD, VIDEO_SCORE_KEY, Platform, TeamSide
 from app.db.models import DeviceToken
 from app.exceptions import ServiceUnavailableError
-from app.schemas.matches import CompactState, MatchData, MatchWithDetails, PushCurrentMap, PushTeam, VideoScore
-from app.utils import is_final
+from app.schemas.matches import (
+    CompactState,
+    MatchData,
+    MatchWithDetails,
+    PushCurrentMap,
+    PushPause,
+    PushTeam,
+    VideoScore,
+)
+from app.utils import is_final, is_live
 
 
 class Routing(NamedTuple):
-    """IDs that route one match's updates to favorites and topics."""
+    """IDs that route one match's updates to follower tokens."""
 
     match_id: str
     event_id: str | None
@@ -62,7 +72,7 @@ async def clear_rejected_token(token: str) -> None:
 
 
 def routing_ids(match_id: str, detail: MatchWithDetails) -> Routing:
-    """Extract match, event, team, and player IDs for subscription topics.
+    """Extract match, event, team, and player IDs for follower routing.
 
     :param match_id: Match identifier.
     :param detail: Scraped match details.
@@ -82,11 +92,31 @@ def routing_ids(match_id: str, detail: MatchWithDetails) -> Routing:
     return Routing(match_id, event_id, team_ids, player_ids)
 
 
-def project_state(match_id: str, detail: MatchWithDetails) -> CompactState | None:
+async def video_score(client: Redis) -> VideoScore | None:
+    """Read the score the broadcast video tracker last stored.
+
+    :param client: Redis client.
+    :return: The video score, or None when there is none or it is invalid.
+    """
+    return VideoScore.from_cache(await client.get(VIDEO_SCORE_KEY))
+
+
+async def cached_details(client: Redis) -> dict[str, dict]:
+    """Read the match details the last cron run kept.
+
+    :param client: Redis client.
+    :return: Each match's details as JSON-ready data, keyed by match ID.
+    """
+    data = await client.get(PUSH_DETAILS_KEY)
+    return json.loads(data) if data else {}
+
+
+def project_state(match_id: str, detail: MatchWithDetails, video: VideoScore | None = None) -> CompactState | None:
     """Project match details into a compact score state.
 
     :param match_id: Match identifier.
     :param detail: Scraped match details.
+    :param video: Latest tracker score, or None.
     :return: Compact state, or None for an incomplete match.
     """
     if len(detail.teams) != 2:
@@ -103,7 +133,46 @@ def project_state(match_id: str, detail: MatchWithDetails) -> CompactState | Non
         ],
         current_map=current,
         map_winners=_map_winners(detail),
+        pause=_pause(video, current),
     )
+
+
+def _pause(video: VideoScore | None, current: PushCurrentMap | None) -> PushPause | None:
+    """Extract an active pause matching the displayed map.
+
+    Only the kind and reason are projected: the tracker's ``since`` is on its own
+    clock, and the state's absolute ``observed_at`` dates the pause instead.
+
+    :param video: Latest tracker score, or None.
+    :param current: Currently displayed map, or None.
+    :return: Active pause payload, or None.
+    """
+    if video is None or video.pause is None or current is None or current.number != video.map_number:
+        return None
+    return PushPause(kind=video.pause.kind, reason=video.pause.reason)
+
+
+def match_codes(detail: MatchWithDetails, codes: list[str]) -> bool:
+    """Check whether candidate codes unambiguously match the two teams.
+
+    :param detail: Scraped match details.
+    :param codes: Candidate team codes.
+    :return: True if each code uniquely matches a distinct team.
+    """
+    if len(detail.teams) != 2 or len(codes) != 2:
+        return False
+    wanted = [code.strip().casefold() for code in codes]
+    if not all(wanted) or wanted[0] == wanted[1]:
+        return False
+    owners = [
+        {
+            index
+            for index, team in enumerate(detail.teams)
+            if code in {(value or "").strip().casefold() for value in (team.tag, team.name)} - {""}
+        }
+        for code in wanted
+    ]
+    return len(owners[0]) == len(owners[1]) == 1 and owners[0] != owners[1]
 
 
 def video_team_scores(detail: MatchWithDetails, video: VideoScore) -> dict[str, int] | None:
@@ -113,14 +182,73 @@ def video_team_scores(detail: MatchWithDetails, video: VideoScore) -> dict[str, 
     :param video: Score read from the broadcast video.
     :return: Each team's video score keyed by its casefolded VLR name, or None when the video is of another match.
     """
-    if len(detail.teams) != 2 or video.map_number > len(_named_maps(detail)):
+    if len(detail.teams) != 2 or _map_with_number(detail, video.map_number) is None:
         return None
-    scores = {}
-    for team in detail.teams:
-        if (score := video.team_score(team.name, team.tag)) is None:
-            return None
-        scores[team.name.strip().casefold()] = score
-    return scores
+    resolved = video.resolve_pair([(team.name, team.tag) for team in detail.teams])
+    if resolved is None:
+        return None
+    return {team.name.strip().casefold(): entry.score for team, entry in zip(detail.teams, resolved, strict=True)}
+
+
+async def resolve_video_match(client: Redis, video: VideoScore) -> tuple[str, MatchWithDetails, dict[str, int]] | None:
+    """Find the cached match matching the stored video score.
+
+    :param client: Redis client.
+    :param video: Stored tracker score.
+    :return: Tuple of match ID, details, and team scores, or None if unmatched.
+    """
+    candidates = [
+        (match_id, MatchWithDetails.model_validate(cached))
+        for match_id, cached in (await cached_details(client)).items()
+    ]
+    matched = [
+        (match_id, detail, scores)
+        for match_id, detail in candidates
+        if (scores := video_team_scores(detail, video)) is not None
+    ]
+    return _preferred_match(matched)
+
+
+async def resolve_video_match_by_codes(client: Redis, codes: list[str]) -> tuple[str, MatchWithDetails] | None:
+    """Find the cached match matching candidate team codes.
+
+    :param client: Redis client.
+    :param codes: Two Riot team codes.
+    :return: Tuple of match ID and details, or None if ambiguous or unmatched.
+    """
+    candidates = [
+        (match_id, MatchWithDetails.model_validate(cached))
+        for match_id, cached in (await cached_details(client)).items()
+    ]
+    return _preferred_match([candidate for candidate in candidates if match_codes(candidate[1], codes)])
+
+
+def _preferred_match[T: tuple[str, MatchWithDetails] | tuple[str, MatchWithDetails, dict[str, int]]](
+    candidates: list[T],
+) -> T | None:
+    """Return the sole live candidate, or sole candidate when none are live.
+
+    :param candidates: Candidate matches as ``(match_id, details[, ...])`` tuples.
+    :return: Preferred candidate tuple, or None if ambiguous.
+    """
+    live = [candidate for candidate in candidates if is_live(candidate[1].event.status)]
+    preferred = live or candidates
+    return preferred[0] if len(preferred) == 1 else None
+
+
+def represents_video(detail: MatchWithDetails, video: VideoScore, scores: dict[str, int]) -> bool:
+    """Check whether the projection displays the video's map with at least its scores.
+
+    :param detail: Scraped match details, after :func:`raise_map_scores`.
+    :param video: Score read from the broadcast video.
+    :param scores: Each team's video score keyed by casefolded VLR name, from :func:`video_team_scores`.
+    :return: True if the projection's map is the video's and no team shows below its video score.
+    """
+    current = _current_map(detail, is_final(detail.event.status))
+    if current is None or current.number != video.map_number:
+        return False
+    displayed = dict(zip((team.name.strip().casefold() for team in detail.teams), current.scores, strict=True))
+    return all((shown := displayed.get(name)) is not None and shown >= score for name, score in scores.items())
 
 
 def raise_map_scores(detail: MatchWithDetails, map_number: int, scores: dict[str, int]) -> None:
@@ -131,9 +259,26 @@ def raise_map_scores(detail: MatchWithDetails, map_number: int, scores: dict[str
     :param scores: Each team's video score keyed by casefolded VLR name, from :func:`video_team_scores`.
     :return: None.
     """
-    for team in _named_maps(detail)[map_number - 1].teams:
+    if (map_data := _map_with_number(detail, map_number)) is None:
+        return
+    for team in map_data.teams:
         if (score := scores.get(team.name.strip().casefold())) is not None:
             team.score = max(team.score or 0, score)
+
+
+def order_teams_for_broadcast(detail: MatchWithDetails, video: VideoScore) -> None:
+    """Order match teams blue-first when broadcast sides match the active map.
+
+    :param detail: Scraped match details, reordered in place.
+    :param video: Score read from the broadcast video.
+    :return: None.
+    """
+    current = _current_map(detail, is_final(detail.event.status))
+    if current is None or current.number != video.map_number:
+        return
+    resolved = video.resolve_pair([(team.name, team.tag) for team in detail.teams])
+    if resolved is not None and [entry.side for entry in resolved] == [TeamSide.RED, TeamSide.BLUE]:
+        detail.teams.reverse()
 
 
 def final_from_last_sent(last_state_json: str) -> CompactState:
@@ -147,13 +292,45 @@ def final_from_last_sent(last_state_json: str) -> CompactState:
     )
 
 
+def _map_with_number(detail: MatchWithDetails, map_number: int) -> MatchData | None:
+    """Find the entry VLR rendered for a series game number.
+
+    :param detail: Scraped match details.
+    :param map_number: Game number in the series, counted from 1.
+    :return: The map entry, or None when VLR has no stats panel for that game.
+    """
+    return next((item for item in detail.data if item.number == map_number), None)
+
+
 def _named_maps(detail: MatchWithDetails) -> list[MatchData]:
     """List the match's maps that have a name.
 
     :param detail: Scraped match details.
     :return: Maps in series order, without unnamed or TBD entries.
     """
-    return [item for item in detail.data if item.map.strip() and item.map.strip().casefold() != "tbd"]
+    return [item for item in detail.data if _has_map_name(item.map)]
+
+
+def _has_map_name(name: str) -> bool:
+    """Return whether a map name is non-empty and not a placeholder.
+
+    :param name: Map name from VLR.
+    :return: True if the name identifies a known map.
+    """
+    return name.strip().casefold() not in {"", TBD, NA}
+
+
+def ordered_map_names(detail: MatchWithDetails) -> list[str]:
+    """List map names by series slot, using empty strings for unpopulated slots.
+
+    :param detail: Scraped match details.
+    :return: Map names in series order with empty strings for unnamed or TBD maps.
+    """
+    names = [""] * max(detail.total_maps, max((item.number for item in detail.data), default=0))
+    for item in detail.data:
+        if _has_map_name(item.map):
+            names[item.number - 1] = item.map
+    return names
 
 
 def _current_map(detail: MatchWithDetails, terminal: bool) -> PushCurrentMap | None:
@@ -168,8 +345,7 @@ def _current_map(detail: MatchWithDetails, terminal: bool) -> PushCurrentMap | N
         return None
     started = [item for item in maps if item.rounds or any((team.score or 0) > 0 for team in item.teams)]
     selected = started[-1] if started else (maps[-1] if terminal else maps[0])
-    number = maps.index(selected) + 1 if selected in maps else None
-    return PushCurrentMap(name=selected.map, number=number, scores=_aligned_scores(selected, detail))
+    return PushCurrentMap(name=selected.map, number=selected.number, scores=_aligned_scores(selected, detail))
 
 
 def _map_winners(detail: MatchWithDetails) -> list[str | None]:
@@ -178,15 +354,14 @@ def _map_winners(detail: MatchWithDetails) -> list[str | None]:
     :param detail: Scraped match details.
     :return: One entry per map up to ``total_maps``: the winner's team ID, or None if not finished.
     """
-    maps = _named_maps(detail)
-    winners: list[str | None] = [None] * max(detail.total_maps, len(maps))
-    for index, map_data in enumerate(maps):
+    winners: list[str | None] = [None] * max(detail.total_maps, max((item.number for item in detail.data), default=0))
+    for map_data in detail.data:
         first, second = _aligned_scores(map_data, detail)
         if first is None or second is None:
             continue
         # A map ends at 13 rounds with a two-round lead, which also covers overtime.
         if max(first, second) >= MAP_WIN_ROUNDS and abs(first - second) >= 2:
-            winners[index] = detail.teams[0 if first > second else 1].id
+            winners[map_data.number - 1] = detail.teams[0 if first > second else 1].id
     return winners
 
 

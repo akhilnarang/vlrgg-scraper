@@ -1,7 +1,7 @@
 import string
 import time
 from datetime import datetime
-from typing import Self
+from typing import Annotated, Self
 
 from pydantic import BaseModel, Field, HttpUrl, ValidationError, computed_field, field_validator, model_validator
 
@@ -13,7 +13,9 @@ from app.constants import (
     VIDEO_STALE_SECONDS,
     MatchStatus,
     Platform,
+    TeamSide,
     VetoAction,
+    VideoPauseKind,
     VideoStatus,
 )
 
@@ -86,6 +88,7 @@ class Round(BaseModel):
 
 
 class MatchData(BaseModel):
+    number: int = Field(ge=1)  # 1-based series position from VLR's map-navigation slot
     map: str = ""
     teams: list[Team]
     members: list[TeamMember]
@@ -148,16 +151,15 @@ class MatchWithDetails(BaseModel):
         """The map being played, or up next between maps, with scores in team order; only for live matches."""
         if self.event.status not in LIVE_STATUSES or len(self.teams) != 2:
             return None
-        number, selected = next(
-            (item for item in enumerate(self.data, start=1) if item[1].live),
-            next(((index, item) for index, item in enumerate(self.data, start=1) if item.winner is None), (0, None)),
-        )
+        selected = next((item for item in self.data if item.live), None)
+        if selected is None:
+            selected = next((item for item in self.data if item.winner is None), None)
         if selected is None:
             return None
         scores = {team.name.strip().casefold(): team.score for team in selected.teams}
         return PushCurrentMap(
             name=selected.map,
-            number=number,
+            number=selected.number,
             scores=[scores.get(team.name.strip().casefold()) for team in self.teams],
         )
 
@@ -195,6 +197,17 @@ class PushTeam(BaseModel):
     score: int | None = None
 
 
+class PushPause(BaseModel):
+    """Broadcast pause payload in compact push state.
+
+    The state's ``observed_at`` is the pause's absolute time; the tracker's own
+    relative clock is not forwarded.
+    """
+
+    kind: VideoPauseKind
+    reason: str | None = None
+
+
 class CompactState(BaseModel):
     """Compact match state delivered through APNs and FCM."""
 
@@ -205,6 +218,7 @@ class CompactState(BaseModel):
     teams: list[PushTeam]
     current_map: PushCurrentMap | None = None
     map_winners: list[str | None] = []  # winning team ID per map; None while in progress or unplayed
+    pause: PushPause | None = None  # active broadcast pause, if any
 
     def semantic(self) -> str:
         """Serialize state without observation time for change detection.
@@ -214,12 +228,21 @@ class CompactState(BaseModel):
         return self.model_dump_json(exclude={"observed_at"})
 
 
+class VideoPause(BaseModel):
+    """Broadcast pause detected by the video tracker."""
+
+    kind: VideoPauseKind
+    reason: str | None = Field(default=None, max_length=24)  # overlay reason label, e.g. GEAR
+    since: int = Field(ge=0)  # the tracker's own second when the pause started; not an absolute time
+
+
 class VideoTeam(BaseModel):
     """One team as the broadcast video tracker identifies it."""
 
     code: str = Field(max_length=16)
     name: str = Field(max_length=100)
     score: int = Field(ge=0, le=99)
+    side: TeamSide | None = None  # broadcast score bar side, if reported
 
 
 class VideoScore(BaseModel):
@@ -229,6 +252,21 @@ class VideoScore(BaseModel):
     observed_at: int
     map_number: int = Field(ge=1)
     teams: list[VideoTeam] = Field(min_length=2, max_length=2)
+    pause: VideoPause | None = None  # active broadcast pause, if any
+
+    @model_validator(mode="after")
+    def validate_teams(self) -> Self:
+        """Require one blue and one red team with distinct codes.
+
+        :return: The validated score.
+        :raises ValueError: If only one team has a side, both are the same side, or codes collide.
+        """
+        blue, red = self.teams[0].side, self.teams[1].side
+        if (blue is None) != (red is None) or (blue is not None and blue == red):
+            raise ValueError("sides must name one blue and one red team")
+        if self.teams[0].code.strip().casefold() == self.teams[1].code.strip().casefold():
+            raise ValueError("team codes must be distinct")
+        return self
 
     @classmethod
     def from_cache(cls, data: bytes | None) -> VideoScore | None:
@@ -242,32 +280,50 @@ class VideoScore(BaseModel):
         except ValidationError:
             return None
 
-    def team_score(self, name: str, tag: str | None) -> int | None:
-        """Find a VLR team's score, matched on its name or tag; VLR shows tags only once a map has rounds.
+    def resolve_pair(self, teams: list[tuple[str, str | None]]) -> list[VideoTeam] | None:
+        """Resolve two VLR teams to the two broadcast entries one-to-one.
+
+        Each VLR team must match exactly one entry by name or tag, and neither team
+        may take the other's entry. Evidence that fits both pairings is conflicting
+        and rejected rather than guessed.
+
+        :param teams: Each VLR team's name and tag, in VLR order.
+        :return: The broadcast entries in the same order, or None when unmatched or ambiguous.
+        """
+        if len(teams) != 2:
+            return None
+        candidates = [self._candidates(name, tag) for name, tag in teams]
+        pairings = [(first, second) for first in candidates[0] for second in candidates[1] if first != second]
+        if len(pairings) != 1:
+            return None
+        first, second = pairings[0]
+        return [self.teams[first], self.teams[second]]
+
+    def _candidates(self, name: str, tag: str | None) -> list[int]:
+        """List the broadcast entries matching one VLR team by name or tag.
 
         :param name: VLR team name.
-        :param tag: VLR team tag, if shown.
-        :return: The team's score, or None when neither matches.
+        :param tag: VLR team tag, if available.
+        :return: Indices of the candidate entries.
         """
-        name, tag = name.strip().casefold(), (tag or "").casefold()
-        return next(
-            (
-                team.score
-                for team in self.teams
-                if team.name.strip().casefold() == name or (tag and team.code.casefold() == tag)
-            ),
-            None,
-        )
+        name, tag = name.strip().casefold(), (tag or "").strip().casefold()
+        return [
+            index
+            for index, team in enumerate(self.teams)
+            if team.name.strip().casefold() == name or (tag and team.code.strip().casefold() == tag)
+        ]
 
     def same_score(self, other: VideoScore) -> bool:
-        """Check whether another read shows the same map and scores, as a heartbeat does.
+        """Check whether map, scores, sides, and pause match another read.
 
-        :param other: Another read.
-        :return: Whether nothing changed between the two.
+        :param other: Score to compare against.
+        :return: True if score and display state match.
         """
-        if self.map_number != other.map_number:
+        if self.map_number != other.map_number or self.pause != other.pause:
             return False
-        return {team.code: team.score for team in self.teams} == {team.code: team.score for team in other.teams}
+        return {team.code: (team.score, team.side) for team in self.teams} == {
+            team.code: (team.score, team.side) for team in other.teams
+        }
 
     @property
     def healthy(self) -> bool:
@@ -283,6 +339,18 @@ class VideoDelivery(BaseModel):
 
     match_id: str
     video: VideoScore
+
+
+class VideoContext(BaseModel):
+    """Match context and ordered map names for the video tracker."""
+
+    match_id: str
+    map_number: int | None = None
+    map_order: list[str]
+    teams: list[str] = []  # team tags for tracker verification
+
+
+VideoContextCodes = Annotated[str, Field(max_length=33, pattern=r"^(?:[^\s,]{1,16},[^\s,]{1,16})?$")]
 
 
 class TokenRegistration(BaseModel):

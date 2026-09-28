@@ -216,39 +216,24 @@ class SubscriptionStore:
         self._session.add(LiveActivityStart(client_id=client_id, match_id=match_id))
         return True
 
-    async def has_live_android_follower(self, routing: Routing) -> bool:
-        """Check whether an Android client follows the match and hasn't turned live updates off.
+    async def live_android_tokens(self, routing: Routing) -> list[str]:
+        """Find FCM tokens for Android clients following the match with live updates enabled.
 
-        :param routing: The match routing IDs.
-        :return: Whether any such client exists.
+        :param routing: Match routing IDs.
+        :return: Distinct FCM registration tokens.
         """
-        follower = await self._session.scalar(
-            select(Favorite.client_id)
-            .join(DeviceToken, DeviceToken.client_id == Favorite.client_id)
-            .join(Client, Client.id == Favorite.client_id)
+        rows = await self._session.scalars(
+            select(DeviceToken.token)
+            .join(Favorite, Favorite.client_id == DeviceToken.client_id)
+            .join(Client, Client.id == DeviceToken.client_id)
             .where(
                 DeviceToken.platform == Platform.ANDROID,
                 Client.live_updates.is_not(False),
                 self._favorite_filter(routing),
             )
-            .limit(1)
-        )
-        return follower is not None
-
-    async def active_player_ids(self, player_ids: list[str]) -> list[str]:
-        """Find participating players with any stored favorite.
-
-        :param player_ids: Participating player identifiers.
-        :return: Favorited player IDs.
-        """
-        if not player_ids:
-            return []
-        rows = await self._session.scalars(
-            select(Favorite.entity_id)
-            .where(Favorite.entity_type == FavoriteType.PLAYER.value, Favorite.entity_id.in_(player_ids))
             .distinct()
         )
-        return sorted(rows, key=int)
+        return list(rows)
 
     async def favorited_player_ids(self) -> list[str]:
         """List every player that any client has favorited.

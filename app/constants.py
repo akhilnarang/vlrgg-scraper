@@ -38,6 +38,7 @@ SEARCH_URL = f"{PREFIX}/search?q={{}}&type={{}}"
 STANDINGS_URL = f"{PREFIX}/vct-{{}}/standings"
 
 TBD = "tbd"
+NA = "n/a"  # VLR's navigation placeholder for a game that has no stats panel yet
 TEST_MATCH_ID = "3141592653"
 TEST_TICK_KEY = "vlrgg:push:test_tick"
 # A tracked match whose page fails this many cron runs in a row is ended (e.g. VLR blocked our IP).
@@ -48,6 +49,8 @@ PUSH_FETCH_FAILURES_TTL = 600  # seconds; failures are consecutive per-minute ru
 PUSH_LISTING_LEAD = timedelta(minutes=15)
 VIDEO_SCORE_KEY = "vlrgg:push:video_score"
 VIDEO_DELIVERED_KEY = "vlrgg:push:video_delivered"
+PUSH_REFRESH_KEY = "vlrgg:push:refresh:{}"  # per-match cooldown for unchanged FCM refreshes
+PUSH_REFRESH_SECONDS = 60  # seconds between unchanged-state follower refreshes
 PUSH_DETAILS_KEY = "vlrgg:push:details"  # each tracked match's last fetched details, for video pushes
 PUSH_DETAILS_TTL = 3600
 VIDEO_SCORE_TTL = 3600  # keeps the last video score as VLR's floor through breaks between maps
@@ -65,6 +68,22 @@ class IdMapKind(StrEnum):
 class VideoStatus(StrEnum):
     OK = "ok"
     ERROR = "error"
+
+
+class TeamSide(StrEnum):
+    """Broadcast score bar side; blue is left."""
+
+    BLUE = "blue"
+    RED = "red"
+
+
+class VideoPauseKind(StrEnum):
+    """Broadcast tracker pause kind."""
+
+    TECH_PAUSE = "tech_pause"
+    TIMEOUT = "timeout"
+    HALFTIME = "halftime"
+    PAUSE = "pause"
 
 
 class MatchStatus(StrEnum):

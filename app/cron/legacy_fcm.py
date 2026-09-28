@@ -1,7 +1,7 @@
 """Legacy "match starting soon" FCM alerts on the original `match-`, `event-`, and `team-` topics.
 
 Released app versions render every message on these topics as a notification, so live
-scores use separate `live-*` topics (see app/services/fcm.py) and these stay unchanged.
+scores go directly to registration tokens (see app/services/fcm.py) and these stay unchanged.
 """
 
 import asyncio
