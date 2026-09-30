@@ -6,7 +6,16 @@ from typing import NamedTuple
 
 from redis.asyncio import Redis
 
-from app.constants import MAP_WIN_ROUNDS, NA, PUSH_DETAILS_KEY, TBD, VIDEO_SCORE_KEY, Platform, TeamSide
+from app.constants import (
+    MAP_WIN_ROUNDS,
+    NA,
+    PUSH_DETAILS_KEY,
+    TBD,
+    VIDEO_SCORE_KEY,
+    VIDEO_STALE_SECONDS,
+    Platform,
+    TeamSide,
+)
 from app.db.models import DeviceToken
 from app.exceptions import ServiceUnavailableError
 from app.schemas.matches import (
@@ -143,11 +152,18 @@ def _pause(video: VideoScore | None, current: PushCurrentMap | None) -> PushPaus
     Only the kind and reason are projected: the tracker's ``since`` is on its own
     clock, and the state's absolute ``observed_at`` dates the pause instead.
 
+    A tracker that has started a map VLR has not rendered yet still carries its pause, so a pause
+    during a map opening is not lost while the projection still shows the previous map. A pause from
+    a map the tracker is behind on is dropped, and so is one from a tracker that has gone quiet: the
+    score it left behind keeps VLR's floor, but it must not keep a pause shown.
+
     :param video: Latest tracker score, or None.
     :param current: Currently displayed map, or None.
     :return: Active pause payload, or None.
     """
-    if video is None or video.pause is None or current is None or current.number != video.map_number:
+    if video is None or video.pause is None or current is None or current.number > video.map_number:
+        return None
+    if time.time() - video.observed_at > VIDEO_STALE_SECONDS:
         return None
     return PushPause(kind=video.pause.kind, reason=video.pause.reason)
 

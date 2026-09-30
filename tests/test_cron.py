@@ -117,6 +117,14 @@ def test_video_score_targets_its_original_game_number():
     assert paused.semantic() != push.project_state("123", detail).semantic()
     video.map_number = 3
     assert push.project_state("123", detail, video).pause is None
+    # A pause on a map VLR has not rendered yet still rides the state, so a pause during a map's
+    # opening is not lost while the projection still shows the map that just ended.
+    video.map_number = 5
+    assert push.project_state("123", detail, video).pause is not None
+    # A tracker that has gone quiet keeps VLR's score floor, but must not keep a pause shown.
+    video.map_number = 4
+    video.observed_at = int(time.time()) - constants.VIDEO_STALE_SECONDS - 1
+    assert push.project_state("123", detail, video).pause is None
 
 
 @pytest.mark.asyncio
@@ -817,6 +825,35 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         video["teams"][0]["code"], video["teams"][1]["code"] = "SAME", "SAME"
         assert (await put_video()).status_code == 422
         video["teams"][0]["code"], video["teams"][1]["code"] = "ALP", "XYZ"
+        # A pause at a map's opening still reaches the phone from the fallback push: the tracker is
+        # on map 2 at 0-0 while VLR still shows the map that just ended, at 13-9.
+        from app.schemas.matches import MatchData
+        from app.schemas.matches import Team as MapTeam
+
+        opening = _live_detail("live", (1, 0))
+        opening.total_maps = 2
+        opening.data.append(
+            MatchData(
+                number=2,
+                map="Lotus",
+                teams=[MapTeam(name="Alpha", score=0), MapTeam(name="Beta", score=0)],
+                members=[],
+                rounds=[],
+            )
+        )
+        fetches["789"].append(opening)
+        video["observed_at"] = int(time.time())
+        video["map_number"] = 2
+        video["teams"][0]["score"], video["teams"][1]["score"] = 0, 0
+        video["pause"] = {"kind": "tech_pause", "reason": "GEAR", "since": 120}
+        pushed = len(fcm_calls)
+        assert (await put_video()).status_code == 204  # stored; a 0-0 immediate push is still withheld
+        assert len(fcm_calls) == pushed
+        await live_push.live_push_cron({"redis": redis})
+        sent_states = [json.loads(call[0].data["state"]) for call in fcm_calls[pushed:]]
+        opening_state = next(state for state in sent_states if state["match_id"] == "789")
+        assert opening_state["current_map"]["number"] == 1
+        assert opening_state["pause"] == {"kind": "tech_pause", "reason": "GEAR"}
     finally:
         await apns.aclose()
         await engine.dispose()
