@@ -120,6 +120,17 @@ installed by `scripts/install-systemd-user.sh` and updated by `scripts/deploy.sh
   dependencies (`--no-dev`), installs and reloads the unit, enables it, and restarts
   it. Startup uses `.venv/bin/gunicorn` directly, without syncing dependencies.
   Deploys reinstall the unit so server-command changes take effect.
+- Between the pull and the reload, `scripts/deploy.sh` runs `scripts/purge_cache.py`:
+  it hashes the JSON schemas of the models cached in Redis and compares the hash with
+  the one stored under `vlrgg:cache:schema`. A changed (or missing) hash deletes this
+  app's cache keys by pattern and stores the new hash; an unchanged hash leaves the warm
+  cache alone, so an ordinary redeploy is a no-op even mid-match. This exists because
+  cached payloads are validated strictly on read, so a schema change with a warm cache
+  otherwise 500s (`MatchWithDetails data.N.number Field required`) until the cron
+  rewrites the cache. The same Redis holds the arq queue and push delivery markers, so
+  `FLUSHALL`/`FLUSHDB` are never used and `vlrgg:push:video_delivered` and
+  `vlrgg:push:refresh:*` are never purged (losing either could duplicate a push). An
+  unreachable Redis fails the deploy instead of leaving a stale-schema cache behind.
 - The Unix socket keeps its `0666` mode for Nginx; restrict access with the
   containing directory's permissions or ACLs. Other files are created owner-only
   (`UMask=0077`). Proxy-header trust is unchanged, so verify Nginx can connect before

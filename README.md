@@ -97,7 +97,7 @@ docker run -p 8000:8000 vlrgg-scraper
 # First install: sync dependencies, install and start the systemd user service
 ./scripts/install-systemd-user.sh
 
-# Later deploys: pull, reinstall the unit, and restart
+# Later deploys: pull, purge cache entries whose schema changed, and reload the service
 ./scripts/deploy.sh
 ```
 

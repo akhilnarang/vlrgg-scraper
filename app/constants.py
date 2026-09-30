@@ -40,6 +40,10 @@ STANDINGS_URL = f"{PREFIX}/vct-{{}}/standings"
 TBD = "tbd"
 NA = "n/a"  # VLR's navigation placeholder for a game that has no stats panel yet
 TEST_MATCH_ID = "3141592653"
+# Deploy-time marker: scripts/purge_cache.py stores a hash of the cached models' JSON
+# schemas here and deletes the app's cache keys when the hash changes, so a deploy never
+# serves cache entries that fail validation (see docs/caching.md).
+CACHE_SCHEMA_KEY = "vlrgg:cache:schema"
 TEST_TICK_KEY = "vlrgg:push:test_tick"
 # A tracked match whose page fails this many cron runs in a row is ended (e.g. VLR blocked our IP).
 PUSH_FETCH_FAILURE_LIMIT = 3

@@ -18,6 +18,7 @@ The application uses Redis for caching to improve performance and reduce load on
 | `events` | Event listings | 30 minutes |
 | `news` | News articles | 30 minutes |
 | `standings_{year}` | VCT standings for year | 1 hour |
+| `vlrgg:cache:schema` | Signature of the cached models' schemas, compared on deploy | no expiry |
 
 ## Implementation
 
@@ -83,7 +84,13 @@ Environment variables:
 ## Cache Invalidation
 
 - **TTL Expiration**: Automatic cleanup
-- **Manual Flush**: `FLUSHDB` command for emergencies
+- **Deploy Purge**: `scripts/purge_cache.py` (run by `scripts/deploy.sh`) compares a
+  sha256 signature of the cached models' JSON schemas with the `vlrgg:cache:schema` key
+  and deletes this app's cache keys by pattern only when the signature changed; a warm
+  cache is left alone otherwise. Purged keys merely get refetched, but never use
+  `FLUSHALL`/`FLUSHDB` for this: the same Redis holds the arq job queue and push
+  delivery markers that must survive (see
+  [Architecture: Deployment](architecture.md#deployment))
 - **Versioning**: Include version in keys for breaking changes
 
 ## Monitoring
