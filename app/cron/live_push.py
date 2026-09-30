@@ -434,13 +434,14 @@ async def _send_fcm(tokens: list[str], fcm_app: App | None, state: CompactState,
     current = state.current_map
     # One line per send, so a stale or missing phone notification can be traced to a send or its absence.
     logger.info(
-        "FCM %s match %s map %s %s series %s terminal=%s direct=%d: %s",
+        "FCM %s match %s map %s %s series %s terminal=%s pause=%s direct=%d: %s",
         "refreshed" if refresh else "sent",
         state.match_id,
         current.number if current else None,
         "-".join(map(str, current.scores)) if current else None,
         "-".join(str(team.score) for team in state.teams),
         state.terminal,
+        state.pause.kind if state.pause else None,
         len(tokens),
         message_ids,
     )
