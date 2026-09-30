@@ -869,6 +869,7 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
     }
     redis = AsyncMock()
     redis.get.side_effect = lambda key: videos.get(key, DEFAULT)
+    redis.set.side_effect = lambda key, value, **kwargs: videos.update({key: value})
 
     app = FastAPI()
     app.include_router(video_router, prefix="/api/v1/video", dependencies=[Depends(deps.verify_video_token)])
@@ -911,3 +912,11 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
         }
     )
     assert (await get_context("ALP,BET")).status_code == 404
+    # An entry cached by an older schema must degrade the lookup to "no cached details",
+    # not raise: a 500 here left the tracker without map order after the last deploy, and
+    # the pruned entry is dropped from Redis so the cron refetches it.
+    stale = cached([(1, "Ascent"), (4, "Lotus")])
+    del stale["data"][0]["number"]
+    videos[constants.PUSH_DETAILS_KEY] = json.dumps({"123": stale})
+    assert (await get_context("ALP,BET")).status_code == 404
+    assert json.loads(videos[constants.PUSH_DETAILS_KEY]) == {}

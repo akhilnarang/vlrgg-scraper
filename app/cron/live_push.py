@@ -204,13 +204,13 @@ async def _cache_details(
     :return: None.
     """
     cached = await push.cached_details(client)
-    kept = {left_to_video: cached[left_to_video]} if left_to_video in cached else {}
+    kept = {left_to_video: cached[left_to_video].model_dump(mode="json")} if left_to_video in cached else {}
     for match_id, detail in zip(match_ids, details, strict=True):
         if match_id == constants.TEST_MATCH_ID:
             continue
         if isinstance(detail, BaseException):
             if match_id in cached:
-                kept[match_id] = cached[match_id]
+                kept[match_id] = cached[match_id].model_dump(mode="json")
         elif not is_final(detail.event.status):
             kept[match_id] = detail.model_dump(mode="json")
     await client.set(constants.PUSH_DETAILS_KEY, json.dumps(kept), ex=constants.PUSH_DETAILS_TTL)

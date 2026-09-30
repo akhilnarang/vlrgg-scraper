@@ -1,12 +1,23 @@
 """Projection helpers for compact live-match push state."""
 
 import json
+import logging
 import time
 from typing import NamedTuple
 
+from pydantic import ValidationError
 from redis.asyncio import Redis
 
-from app.constants import MAP_WIN_ROUNDS, NA, PUSH_DETAILS_KEY, TBD, VIDEO_SCORE_KEY, Platform, TeamSide
+from app.constants import (
+    MAP_WIN_ROUNDS,
+    NA,
+    PUSH_DETAILS_KEY,
+    PUSH_DETAILS_TTL,
+    TBD,
+    VIDEO_SCORE_KEY,
+    Platform,
+    TeamSide,
+)
 from app.db.models import DeviceToken
 from app.exceptions import ServiceUnavailableError
 from app.schemas.matches import (
@@ -19,6 +30,8 @@ from app.schemas.matches import (
     VideoScore,
 )
 from app.utils import is_final, is_live
+
+logger = logging.getLogger(__name__)
 
 
 class Routing(NamedTuple):
@@ -101,14 +114,32 @@ async def video_score(client: Redis) -> VideoScore | None:
     return VideoScore.from_cache(await client.get(VIDEO_SCORE_KEY))
 
 
-async def cached_details(client: Redis) -> dict[str, dict]:
+async def cached_details(client: Redis) -> dict[str, MatchWithDetails]:
     """Read the match details the last cron run kept.
 
+    An entry written by an older schema is dropped and the pruned payload written back,
+    so a deploy that changes the cached shape degrades to no cached details instead of
+    failing every reader.
+
     :param client: Redis client.
-    :return: Each match's details as JSON-ready data, keyed by match ID.
+    :return: Each match's validated details, keyed by match ID.
     """
     data = await client.get(PUSH_DETAILS_KEY)
-    return json.loads(data) if data else {}
+    raw = json.loads(data) if data else {}
+    cached: dict[str, MatchWithDetails] = {}
+    for match_id, entry in raw.items():
+        try:
+            cached[match_id] = MatchWithDetails.model_validate(entry)
+        except ValidationError:
+            logger.warning("dropping cached details for match %s: no longer validates", match_id)
+    if len(cached) != len(raw):
+        # Drop the incompatible entries so the cron refetches them instead of reprocessing them on every read.
+        await client.set(
+            PUSH_DETAILS_KEY,
+            json.dumps({match_id: detail.model_dump(mode="json") for match_id, detail in cached.items()}),
+            ex=PUSH_DETAILS_TTL,
+        )
+    return cached
 
 
 def project_state(match_id: str, detail: MatchWithDetails, video: VideoScore | None = None) -> CompactState | None:
@@ -197,10 +228,7 @@ async def resolve_video_match(client: Redis, video: VideoScore) -> tuple[str, Ma
     :param video: Stored tracker score.
     :return: Tuple of match ID, details, and team scores, or None if unmatched.
     """
-    candidates = [
-        (match_id, MatchWithDetails.model_validate(cached))
-        for match_id, cached in (await cached_details(client)).items()
-    ]
+    candidates = list((await cached_details(client)).items())
     matched = [
         (match_id, detail, scores)
         for match_id, detail in candidates
@@ -216,10 +244,7 @@ async def resolve_video_match_by_codes(client: Redis, codes: list[str]) -> tuple
     :param codes: Two Riot team codes.
     :return: Tuple of match ID and details, or None if ambiguous or unmatched.
     """
-    candidates = [
-        (match_id, MatchWithDetails.model_validate(cached))
-        for match_id, cached in (await cached_details(client)).items()
-    ]
+    candidates = (await cached_details(client)).items()
     return _preferred_match([candidate for candidate in candidates if match_codes(candidate[1], codes)])
 
 
