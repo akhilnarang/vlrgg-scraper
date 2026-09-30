@@ -27,6 +27,25 @@
   handlers get a one-line docstring only, because it becomes the Swagger
   description.
 
+## Caching
+
+- Cached payloads are validated strictly on read, so when a change alters the schema of
+  `Match`, `MatchWithDetails`, `Event`, `NewsItem`, `Ranking`, `Standings`, `Team`,
+  `Player`, or `VideoScore`, the application cache must be purged as part of the deploy:
+  an old-schema entry otherwise raises and 5xxs until it expires or its cron rewrites it.
+  CI fails on such a change as a reminder.
+- Purge only this app's keys, never `FLUSHALL`/`FLUSHDB` — the arq queue shares
+  this Redis. Pass the same `-h`/`-a` options to both `redis-cli` calls if Redis is
+  not local:
+
+  ```sh
+  for p in rankings matches events news 'standings_*' 'match:*' 'team:*' 'player:*' vlrgg:push:details vlrgg:push:video_score; do redis-cli --scan --pattern "$p" | xargs -r redis-cli del; done
+  ```
+
+- `vlrgg:push:video_delivered` (the delivery marker) and `vlrgg:push:refresh:*` (the
+  unchanged-refresh cooldown) are deliberately not purged; losing either can duplicate
+  a push.
+
 ## Pull requests
 
 - Keep a PR as a single commit, amended as it changes.
