@@ -35,3 +35,42 @@ jobs:
 
     - name: Run tests
       run: uv run pytest -m "not live_golden and not live_health"
+
+  cached-schemas:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.14'
+
+    - name: Install uv
+      run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    - name: Install dependencies
+      run: uv sync
+
+    # Cached payloads are validated strictly on read, so a schema change of a cached
+    # model needs a manual cache purge at deploy time (AGENTS.md, "Caching"). This
+    # check fails on purpose so the purge is remembered, not silently forgotten.
+    - name: Compare cached-schema digest with the target branch
+      run: |
+        target="origin/${GITHUB_BASE_REF:-master}"
+        git worktree add --detach ../cached-schema-base "$(git merge-base HEAD "$target")"
+        cp scripts/cached_schema_signature.py ../cached-schema-base/scripts/
+        current=$(uv run python -m scripts.cached_schema_signature)
+        base=$(cd ../cached-schema-base && "$GITHUB_WORKSPACE/.venv/bin/python" -m scripts.cached_schema_signature)
+        echo "cached-schema digest (PR):     $current"
+        echo "cached-schema digest (target): $base"
+        if [ "$current" != "$base" ]; then
+          echo "::error title=Cached model schema changed::Purge the app cache on deploy - cached payloads are validated strictly on read, so an old-schema entry raises until it expires. See AGENTS.md, 'Caching'."
+          diff <(uv run python -m scripts.cached_schema_signature --per-model) \
+               <(cd ../cached-schema-base && "$GITHUB_WORKSPACE/.venv/bin/python" -m scripts.cached_schema_signature --per-model) || true
+          exit 1
+        fi

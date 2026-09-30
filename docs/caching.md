@@ -14,10 +14,19 @@ The application uses Redis for caching to improve performance and reduce load on
 | Key Pattern | Description | TTL |
 |-------------|-------------|-----|
 | `rankings` | Current team rankings | 1 hour |
-| `matches` | Match listings | 5 minutes |
-| `events` | Event listings | 30 minutes |
-| `news` | News articles | 30 minutes |
-| `standings_{year}` | VCT standings for year | 1 hour |
+| `matches` | Match listings | 10 minutes |
+| `match:{id}` | Match details | 30 seconds |
+| `events` | Event listings | 1 hour |
+| `news` | News articles | 1 hour |
+| `standings_{year}` | VCT standings for year | 25 hours |
+| `team:{id}:{completed_pages}` | Team pages | 1 minute |
+| `player:{id}:{match_pages}` | Player pages | 1 minute |
+| `vlrgg:push:details` | Each tracked match's last fetched details | 1 hour |
+| `vlrgg:push:video_score` | Latest broadcast tracker score | 1 hour |
+
+`vlrgg:push:video_delivered` (the last pushed video score) and `vlrgg:push:refresh:{match_id}`
+(the cooldown on unchanged FCM refreshes) are markers with side effects, not payload caches,
+so a purge leaves them alone.
 
 ## Implementation
 
@@ -83,7 +92,21 @@ Environment variables:
 ## Cache Invalidation
 
 - **TTL Expiration**: Automatic cleanup
-- **Manual Flush**: `FLUSHDB` command for emergencies
+- **Schema changes**: Cached payloads are validated strictly on read, so a deploy that
+  changes the schema of a cached model (`Match`, `MatchWithDetails`, `Event`, `NewsItem`,
+  `Ranking`, `Standings`, `Team`, `Player`, `VideoScore`) must purge the application's
+  keys by hand before the service reloads; an old-schema entry otherwise raises and 5xxs
+  until it expires or its cron rewrites it. `ci.yml` fails on such a change as a
+  reminder. From the repo root (pass the same `-h`/`-a` options to both `redis-cli`
+  calls if Redis is not local):
+
+  ```sh
+  for p in rankings matches events news 'standings_*' 'match:*' 'team:*' 'player:*' vlrgg:push:details vlrgg:push:video_score; do redis-cli --scan --pattern "$p" | xargs -r redis-cli del; done
+  ```
+
+  Never `FLUSHALL`/`FLUSHDB`: the same Redis holds the arq job queue, and
+  `vlrgg:push:video_delivered` and `vlrgg:push:refresh:*` must survive (losing either
+  can duplicate a push). See [AGENTS.md: Caching](../AGENTS.md#caching).
 - **Versioning**: Include version in keys for breaking changes
 
 ## Monitoring

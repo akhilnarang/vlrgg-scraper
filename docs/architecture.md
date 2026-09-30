@@ -120,6 +120,11 @@ installed by `scripts/install-systemd-user.sh` and updated by `scripts/deploy.sh
   dependencies (`--no-dev`), installs and reloads the unit, enables it, and restarts
   it. Startup uses `.venv/bin/gunicorn` directly, without syncing dependencies.
   Deploys reinstall the unit so server-command changes take effect.
+- A deploy that changes the schema of a cached model must purge the application cache
+  by hand before the service reloads; cached payloads are validated strictly on read,
+  so an old-schema entry raises until it expires. `ci.yml` fails on such a change as a
+  reminder (see [Cache Invalidation](caching.md#cache-invalidation) and
+  [AGENTS.md: Caching](../AGENTS.md#caching)).
 - The Unix socket keeps its `0666` mode for Nginx; restrict access with the
   containing directory's permissions or ACLs. Other files are created owner-only
   (`UMask=0077`). Proxy-header trust is unchanged, so verify Nginx can connect before
