@@ -71,6 +71,12 @@
   and rejection of unsafe identifiers. Avoid exact markup or CSS assertions.
 - Prefer product behavior over isolated tests of test helpers. Retain operational
   contracts such as the CI guard that rejects an all-skipped live run.
+- A change to parser output (a field added to, renamed in, or removed from a scraped
+  model) updates the affected `tests/golden/` snapshots in the same PR. Run
+  `uv run pytest -m live_golden tests/golden`, regenerate each failing case on its own
+  (`--force-regen` with that case's node ID, never the whole set), and check every
+  changed value against the live VLR page. CI runs these checks only nightly, so a
+  missed snapshot fails every night after the merge.
 - Request changes for excessive, redundant, or non-contract tests. When pruning,
   preserve distinct behavior rather than optimizing test counts or coverage scores.
 
