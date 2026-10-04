@@ -800,6 +800,24 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert refreshed_state["teams"] == changed_state["teams"]
         await put_video()  # refresh window reset; second refresh suppressed
         assert len(fcm_calls) == pushed + 2
+        # A stale refresh must not overwrite a newer score's push (2026-10-03): the heartbeat read the old
+        # score, a change was stored during the token read, so the refresh must send nothing.
+        pushed = len(fcm_calls)
+        ticks.pop(constants.PUSH_REFRESH_KEY.format("789"))  # refresh window elapsed
+        newer = json.loads(videos[constants.VIDEO_SCORE_KEY])
+        newer["teams"][0]["score"], newer["teams"][1]["score"] = 16, 14
+        live_tokens = SubscriptionStore.live_android_tokens
+
+        async def store_newer_during_token_read(store, routing):
+            videos[constants.VIDEO_SCORE_KEY] = json.dumps(newer)
+            return await live_tokens(store, routing)
+
+        with monkeypatch.context() as boundary:
+            boundary.setattr(SubscriptionStore, "live_android_tokens", store_newer_during_token_read)
+            await put_video()
+            assert len(fcm_calls) == pushed
+            assert constants.PUSH_REFRESH_KEY.format("789") in ticks  # the refresh reached its send boundary
+        videos[constants.VIDEO_SCORE_KEY] = json.dumps(video)  # restore the score the heartbeat stored
 
         # Pause onset triggers an immediate push even with unchanged score.
         pushed = len(fcm_calls)
