@@ -178,6 +178,9 @@ async def _deliver_video_match(
         async with sessions.begin() as session:
             tokens = await SubscriptionStore(session).live_android_tokens(push.routing_ids(match_id, detail))
         # The token read is committed before the send; publish_direct clears dead tokens in its own session.
+        # Skip when a newer score was stored: its own push carries the change, and this refresh is stamped later.
+        if (latest := await push.video_score(client)) is None or not video.same_score(latest):
+            return
         await _send_fcm(tokens, fcm_app, state, refresh=True)
         return
     async with sessions() as session:
