@@ -18,12 +18,22 @@ The application uses arq for background job scheduling to periodically update ca
 | Events | `events_cron` | Every 30 min | Update event listings |
 | News | `news_cron` | Every 30 min | Update news articles |
 | Standings | `standings_cron` | Daily 00:00 | Update current year standings |
+| Team Rankings | `team_rankings_cron` | Every 15 min | Upsert newly completed matches and rebuild the Elo ledger (`app/cron/team_rankings.py`) |
 | FCM Notifications | `fcm_notification_cron` | Every 15 min | Legacy "match starting soon" alert on the `match-`/`event-`/`team-` topics (`app/cron/legacy_fcm.py`) |
 | Live Matches | `live_push_cron` | Every minute | Send APNs/FCM scores for matches listed as live; at most one run at a time (fixed arq `job_id`) |
 
+The team rankings job upserts every completed match that is missing from the ledger,
+stored without both teams, a decisive score, or every played map, or contradicted by
+the listing's teams and scores. It then replays the whole ledger into the series Elo
+(`k48-hnone-m0.3-r0`, no decay), the per-map Elo, and the circuit counts. The replay
+is deterministic, so a fetch or write failure only leaves that match for the next
+run and can never move a rating out of order. Historical database seeding and
+catch-up are manual deployment steps; import scripts are not included in this
+change. Complete them before enabling ongoing ingestion.
+
 ## Implementation
 
-### Job Functions (`app/cron/jobs.py`, `app/cron/legacy_fcm.py`, and `app/cron/live_push.py`)
+### Job Functions (`app/cron/jobs.py`, `app/cron/legacy_fcm.py`, `app/cron/live_push.py`, and `app/cron/team_rankings.py`)
 
 Each job function:
 1. Takes a `ctx` dict (Redis connection, etc.)

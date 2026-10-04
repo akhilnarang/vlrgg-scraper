@@ -42,6 +42,7 @@ class ArqWorker:
                     cron("app.cron.jobs.events_cron", hour=None, minute={0, 30}),
                     cron("app.cron.jobs.news_cron", hour=None, minute={0, 30}),
                     cron("app.cron.jobs.standings_cron", hour=0, minute=0),
+                    cron("app.cron.team_rankings.team_rankings_cron", hour=None, minute={10, 25, 40, 55}),
                 ]
             )
 
