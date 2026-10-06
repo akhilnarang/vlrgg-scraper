@@ -149,6 +149,13 @@ class VetoAction(StrEnum):
     UNKNOWN = "unknown"  # note text the parser didn't recognize; ``map`` holds the raw text
 
 
+class RoundWinner(StrEnum):
+    """Round winner as VLR's map panel orders the teams."""
+
+    TEAM1 = "team1"
+    TEAM2 = "team2"
+
+
 class Circuit(StrEnum):
     """Competition circuit an event's matches count towards."""
 

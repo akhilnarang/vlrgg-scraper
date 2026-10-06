@@ -6,6 +6,7 @@ from typing import NamedTuple
 
 from redis.asyncio import Redis
 
+from app import constants
 from app.constants import (
     MAP_WIN_ROUNDS,
     NA,
@@ -23,6 +24,7 @@ from app.schemas.matches import (
     MatchData,
     MatchWithDetails,
     PushCurrentMap,
+    PushMapRounds,
     PushPause,
     PushTeam,
     VideoScore,
@@ -143,6 +145,7 @@ def project_state(match_id: str, detail: MatchWithDetails, video: VideoScore | N
         ],
         current_map=current,
         map_winners=_map_winners(detail),
+        map_round_winners=_map_round_winners(detail),
         pause=_pause(video, current),
     )
 
@@ -337,13 +340,22 @@ def _has_map_name(name: str) -> bool:
     return name.strip().casefold() not in {"", TBD, NA}
 
 
+def _map_slots(detail: MatchWithDetails) -> int:
+    """Count the match's map slots.
+
+    :param detail: Scraped match details.
+    :return: Number of series game slots, whichever is larger of the series length and the last game VLR rendered.
+    """
+    return max(detail.total_maps, max((item.number for item in detail.data), default=0))
+
+
 def ordered_map_names(detail: MatchWithDetails) -> list[str]:
     """List map names by series slot, using empty strings for unpopulated slots.
 
     :param detail: Scraped match details.
     :return: Map names in series order with empty strings for unnamed or TBD maps.
     """
-    names = [""] * max(detail.total_maps, max((item.number for item in detail.data), default=0))
+    names = [""] * _map_slots(detail)
     for item in detail.data:
         if _has_map_name(item.map):
             names[item.number - 1] = item.map
@@ -371,7 +383,7 @@ def _map_winners(detail: MatchWithDetails) -> list[str | None]:
     :param detail: Scraped match details.
     :return: One entry per map up to ``total_maps``: the winner's team ID, or None if not finished.
     """
-    winners: list[str | None] = [None] * max(detail.total_maps, max((item.number for item in detail.data), default=0))
+    winners: list[str | None] = [None] * _map_slots(detail)
     for map_data in detail.data:
         first, second = _aligned_scores(map_data, detail)
         if first is None or second is None:
@@ -379,6 +391,25 @@ def _map_winners(detail: MatchWithDetails) -> list[str | None]:
         # A map ends at 13 rounds with a two-round lead, which also covers overtime.
         if max(first, second) >= MAP_WIN_ROUNDS and abs(first - second) >= 2:
             winners[map_data.number - 1] = detail.teams[0 if first > second else 1].id
+    return winners
+
+
+def _map_round_winners(detail: MatchWithDetails) -> list[PushMapRounds]:
+    """Find each map's round winners as indices into the match's team order.
+
+    :param detail: Scraped match details.
+    :return: One entry per map slot, each holding that map's winning team index (0 or 1) per round.
+    """
+    winners = [PushMapRounds(map_number=number) for number in range(1, _map_slots(detail) + 1)]
+    order = [team.name.strip().casefold() for team in detail.teams]
+    for map_data in detail.data:
+        names = [team.name.strip().casefold() for team in map_data.teams]
+        if sorted(names) != sorted(order):
+            continue
+        index = {constants.RoundWinner.TEAM1: order.index(names[0]), constants.RoundWinner.TEAM2: order.index(names[1])}
+        winners[map_data.number - 1] = PushMapRounds(
+            map_number=map_data.number, winners=[index.get(item.winner) for item in map_data.rounds]
+        )
     return winners
 
 

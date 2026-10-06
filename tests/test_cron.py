@@ -46,7 +46,7 @@ def _live_detail(status: str, series: tuple[int, int]):
 
 
 def test_video_score_targets_its_original_game_number():
-    from app.schemas.matches import MatchData, Team, VideoPause, VideoScore
+    from app.schemas.matches import MatchData, PushMapRounds, Round, Team, VideoPause, VideoScore
     from app.services import push
 
     detail = _live_detail("live", (0, 0))
@@ -57,7 +57,10 @@ def test_video_score_targets_its_original_game_number():
             map="Lotus",
             teams=[Team(name="Alpha", score=0), Team(name="Beta", score=0)],
             members=[],
-            rounds=[],
+            rounds=[
+                Round(round_number=1, round_score="1-0", winner="team1", side="attack", win_type="Elimination"),
+                Round(round_number=2, round_score="2-0", winner="team1", side="attack", win_type="Elimination"),
+            ],
         )
     )
     video = VideoScore.model_validate(
@@ -83,33 +86,33 @@ def test_video_score_targets_its_original_game_number():
     state = push.project_state("123", detail)
     assert state is not None and state.current_map is not None
     assert (state.current_map.name, state.current_map.number, state.current_map.scores) == ("Lotus", 4, [8, 4])
-    assert [team.name for team in state.teams] == ["Alpha", "Beta"]  # defaults to VLR order without sides
+    assert [team.name for team in state.teams] == ["Alpha", "Beta"]
 
-    # A game VLR hasn't rendered has no entry, so the video's score cannot resolve to it.
     video.map_number = 3
     assert push.video_team_scores(detail, video) is None
 
-    # Scores for another map do not reorder displayed teams.
     video.teams[0].side, video.teams[1].side = constants.TeamSide.RED, constants.TeamSide.BLUE
     push.order_teams_for_broadcast(detail, video)
     assert [team.name for team in detail.teams] == ["Alpha", "Beta"]
 
-    # Reorder teams blue-first when sides match the displayed map.
     video.map_number = 4
     push.order_teams_for_broadcast(detail, video)
     state = push.project_state("123", detail)
     assert state is not None and state.current_map is not None
     assert [team.name for team in state.teams] == ["Beta", "Alpha"]
     assert state.current_map.scores == [4, 8]
+    assert state.map_round_winners == [
+        PushMapRounds(map_number=1),
+        PushMapRounds(map_number=2),
+        PushMapRounds(map_number=3),
+        PushMapRounds(map_number=4, winners=[1, 1]),
+    ]
 
-    # Map winner stays on game 4 without shifting over the game VLR has not rendered.
     detail.data[1].teams[0].score, detail.data[1].teams[1].score = 9, 13
     state = push.project_state("123", detail)
     assert state is not None
     assert state.map_winners == ["1", None, None, "2"]
 
-    # Active pause modifies semantic state, but is omitted when map numbers differ.
-    # The tracker's relative `since` never rides the outbound state; `observed_at` dates it.
     video.pause = VideoPause(kind="tech_pause", reason="GEAR", since=120)
     paused = push.project_state("123", detail, video)
     assert paused is not None and paused.pause is not None
@@ -117,11 +120,8 @@ def test_video_score_targets_its_original_game_number():
     assert paused.semantic() != push.project_state("123", detail).semantic()
     video.map_number = 3
     assert push.project_state("123", detail, video).pause is None
-    # A pause on a map VLR has not rendered yet still rides the state, so a pause during a map's
-    # opening is not lost while the projection still shows the map that just ended.
     video.map_number = 5
     assert push.project_state("123", detail, video).pause is not None
-    # A tracker that has gone quiet keeps VLR's score floor, but must not keep a pause shown.
     video.map_number = 4
     video.observed_at = int(time.time()) - constants.VIDEO_STALE_SECONDS - 1
     assert push.project_state("123", detail, video).pause is None
@@ -205,7 +205,6 @@ async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeyp
 
     await live_push.live_push_cron({"redis": redis})
 
-    # The video's score and pause apply only to the match that the video resolved to.
     assert [(state.match_id, state.current_map.scores if state.current_map else None) for state in sent] == [
         ("123", [8, 4]),
         ("456", [0, 0]),
@@ -214,8 +213,6 @@ async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeyp
     assert sent[1].pause is None
     mark_delivered.assert_awaited_once_with(redis, "123", video)
 
-    # VLR has no entry for game 2, so the projection still shows map 1: the video's score
-    # for game 2 must not be acknowledged as delivered, or the cron would stop fetching VLR.
     video.map_number = 2
     await live_push.live_push_cron({"redis": redis})
     assert mark_delivered.await_count == 1
@@ -233,7 +230,6 @@ def test_video_scores_require_one_to_one_team_identity():
             "status": "ok",
             "observed_at": int(time.time()),
             "map_number": 1,
-            # One entry claims Alpha by name and Beta by tag; the other entry matches neither.
             "teams": [
                 {"code": "BET", "name": "Alpha", "score": 8},
                 {"code": "XYZ", "name": "Gamma", "score": 7},
@@ -243,7 +239,6 @@ def test_video_scores_require_one_to_one_team_identity():
 
     assert push.video_team_scores(detail, crossed) is None
 
-    # A complete one-to-one pairing still resolves, mixing name and tag evidence.
     paired = VideoScore.model_validate(
         {
             "status": "ok",
@@ -257,7 +252,6 @@ def test_video_scores_require_one_to_one_team_identity():
     )
     assert push.video_team_scores(detail, paired) == {"alpha": 8, "beta": 4}
 
-    # With both names and tags crossing over, two complete pairings fit: reject, never guess.
     ambiguous = VideoScore.model_validate(
         {
             "status": "ok",
@@ -342,7 +336,6 @@ async def test_fcm_cron_sends_valid_matches_and_reports_failures():
     assert len(messages) == 1
     assert messages[0].data["title"] == "Team A vs Team B"
     assert messages[0].data["match_id"] == "123"
-    # Released apps subscribe to these legacy topics; live scores must never be sent to them.
     assert "'match-123' in topics" in messages[0].condition
     assert await_args.kwargs["app"] is firebase_app
 
@@ -376,7 +369,6 @@ async def test_publish_direct_batches_past_the_firebase_limit(monkeypatch):
     monkeypatch.setattr(fcm.messaging, "send_each_async", send_each_async)
     tokens = [f"fcm-token:{index}" for index in range(501)]
     with warnings.catch_warnings():
-        # Every message trips the SDK's pre-existing Message.token deprecation.
         warnings.simplefilter("ignore", DeprecationWarning)
         message_ids = await fcm.publish_direct(object(), tokens, state)
 
@@ -415,7 +407,6 @@ async def test_direct_delivery_failures_propagate_to_the_delivered_guard(monkeyp
 
     assert await live_push._send_fcm(["tok:1"], object(), state) is False
 
-    # An unregistered token is permanent and cleared; on its own it does not fail the send.
     async def unregistered(*, messages, dry_run, app):
         return messaging.BatchResponse(
             [messaging.SendResponse(None, messaging.UnregisteredError("registration token expired")) for _ in messages]
@@ -449,18 +440,12 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         android_id = "22222222-2222-4222-8222-222222222222"
         await store.register_token(android_id, "fcm-token:APA91b", Platform.ANDROID)
         await store.add_favorites(android_id, Favorites(matches=["123", TEST_MATCH_ID]))
-        await store.save_match("456", None, None)  # an Android-only row whose page is deleted
-        # Follows the match but turned live updates off, so it must never get a Live Activity.
+        await store.save_match("456", None, None)
         live_off_id = "33333333-3333-4333-8333-333333333333"
         await store.register_token(live_off_id, "ccdd", live_updates=False)
         await store.add_favorites(live_off_id, Favorites(matches=["123"]))
 
     listed = SimpleNamespace(id="123", status=MatchStatus.LIVE)
-    # After the video steps, match 123 leaves the live listing; its stored row keeps it in the work set.
-    # Its page then keeps failing and it ends with the last score on the third consecutive error
-    # response. A timeout mid-run (VLR blackholing our network) is not a verdict on the match, so
-    # it neither ends it nor counts. Match 456 returns 404 and ends at once. The synthetic match
-    # below covers the regular final-page path.
     fetches = {
         "123": [
             _live_detail("upcoming", (1, 0)),
@@ -493,7 +478,6 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
     async def handler(request):
         requests.append(request)
         if request.method == "POST" and request.url.path.endswith("/channels"):
-            # API writes must not wait on the cron's SQLite write lock during a provider call.
             try:
                 with closing(sqlite3.connect(tmp_path / "db.sqlite3", timeout=0.1, isolation_level=None)) as db:
                     db.execute("BEGIN IMMEDIATE")
@@ -511,7 +495,6 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
                         LiveActivityStart.match_id == match_id,
                     )
                 )
-            # Recorded, not asserted here: the cron logs and skips exceptions raised during a send.
             started_before_send.append(started is not None)
         return httpx2.Response(200)
 
@@ -580,7 +563,6 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
     video_app = FastAPI()
     video_app.include_router(video_router, prefix="/api/v1/video", dependencies=[Depends(deps.verify_video_token)])
     video_app.dependency_overrides[deps.get_redis_client] = lambda: redis
-    # VLR is ahead at 13-9; one team matches on VLR's tag, the other on its name.
     video = {
         "status": "ok",
         "observed_at": int(time.time()),
@@ -596,7 +578,6 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         return json.loads(call[0].data["state"])["current_map"]["scores"]
 
     try:
-        # VLR brings the match live first: its channel, starts and first push come before the tracker writes.
         await live_push.live_push_cron({"redis": redis})
         async with sessions() as session:
             row = await SubscriptionStore(session).get_match("123")
@@ -605,21 +586,18 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert any("/3/device/aabb" in request.url.path for request in requests)
         assert not any("/3/device/ccdd" in request.url.path for request in requests)
         assert fcm_calls and [message.token for message in fcm_calls[0]] == ["fcm-token:APA91b"]
-        # Score updates are sent uncollapsed with high priority.
         assert fcm_calls[0][0].android.priority == "high"
         assert fcm_calls[0][0].android.collapse_key is None
         vlr_fetches = match_by_id_mock.await_count
 
         assert (await put_video(token="guess")).status_code == 401
         assert constants.VIDEO_SCORE_KEY not in videos and len(fcm_calls) == 1
-        # A tracker write is pushed at once from the cached details, and can't lower VLR's 13-9.
         assert (await put_video()).status_code == 204
         assert pushed_scores(fcm_calls[1]) == [13, 9]
         assert match_by_id_mock.await_count == vlr_fetches
-        assert (await put_video()).status_code == 204  # a heartbeat with the same score
+        assert (await put_video()).status_code == 204
         await live_push.live_push_cron({"redis": redis})
         assert len(fcm_calls) == 2 and match_by_id_mock.await_count == vlr_fetches
-        # A tracker silent for over 90 s hands the match back to VLR.
         silent = json.loads(videos[constants.VIDEO_SCORE_KEY])
         silent["observed_at"] -= constants.VIDEO_STALE_SECONDS + 1
         videos[constants.VIDEO_SCORE_KEY] = json.dumps(silent)
@@ -636,7 +614,6 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             await live_push.live_push_cron({"redis": redis})
             assert await stored_match_ids() == ["123"]
             assert ticks["vlrgg:push:fetch_failures:123"] == failures
-            # A failed fetch keeps the match's last details, so the video can still push it.
             assert "123" in json.loads(videos[constants.PUSH_DETAILS_KEY])
         await live_push.live_push_cron({"redis": redis})
         assert await stored_match_ids() == []
@@ -648,7 +625,6 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             if request.url.path.endswith("/broadcasts/apps/com.example.app")
         ]
         assert [aps["event"] for aps in end_payloads] == ["update", "end"]
-        # The final state is rebuilt from the stored one, so the tags clients show must survive it.
         end_teams = end_payloads[-1]["content-state"]["teams"]
         assert [(team["tag"], team["score"]) for team in end_teams] == [("ALP", 1), ("BET", 0)]
         assert [team["tag"] for team in json.loads(fcm_calls[5][0].data["state"])["teams"]] == ["ALP", "BET"]
@@ -683,14 +659,10 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             assert await store.get_match(constants.TEST_MATCH_ID) is None
             assert (await store.get_favorites(client_id)).matches == ["123", constants.TEST_MATCH_ID]
         assert sum("/3/device/aabb" in request.url.path for request in requests) == 2
-        # Android FCM tokens are stored for later use but must never be sent to APNs.
         assert all(r.url.path.endswith("/aabb") for r in requests if "/3/device/" in r.url.path)
         assert started_before_send == [True, True]
-        # Follower live scores go directly to registration tokens.
         assert all(message.token == "fcm-token:APA91b" for call in fcm_calls for message in call)
         assert blocked_during_channel_create == [False, False]
-        # A start is sent once and never retried, so APNs must hold it for a device that is briefly unreachable,
-        # and channels keep the latest broadcast for devices that were offline when it was sent.
         starts = [r for r in requests if "/3/device/" in r.url.path]
         assert starts and all(int(r.headers["apns-expiration"]) > time.time() + 300 for r in starts)
         channels = [r for r in requests if r.method == "POST" and r.url.path.endswith("/channels")]
@@ -706,9 +678,13 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert last_fcm_state["terminal"] is True
         assert last_fcm_state["total_maps"] == 3
         assert last_fcm_state["current_map"]["number"] == 1
-        assert match_by_id_mock.await_count == 8  # synthetic observations never hit VLR
+        assert last_fcm_state["map_round_winners"] == [
+            {"map_number": 1, "winners": [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]},
+            {"map_number": 2, "winners": []},
+            {"map_number": 3, "winners": []},
+        ]
+        assert match_by_id_mock.await_count == 8
 
-        # Fetched match pages store their teams with tags; the synthetic test match stays out of the store.
         from app import schemas
         from app.cron import jobs
         from app.db.models import Team
@@ -718,7 +694,6 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
                 return {team.id: (team.name, team.tag, team.rank) for team in await session.scalars(select(Team))}
 
         assert await stored_teams() == {"1": ("Alpha", "ALP", None), "2": ("Beta", "BET", None)}
-        # A rankings run adds the rank and keeps the tag it doesn't carry.
         ranked = schemas.Ranking(
             region="Europe",
             teams=[
@@ -730,14 +705,12 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         monkeypatch.setattr(jobs.rankings, "ranking_list", AsyncMock(return_value=[ranked]))
         await jobs.rankings_cron({"redis": AsyncMock()})
         assert (await stored_teams())["1"] == ("Alpha", "ALP", 3)
-        # VLR shows no tag before a match's first map; that must not erase the stored one.
         from app.services import scrape_store
 
         async with sessions.begin() as session:
             await scrape_store.upsert_team(session, "1", name="Alpha", tag=None)
         assert (await stored_teams())["1"] == ("Alpha", "ALP", 3)
 
-        # With nothing live or starting soon in the cached list, idle minutes must not fetch VLR's listing.
         from app import schemas
 
         monkeypatch.setattr("app.cache.cache.settings.ENABLE_CACHE", True)
@@ -767,7 +740,6 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         await live_push.live_push_cron({"redis": redis})
         listing.assert_awaited_once()
 
-        # Android live updates go out only while an Android client follows the match with live updates on.
         listing.return_value = [SimpleNamespace(id="789", status=MatchStatus.LIVE)]
         fetches["789"] = [_live_detail("live", (0, 0)), _live_detail("live", (1, 0))]
         async with sessions.begin() as session:
@@ -784,26 +756,23 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         await live_push.live_push_cron({"redis": redis})
         assert any(message.token == "fcm-token:APA91b" for call in fcm_calls[sent:] for message in call)
 
-        # Unchanged scores are re-sent at most once per refresh window.
         video["observed_at"] = int(time.time())
         video["status"] = "ok"
         video["teams"][0]["score"], video["teams"][1]["score"] = 15, 14
         pushed = len(fcm_calls)
-        assert (await put_video()).status_code == 204  # changed score pushes immediately
+        assert (await put_video()).status_code == 204
         assert len(fcm_calls) == pushed + 1
         changed_state = json.loads(fcm_calls[pushed][0].data["state"])
-        ticks.pop(constants.PUSH_REFRESH_KEY.format("789"))  # refresh window elapsed
+        ticks.pop(constants.PUSH_REFRESH_KEY.format("789"))
         await put_video()
         assert len(fcm_calls) == pushed + 2
         refreshed_state = json.loads(fcm_calls[pushed + 1][0].data["state"])
         assert refreshed_state["current_map"] == changed_state["current_map"]
         assert refreshed_state["teams"] == changed_state["teams"]
-        await put_video()  # refresh window reset; second refresh suppressed
+        await put_video()
         assert len(fcm_calls) == pushed + 2
-        # A stale refresh must not overwrite a newer score's push (2026-10-03): the heartbeat read the old
-        # score, a change was stored during the token read, so the refresh must send nothing.
         pushed = len(fcm_calls)
-        ticks.pop(constants.PUSH_REFRESH_KEY.format("789"))  # refresh window elapsed
+        ticks.pop(constants.PUSH_REFRESH_KEY.format("789"))
         newer = json.loads(videos[constants.VIDEO_SCORE_KEY])
         newer["teams"][0]["score"], newer["teams"][1]["score"] = 16, 14
         live_tokens = SubscriptionStore.live_android_tokens
@@ -816,35 +785,28 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             boundary.setattr(SubscriptionStore, "live_android_tokens", store_newer_during_token_read)
             await put_video()
             assert len(fcm_calls) == pushed
-            assert constants.PUSH_REFRESH_KEY.format("789") in ticks  # the refresh reached its send boundary
-        videos[constants.VIDEO_SCORE_KEY] = json.dumps(video)  # restore the score the heartbeat stored
+            assert constants.PUSH_REFRESH_KEY.format("789") in ticks
+        videos[constants.VIDEO_SCORE_KEY] = json.dumps(video)
 
-        # Pause onset triggers an immediate push even with unchanged score.
         pushed = len(fcm_calls)
         video["pause"] = {"kind": "tech_pause", "reason": "GEAR", "since": 120}
         assert (await put_video()).status_code == 204
         assert len(fcm_calls) == pushed + 1
-        # The tracker's relative `since` is not forwarded; the state's `observed_at` dates the pause.
         assert json.loads(fcm_calls[pushed][0].data["state"])["pause"] == {
             "kind": "tech_pause",
             "reason": "GEAR",
         }
-        # Clearing a pause also triggers an immediate push.
         video.pop("pause")
         assert (await put_video()).status_code == 204
         assert len(fcm_calls) == pushed + 2
         assert json.loads(fcm_calls[pushed + 1][0].data["state"])["pause"] is None
-        # Invalid pause payload fails validation without mutating stored state.
         video["pause"] = {"kind": "coffee", "reason": "", "since": 120}
         assert (await put_video()).status_code == 422
         assert json.loads(videos[constants.VIDEO_SCORE_KEY])["pause"] is None
         video.pop("pause")
-        # Two entries sharing a code cannot name two teams, so the request is rejected.
         video["teams"][0]["code"], video["teams"][1]["code"] = "SAME", "SAME"
         assert (await put_video()).status_code == 422
         video["teams"][0]["code"], video["teams"][1]["code"] = "ALP", "XYZ"
-        # A pause at a map's opening still reaches the phone from the fallback push: the tracker is
-        # on map 2 at 0-0 while VLR still shows the map that just ended, at 13-9.
         from app.schemas.matches import MatchData
         from app.schemas.matches import Team as MapTeam
 
@@ -865,7 +827,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         video["teams"][0]["score"], video["teams"][1]["score"] = 0, 0
         video["pause"] = {"kind": "tech_pause", "reason": "GEAR", "since": 120}
         pushed = len(fcm_calls)
-        assert (await put_video()).status_code == 204  # stored; a 0-0 immediate push is still withheld
+        assert (await put_video()).status_code == 204
         assert len(fcm_calls) == pushed
         await live_push.live_push_cron({"redis": redis})
         sent_states = [json.loads(call[0].data["state"]) for call in fcm_calls[pushed:]]
@@ -914,7 +876,6 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
 
     videos = {
         constants.VIDEO_SCORE_KEY: json.dumps(video(["ALP", "BET"], [12, 9])),
-        # Prefer ongoing matches over completed matches when teams match multiple candidates.
         constants.PUSH_DETAILS_KEY: json.dumps(
             {
                 "124": cached([(1, "Ascent"), (4, "Lotus")], "completed"),
@@ -937,17 +898,14 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
                 headers={"X-Video-Token": "tracker-token"},
             )
 
-    # Cached details provide match ID and series map order.
     response = await get_context()
     assert response.status_code == 200
-    # Names sit at their game number, with empty strings for games VLR has not rendered.
     assert response.json() == {
         "match_id": "123",
         "map_number": 4,
         "map_order": ["Ascent", "", "", "Lotus"],
         "teams": ["ALP", "BET"],
     }
-    # Team codes resolve the match before scores are available.
     del videos[constants.VIDEO_SCORE_KEY]
     response = await get_context("ALP,BET")
     assert response.status_code == 200
@@ -957,7 +915,6 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
         "map_order": ["Ascent", "", "", "Lotus"],
         "teams": ["ALP", "BET"],
     }
-    # Codes naming one team twice, and codes with two candidate matches, are rejected, not guessed.
     assert (await get_context("ALP,Alpha")).status_code == 404
     videos[constants.PUSH_DETAILS_KEY] = json.dumps(
         {

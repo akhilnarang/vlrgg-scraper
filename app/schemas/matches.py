@@ -1,7 +1,7 @@
 import string
 import time
 from datetime import datetime
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, Field, HttpUrl, ValidationError, computed_field, field_validator, model_validator
 
@@ -208,6 +208,15 @@ class PushPause(BaseModel):
     reason: str | None = None
 
 
+class PushMapRounds(BaseModel):
+    """Round winner sequence for one map slot."""
+
+    map_number: int = Field(ge=1, description="1-based map number in the series")
+    winners: list[Literal[0, 1] | None] = Field(
+        default_factory=list, description="Round winner as index into teams (0 or 1), or None if unrecorded"
+    )
+
+
 class CompactState(BaseModel):
     """Compact match state delivered through APNs and FCM."""
 
@@ -220,6 +229,9 @@ class CompactState(BaseModel):
     current_map: PushCurrentMap | None = None
     map_winners: list[str | None] = Field(
         default_factory=list, description="Winning team ID per map; None while in progress or unplayed"
+    )
+    map_round_winners: list[PushMapRounds] = Field(
+        default_factory=list, description="Round winner sequence per map slot"
     )
     pause: PushPause | None = Field(default=None, description="Active broadcast pause, if any")
 

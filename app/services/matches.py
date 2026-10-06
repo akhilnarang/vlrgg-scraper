@@ -295,9 +295,9 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
                 if round_score != "":
                     current = tuple(map(int, round_score.split("-")))
                     if prev[0] == current[0]:
-                        round_winner = "team2"
+                        round_winner = constants.RoundWinner.TEAM2
                     elif prev[1] == current[1]:
-                        round_winner = "team1"
+                        round_winner = constants.RoundWinner.TEAM1
 
                     prev = current
 

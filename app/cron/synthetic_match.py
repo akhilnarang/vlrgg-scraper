@@ -44,7 +44,16 @@ async def next_observation(client: Redis) -> MatchWithDetails:
                     "map": "Test Range",
                     "teams": [{"name": "Test Alpha", "score": alpha}, {"name": "Test Beta", "score": beta}],
                     "members": [],
-                    "rounds": [],
+                    "rounds": [
+                        {
+                            "round_number": n,
+                            "round_score": f"{(n + 1) // 2}-{n // 2}",
+                            "winner": constants.RoundWinner.TEAM1 if n % 2 else constants.RoundWinner.TEAM2,
+                            "side": "attack" if n % 2 else "defense",
+                            "win_type": "Elimination",
+                        }
+                        for n in range(1, alpha + beta + 1)
+                    ],
                 }
             ],
             "previous_encounters": [],

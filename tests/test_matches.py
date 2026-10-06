@@ -261,7 +261,7 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
         mock_apns.create_channel.return_value = "channel-live-123"
         monkeypatch.setattr(connections, "apns_client", mock_apns)
 
-        from app.schemas.matches import Event, MatchData, MatchVideos, MatchWithDetails, Team, TeamWithImage
+        from app.schemas.matches import Event, MatchData, MatchVideos, MatchWithDetails, Round, Team, TeamWithImage
 
         live_detail = MatchWithDetails(
             teams=[
@@ -285,7 +285,13 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
                     map="Ascent",
                     teams=[Team(name="Beta", score=14), Team(name="Alpha", score=12)],
                     members=[],
-                    rounds=[],
+                    rounds=[
+                        Round(round_number=1, round_score="1-0", winner="team1", side="attack", win_type="Elimination"),
+                        Round(
+                            round_number=2, round_score="1-1", winner="team2", side="defense", win_type="Elimination"
+                        ),
+                        Round(round_number=3, round_score="2-1", winner="team1", side="attack", win_type="Elimination"),
+                    ],
                     winner="Beta",
                 ),
                 MatchData(
@@ -293,7 +299,9 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
                     map="Bind",
                     teams=[Team(name="Alpha", score=12), Team(name="Beta", score=11)],
                     members=[],
-                    rounds=[],
+                    rounds=[
+                        Round(round_number=1, round_score="0-1", winner="team2", side="defense", win_type="Elimination")
+                    ],
                     live=True,
                 ),
             ],
@@ -386,6 +394,11 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
                 2,
             )
             assert state_data["map_winners"] == ["2", None, None]
+            assert state_data["map_round_winners"] == [
+                {"map_number": 1, "winners": [1, 0, 1]},
+                {"map_number": 2, "winners": [1]},
+                {"map_number": 3, "winners": []},
+            ]
             assert [(team["id"], team["score"]) for team in state_data["teams"]] == [("1", 1), ("2", 0)]
             assert state_data["stage"] == "Playoffs: Grand Final"
 
