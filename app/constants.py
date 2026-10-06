@@ -172,6 +172,15 @@ TIER_CIRCUITS = {
 }
 
 
+class Region(StrEnum):
+    """Riot competitive region (VCT international league)."""
+
+    AMERICAS = "americas"
+    EMEA = "emea"
+    PACIFIC = "pacific"
+    CHINA = "china"
+
+
 class RankingScope(StrEnum):
     """Whether a result moves the series Elo or the per-map Elo."""
 

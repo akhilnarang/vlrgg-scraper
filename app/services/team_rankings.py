@@ -2,9 +2,11 @@
 
 import logging
 import math
+import re
 import time
-from collections import defaultdict
-from dataclasses import dataclass
+from collections import Counter, defaultdict
+from collections.abc import Iterable
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from itertools import groupby
 from zoneinfo import ZoneInfo
@@ -28,6 +30,7 @@ from app.constants import (
     RankingOrder,
     RankingScope,
     RankingSort,
+    Region,
 )
 from app.core.config import settings
 from app.db.models import EventRecord, MapRecord, MatchRecord, Team, TeamCircuit, TeamElo
@@ -40,11 +43,66 @@ logger = logging.getLogger(__name__)
 
 _MATCH_TZ = ZoneInfo(MATCH_TIMEZONE)
 
-# An incomplete stored match is fetched again only after this cooldown, so a VLR page
-# that rendered without maps is not re-scraped on every cron tick.
 REPAIR_COOLDOWN_SECONDS = 4 * 3600
-# A match this old whose page never produced maps is left incomplete instead of polled forever.
 REPAIR_GIVE_UP_DAYS = 7
+
+_REGION_EVENT_WINDOW = 10
+_REGION_CIRCUITS = frozenset({Circuit.VCT, Circuit.VCL, Circuit.GC})
+_REGION_TITLE_PATTERNS = {
+    Region.AMERICAS: re.compile(
+        r"americas|north america|\bna\b|brazil|brasil|latam|latin america|gamers club",
+        re.IGNORECASE,
+    ),
+    Region.EMEA: re.compile(
+        r"emea|europe|dach|france|spain|t[üu]rkiye|turkey|north//east|nordic|italy|polska|poland"
+        r"|portugal|iberia|\buk\b|east surge|mena|middle east|north africa|arabia|polaris",
+        re.IGNORECASE,
+    ),
+    Region.PACIFIC: re.compile(
+        r"pacific|korea|japan|oceania|australia|southeast asia|\bsea\b|philippines|indonesia|vietnam"
+        r"|thailand|malaysia|singapore|south asia|\bindia\b|apac|asia-pacific|taiwan|hong kong|tw/hk",
+        re.IGNORECASE,
+    ),
+    Region.CHINA: re.compile(r"china", re.IGNORECASE),
+}
+
+
+def event_region(name: str) -> Region | None:
+    """Return the competitive region an event title declares.
+
+    VCT, VCL, and Game Changers events name their league or sub-region in the
+    title; anything else, such as an offseason event, declares no region.
+
+    :param name: Event title.
+    :return: Declared region, or None when the title names none.
+    """
+    for region, pattern in _REGION_TITLE_PATTERNS.items():
+        if pattern.search(name):
+            return region
+    return None
+
+
+@dataclass(slots=True, frozen=True, order=True)
+class _RegionalEvent:
+    """One tiered event a team played, with the region its title declares."""
+
+    played_on: date
+    event_id: str
+    region: Region = field(compare=False)
+
+
+def _team_region(events: Iterable[_RegionalEvent]) -> Region | None:
+    """Choose the region a team represents from its classified tiered events.
+
+    Only the most recent distinct events vote. The most frequent region wins;
+    the most recently played wins a tie.
+
+    :param events: Tiered events the team played, with their declared region.
+    :return: The team's region, or None when no event declares one.
+    """
+    recent = sorted(events)[-_REGION_EVENT_WINDOW:]
+    ranked = Counter(e.region for e in reversed(recent)).most_common(1)
+    return ranked[0][0] if ranked else None
 
 
 def ranking_date() -> date:
@@ -214,7 +272,7 @@ def _ledger_row(
 
 
 def replay_ratings(matches: list[ranking_store.StoredMatch]) -> ReplayResult:
-    """Replay stored matches into ratings, ledger rows, and circuit activity.
+    """Replay stored matches into ratings, ledger rows, circuit, and region activity.
 
     The replay is a pure function of the stored matches: they are sorted by
     ``(played_on, id)`` and rated a calendar day at a time, so how a match
@@ -229,6 +287,7 @@ def replay_ratings(matches: list[ranking_store.StoredMatch]) -> ReplayResult:
     states: dict[str, RatingState] = defaultdict(RatingState)
     results: list[dict[str, object]] = []
     circuits: dict[tuple[str, Circuit], tuple[int, date]] = {}
+    regions: dict[str, dict[str, _RegionalEvent]] = defaultdict(dict)
     for played_on, day in groupby(ordered, key=lambda match: match.played_on):
         day_matches = list(day)
         series_updates = apply_day(
@@ -258,9 +317,12 @@ def replay_ratings(matches: list[ranking_store.StoredMatch]) -> ReplayResult:
                 results.append(
                     _ledger_row(RankingScope.MAP, match, played.map_index, played.team_a_won, next(map_updates))
                 )
+            region = event_region(match.event_name) if match.circuit in _REGION_CIRCUITS else None
             for team_id in (match.team_a_id, match.team_b_id):
                 count, last = circuits.get((team_id, match.circuit), (0, played_on))
                 circuits[team_id, match.circuit] = (count + 1, max(last, played_on))
+                if region is not None:
+                    regions[team_id][match.event_id] = _RegionalEvent(played_on, match.event_id, region)
     return ReplayResult(
         results=results,
         elos=[
@@ -274,6 +336,7 @@ def replay_ratings(matches: list[ranking_store.StoredMatch]) -> ReplayResult:
                 "map_wins": state.map_wins,
                 "first_played_on": state.first_played_on,
                 "last_played_on": state.last_played_on,
+                "region": _team_region(regions.get(team_id, {}).values()),
             }
             for team_id, state in states.items()
         ],
@@ -402,20 +465,41 @@ def _is_active(elo: TeamElo, as_of: date) -> bool:
     return elo.last_played_on is not None and elo.last_played_on >= as_of - timedelta(days=RANKING_ACTIVE_DAYS)
 
 
+def _filter_rows(
+    rows: list[ranking_store.RankedElo],
+    circuit_sets: dict[str, set[Circuit]],
+    circuit: Circuit | None = None,
+    region: Region | None = None,
+) -> list[ranking_store.RankedElo]:
+    """Keep the rows that belong to the requested circuit and region.
+
+    :param rows: Candidate rating rows.
+    :param circuit_sets: Circuits each team has played, keyed by team ID.
+    :param circuit: Circuit a team must have played, or None to keep every circuit.
+    :param region: Region a team must be classified in, or None to keep every region.
+    :return: Rows matching both filters.
+    """
+    return [
+        row
+        for row in rows
+        if (circuit is None or circuit in circuit_sets.get(row.elo.team_id, set()))
+        and (region is None or row.elo.region == region)
+    ]
+
+
 async def rank_teams(session: AsyncSession, query: schemas.RankingQuery) -> schemas.RankingListResponse:
-    """Rank teams by stored Elo, optionally within one circuit.
+    """Rank teams by stored Elo, optionally within one circuit and region.
 
     A team is eligible with ``query.min_matches`` series inside the 180-day
     window and, unless ``include_inactive`` is set, a match within the last 90
     days. ``rank`` is the position among the returned selection; ``overall_rank``
-    the position when the circuit filter is ignored.
+    the position when the circuit and region filters are ignored.
 
     :param session: Caller-owned database session.
     :param query: Validated ranked-list query.
     :return: Paginated ranking.
     """
     as_of = ranking_date()
-    # A circuit a team has not played inside the window is history, not a current membership.
     active_since = None if query.include_inactive else window_start(as_of)
     by_team = await ranking_store.team_circuits(session, active_since)
     circuit_sets = {team_id: {row.circuit for row in rows} for team_id, rows in by_team.items()}
@@ -432,9 +516,7 @@ async def rank_teams(session: AsyncSession, query: schemas.RankingQuery) -> sche
         and (query.include_inactive or _is_active(row.elo, as_of))
     ]
     overall_ranks = _competition_ranks(eligible, query.sort)
-    selected = [
-        row for row in eligible if query.circuit is None or query.circuit in circuit_sets.get(row.elo.team_id, set())
-    ]
+    selected = _filter_rows(eligible, circuit_sets, query.circuit, query.region)
     ranks = _competition_ranks(selected, query.sort)
     page = selected[query.offset : query.offset + query.limit]
     items = []
@@ -452,12 +534,14 @@ async def rank_teams(session: AsyncSession, query: schemas.RankingQuery) -> sche
                 last_played_on=row.elo.last_played_on,
                 primary_circuit=_primary_circuit(circuits),
                 circuits=[circuit_row.circuit for circuit_row in circuits],
+                region=row.elo.region,
             )
         )
     return schemas.RankingListResponse(
         as_of=as_of,
         algorithm=ELO_ALGORITHM,
-        circuit=query.circuit.value if query.circuit else "all",
+        circuit=query.circuit or "all",
+        region=query.region or "all",
         total=len(selected),
         limit=query.limit,
         offset=query.offset,
@@ -501,9 +585,9 @@ async def _recent_items(session: AsyncSession, team_id: str, limit: int) -> list
 async def team_profile(session: AsyncSession, team_id: str) -> schemas.TeamRankingProfileResponse:
     """Read a team's Elo, ranks, circuit activity, form, and recent series.
 
-    ``rank`` and ``circuit_rank`` follow the default ranked list: at least
-    ``RANKING_MIN_MATCHES`` series inside the 180-day window and activity
-    within the last 90 days.
+    ``rank``, ``circuit_rank``, and ``region_rank`` follow the default ranked
+    list: at least ``RANKING_MIN_MATCHES`` series inside the 180-day window and
+    activity within the last 90 days.
 
     :param session: Caller-owned database session.
     :param team_id: Team ID.
@@ -529,13 +613,20 @@ async def team_profile(session: AsyncSession, team_id: str) -> schemas.TeamRanki
     rank = _competition_ranks(eligible, RankingSort.ELO).get(team_id)
     circuit_rank = None
     if rank is not None and primary is not None:
-        in_circuit = [row for row in eligible if primary in circuit_sets.get(row.elo.team_id, set())]
-        circuit_rank = _competition_ranks(in_circuit, RankingSort.ELO).get(team_id)
+        circuit_rank = _competition_ranks(_filter_rows(eligible, circuit_sets, primary), RankingSort.ELO).get(team_id)
+    region = elo.region
+    region_rank = None
+    if rank is not None and region is not None:
+        region_rank = _competition_ranks(_filter_rows(eligible, circuit_sets, region=region), RankingSort.ELO).get(
+            team_id
+        )
     recent = await _recent_items(session, team_id, 10)
     return schemas.TeamRankingProfileResponse(
         team=_team_summary(team),
         rank=rank,
         circuit_rank=circuit_rank,
+        region=region,
+        region_rank=region_rank,
         elo=elo.match_elo,
         map_elo=elo.map_elo,
         matches=_stats(elo.matches, elo.match_wins),
@@ -672,7 +763,6 @@ def needs_repair(listed: schemas.Match, stored: ranking_store.StoredListing | No
                 return False
         return True
     if listed.team1.id is None or listed.team2.id is None:
-        # Without mapped listing IDs there is no side to contradict the stored one.
         return False
     listed_sides = {(listed.team1.id, listed.team1.score), (listed.team2.id, listed.team2.score)}
     stored_sides = {(stored.team_a_id, stored.team_a_score), (stored.team_b_id, stored.team_b_score)}
@@ -767,7 +857,6 @@ async def ingest_match(
                 ingested_at=int(time.time()),
             )
         )
-        # Maps reference the match; the ORM has no relationship to order them, so flush it first.
         await session.flush()
         session.add_all(
             [
@@ -788,9 +877,6 @@ async def ingest_match(
             stored_map.name, stored_map.team_a_score, stored_map.team_b_score = name, score_a, score_b
             changed = True
     expected_maps = (stored.team_a_score or 0) + (stored.team_b_score or 0)
-    # A partial fetch cannot tell a shorter series from a page that rendered some
-    # maps only, so maps a complete earlier fetch left behind are pruned once the
-    # page carries the whole series, never on a page that shows fewer maps.
     if maps and len(maps) == expected_maps:
         obsolete = await session.execute(
             delete(MapRecord)

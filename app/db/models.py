@@ -5,7 +5,7 @@ from datetime import date
 from sqlalchemy import Enum, ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from app.constants import ELO_BASE, Circuit, Platform, RankingScope
+from app.constants import ELO_BASE, Circuit, Platform, RankingScope, Region
 from app.db.types import JSONB
 
 
@@ -197,6 +197,10 @@ class TeamElo(Base):
     map_wins: Mapped[int] = mapped_column(default=0)
     first_played_on: Mapped[date | None] = mapped_column(nullable=True)
     last_played_on: Mapped[date | None] = mapped_column(nullable=True)
+    region: Mapped[Region | None] = mapped_column(
+        Enum(Region, native_enum=False, length=16, values_callable=lambda enum: [member.value for member in enum]),
+        nullable=True,
+    )
 
 
 class TeamCircuit(Base):

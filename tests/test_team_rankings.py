@@ -1,19 +1,22 @@
 import asyncio
+import sqlite3
 from dataclasses import replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx2
 import pytest
+from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from alembic import command
 from app import schemas
 from app.api.v2.api import router
-from app.constants import ELO_ALGORITHM, ELO_BASE, ELO_K, ELO_MAP_ALPHA, Circuit, MatchStatus, RankingScope
+from app.constants import ELO_ALGORITHM, ELO_BASE, ELO_K, ELO_MAP_ALPHA, Circuit, MatchStatus, RankingScope, Region
 from app.core import connections
 from app.core.config import settings
 from app.cron.team_rankings import team_rankings_cron
@@ -130,6 +133,8 @@ def test_same_day_results_share_the_pre_day_rating_and_blend_map_share():
     # A complete 2-1 map score contributes its share with weight 0.3...
     match = StoredMatch(
         match_id="1",
+        event_id="10",
+        event_name="Event",
         played_on=date(2026, 10, 1),
         circuit=Circuit.VCT,
         team_a_id="1",
@@ -147,6 +152,103 @@ def test_same_day_results_share_the_pre_day_rating_and_blend_map_share():
     incomplete = replace(match, maps=(StoredMap(0, True),))
     elos = {row["team_id"]: row for row in team_rankings.replay_ratings([incomplete]).elos}
     assert elos["1"]["match_elo"] == ELO_BASE + ELO_K / 2
+
+
+@pytest.mark.parametrize(
+    ("title", "region"),
+    [
+        ("VALORANT Champions Tour 2025: Americas", Region.AMERICAS),
+        ("Challengers 2025: North America", Region.AMERICAS),
+        ("Challengers 2025: NA", Region.AMERICAS),
+        ("Game Changers 2025: Brazil", Region.AMERICAS),
+        ("Challengers 2025: EMEA", Region.EMEA),
+        ("Challengers 2025: Türkiye", Region.EMEA),
+        ("Challengers 2025: North//East", Region.EMEA),
+        ("Challengers 2025: UK", Region.EMEA),
+        ("Challengers 2025: Polaris", Region.EMEA),
+        ("Challengers 2025: Southeast Asia", Region.PACIFIC),
+        ("Challengers 2025: SEA", Region.PACIFIC),
+        ("Challengers 2025: India", Region.PACIFIC),
+        ("Challengers 2025: Taiwan/Hong Kong", Region.PACIFIC),
+        ("Challengers 2025: TW/HK", Region.PACIFIC),
+        ("VALORANT Champions Tour 2025: China", Region.CHINA),
+        ("Champions Tour 2025: Masters", None),
+    ],
+)
+def test_event_region_matches_regional_event_titles(title, region):
+    # A title declares its league or sub-region; a Masters title declares none.
+    assert team_rankings.event_region(title) is region
+
+
+def test_replay_assigns_region_from_recent_tiered_events():
+    start = date(2025, 1, 1)
+
+    def match(day: int, team_id: str, event_id: str, title: str, circuit: Circuit = Circuit.VCT) -> StoredMatch:
+        return StoredMatch(
+            match_id=f"{day}-{event_id}",
+            event_id=event_id,
+            event_name=title,
+            played_on=start + timedelta(days=day),
+            circuit=circuit,
+            team_a_id=team_id,
+            team_b_id="99",
+            team_a_score=1,
+            team_b_score=0,
+            maps=(),
+        )
+
+    matches = [
+        # Team 1: eleven old EMEA events outvote ten recent Americas events overall,
+        # but only the ten most recent events vote.
+        *(match(day, "1", f"e{day}", "Champions Tour 2025: EMEA") for day in range(1, 12)),
+        *(match(day, "1", f"e{day}", "Challengers 2025: Americas") for day in range(12, 22)),
+        # Team 2: an offseason title names China, but only tiered circuits vote.
+        match(1, "2", "e20", "Challengers 2025: Americas"),
+        match(2, "2", "e21", "Challengers 2025: EMEA"),
+        match(3, "2", "e22", "Challengers 2025: Americas"),
+        *(match(day, "2", f"e2{day}", "Champions Tour 2025: China", Circuit.OFFSEASON) for day in range(4, 7)),
+        # Team 3's only tiered event declares no region.
+        match(1, "3", "e30", "Champions Tour 2025: Masters"),
+        # Team 4 is split 1-1, so its most recent event wins the tie.
+        match(1, "4", "e40", "Challengers 2025: Pacific", Circuit.VCL),
+        match(2, "4", "e41", "Challengers 2025: EMEA", Circuit.VCL),
+        # Team 5 played one EMEA event three times and two Americas events once each;
+        # distinct events vote, not matches.
+        *(match(day, "5", "e50", "Champions Tour 2025: EMEA") for day in range(1, 4)),
+        match(4, "5", "e51", "Champions Tour 2025: Americas"),
+        match(5, "5", "e52", "Challengers 2025: Brazil", Circuit.VCL),
+    ]
+
+    elos = {row["team_id"]: row for row in team_rankings.replay_ratings(matches).elos}
+
+    assert elos["1"]["region"] is Region.AMERICAS
+    assert elos["2"]["region"] is Region.AMERICAS
+    assert elos["3"]["region"] is None
+    assert elos["4"]["region"] is Region.EMEA
+    assert elos["5"]["region"] is Region.AMERICAS
+
+
+def _team_elo_columns(path: Path) -> set[str]:
+    """Read the team_elo column names from a migrated scratch database."""
+    with sqlite3.connect(path) as connection:
+        return {row[1] for row in connection.execute("PRAGMA table_info(team_elo)")}
+
+
+def test_region_migration_adds_and_removes_the_column(tmp_path):
+    # A rolled-back deploy must restore the pre-region schema, so the migration
+    # drops the column again and re-running the upgrade adds it back. The
+    # revisions are pinned so a later migration cannot change what this asserts.
+    database_url = f"sqlite+aiosqlite:///{tmp_path / 'migration.sqlite3'}"
+    path = tmp_path / "migration.sqlite3"
+    config = Config("alembic.ini")
+    config.attributes["app"] = True
+    config.set_main_option("sqlalchemy.url", database_url)
+    command.upgrade(config, "d94cce987756")
+    assert "region" in _team_elo_columns(path)
+    command.downgrade(config, "f7a8805679f3")
+    assert "region" not in _team_elo_columns(path)
+    command.upgrade(config, "d94cce987756")
+    assert "region" in _team_elo_columns(path)
 
 
 @pytest.mark.asyncio
@@ -319,7 +421,7 @@ async def test_ingest_match_repairs_an_incomplete_match_and_rebuilds_ratings(ran
 async def test_team_rankings_cron_rebuilds_a_ledger_left_stale_by_a_crash(ranking_sessions, monkeypatch):
     # A run that committed a complete match but died before its rebuild leaves the ledger missing it.
     async with ranking_sessions.begin() as session:
-        session.add(EventRecord(id="10", name="Event", circuit=Circuit.VCT))
+        session.add(EventRecord(id="10", name="Challengers 2025: EMEA", circuit=Circuit.VCT))
         session.add_all(Team(id=team_id, source="test", first_seen_at=0, last_fetched_at=0) for team_id in ("1", "2"))
         await session.flush()
         session.add(
@@ -655,6 +757,86 @@ def test_rankings_api_serves_lists_profiles_and_predictions(monkeypatch, ranking
     assert client.get("/api/v2/rankings/", params={"include_inactive": True}).json()["total"] == 2
     monkeypatch.setattr(team_rankings, "ranking_date", lambda: date(2026, 4, 15))
     assert client.get("/api/v2/rankings/", params={"include_inactive": True}).json()["total"] == 0
+
+
+def test_rankings_api_filters_and_ranks_by_region(monkeypatch, ranking_sessions):
+    monkeypatch.setattr(team_rankings, "ranking_date", lambda: date(2025, 10, 2))
+
+    async def seed():
+        # Two teams per region, each winning five series, so a regional rank can
+        # differ from the overall rank when both league leaders tie on Elo.
+        leagues = [
+            ("20", "Champions Tour 2025: Americas", Circuit.VCT, "1", "2"),
+            ("21", "Challengers 2025: EMEA", Circuit.VCL, "3", "4"),
+        ]
+        async with ranking_sessions.begin() as session:
+            session.add_all(
+                EventRecord(id=event_id, name=title, circuit=circuit) for event_id, title, circuit, *_ in leagues
+            )
+            session.add_all(
+                Team(id=team_id, source="test", first_seen_at=0, last_fetched_at=0) for team_id in ("1", "2", "3", "4")
+            )
+            await session.flush()
+            for event_id, _, _, team_a_id, team_b_id in leagues:
+                for index in range(5):
+                    session.add(
+                        MatchRecord(
+                            id=f"{event_id}{index}",
+                            event_id=event_id,
+                            stage=None,
+                            played_on=date(2025, 10, 1),
+                            team_a_id=team_a_id,
+                            team_b_id=team_b_id,
+                            team_a_score=2,
+                            team_b_score=0,
+                            patch=None,
+                            source="test",
+                            ingested_at=0,
+                        )
+                    )
+                    await session.flush()
+                    session.add_all(
+                        MapRecord(
+                            match_id=f"{event_id}{index}",
+                            map_index=map_index,
+                            name="Map",
+                            team_a_score=13,
+                            team_b_score=7,
+                        )
+                        for map_index in range(2)
+                    )
+        async with ranking_sessions.begin() as session:
+            await team_rankings.rebuild_ratings(session)
+
+    asyncio.run(seed())
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/v2")
+    client = TestClient(app)
+
+    # The region filter narrows the ranking like the circuit filter: rank is the
+    # position inside the region, while overall_rank stays global.
+    all_teams = {"min_matches": 0, "include_inactive": True}
+    americas = client.get("/api/v2/rankings/", params=all_teams | {"region": "americas"}).json()
+    assert (americas["region"], americas["total"]) == ("americas", 2)
+    assert [(row["team"]["id"], row["rank"], row["overall_rank"], row["region"]) for row in americas["teams"]] == [
+        ("1", 1, 1, "americas"),
+        ("2", 2, 3, "americas"),
+    ]
+    emea = client.get("/api/v2/rankings/", params=all_teams | {"region": "EMEA"}).json()
+    assert [(row["team"]["id"], row["rank"]) for row in emea["teams"]] == [("3", 1), ("4", 2)]
+    assert client.get("/api/v2/rankings/", params=all_teams | {"region": "all"}).json()["total"] == 4
+    assert client.get("/api/v2/rankings/", params=all_teams | {"region": "china"}).json()["total"] == 0
+
+    # The circuit and region filters combine.
+    combined = client.get("/api/v2/rankings/", params=all_teams | {"circuit": "vct", "region": "americas"}).json()
+    assert [row["team"]["id"] for row in combined["teams"]] == ["1", "2"]
+    assert client.get("/api/v2/rankings/", params=all_teams | {"circuit": "vct", "region": "emea"}).json()["total"] == 0
+
+    # The profile carries the team's region and its rank inside that region.
+    profile = client.get("/api/v2/rankings/teams/2").json()
+    assert (profile["region"], profile["region_rank"], profile["rank"]) == ("americas", 2, 3)
+    assert client.get("/api/v2/rankings/", params={"region": "nope"}).status_code == 422
 
 
 @pytest.mark.asyncio
