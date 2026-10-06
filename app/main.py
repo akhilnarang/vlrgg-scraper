@@ -15,6 +15,7 @@ from app.api import deps
 from app.api.v1.api import router
 from app.api.v1.endpoints.internal import router as internal_router
 from app.api.v1.endpoints.video import router as video_router
+from app.api.v2.api import router as api_v2_router
 from app.core import connections
 from app.core.config import settings
 from app.core.live_push import start_live_push, stop_live_push
@@ -101,8 +102,10 @@ app.include_router(media_router)
 if settings.API_KEYS:
     print("Got API keys", settings.API_KEYS.keys())
     app.include_router(router, prefix="/api/v1", dependencies=[Depends(deps.verify_token)])
+    app.include_router(api_v2_router, prefix="/api/v2", dependencies=[Depends(deps.verify_token)])
 else:
     app.include_router(router, prefix="/api/v1")
+    app.include_router(api_v2_router, prefix="/api/v2")
     sentry_sdk.set_tag("api_key", "Unauthenticated")
 
 if settings.ENABLE_LIVE_PUSH and settings.VIDEO_TOKEN_FILE:

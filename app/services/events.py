@@ -623,3 +623,51 @@ def parse_event_standings(data: Tag | None) -> list[dict[str, str | int]]:
                 event_standings.append(standing)
 
     return event_standings
+
+
+def tier_event_ids(content: bytes) -> list[str]:
+    """Parse the event IDs of one tier-filtered events page.
+
+    :param content: HTML of an ``/events/?tier=...`` page.
+    :return: Event IDs in listing order.
+    """
+    soup = BeautifulSoup(content, "lxml")
+    ids = []
+    for card in soup.find_all("a", class_="wf-card"):
+        parts = get_href(card.get("href") or "").strip("/").split("/")
+        if len(parts) >= 2 and parts[0] == "event" and parts[1].isdigit():
+            ids.append(parts[1])
+    return ids
+
+
+async def tier_event_circuits(stop_ids: set[str] | None = None) -> dict[str, constants.Circuit]:
+    """Map event IDs to circuits from VLR's tier-filtered event listings.
+
+    :param stop_ids: Event IDs to resolve, stopping once every one is listed; None reads every listed event.
+    :return: Event ID mapped to the circuit of the tier that lists it.
+    :raises ScrapingError: If any tier page returns a non-200.
+    """
+    circuits: dict[str, constants.Circuit] = {}
+    tiers = dict(constants.TIER_CIRCUITS)
+    async with get_http_client() as client:
+        page = 1
+        while tiers and page <= constants.MAX_PAGINATION_PAGES:
+            responses = await asyncio.gather(
+                *(client.get(constants.EVENTS_TIER_URL.format(tier, page)) for tier in tiers)
+            )
+            exhausted = []
+            for (tier, circuit), response in zip(tiers.items(), responses):
+                if response.status_code != http.HTTPStatus.OK:
+                    raise ScrapingError(url=str(response.url), upstream_status=response.status_code)
+                ids = tier_event_ids(response.content)
+                if not ids:
+                    exhausted.append(tier)
+                    continue
+                for event_id in ids:
+                    circuits.setdefault(event_id, circuit)
+            for tier in exhausted:
+                tiers.pop(tier)
+            if stop_ids is not None and stop_ids <= circuits.keys():
+                break
+            page += 1
+    return circuits

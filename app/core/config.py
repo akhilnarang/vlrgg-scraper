@@ -53,6 +53,9 @@ class Settings(BaseSettings):
 
     TIMEZONE: str
 
+    # Optional standalone prediction service; predict falls back to Elo when unset or unreachable.
+    PREDICTION_SERVICE_URL: str | None = None
+
     LLM_API_KEY: str | None = None
     LLM_BASE_URL: str | None = None
     LLM_MODEL: str = "gpt-5.4"

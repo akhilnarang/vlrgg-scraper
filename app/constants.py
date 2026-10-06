@@ -5,6 +5,8 @@ PREFIX = "https://www.vlr.gg"
 
 EVENTS_URL = f"{PREFIX}/events/?tier=all"
 
+EVENTS_TIER_URL = f"{PREFIX}/events/?tier={{}}&page={{}}"
+
 EVENT_URL_WITH_ID = f"{PREFIX}/event/{{}}"
 
 EVENT_URL_WITH_ID_MATCHES = f"{PREFIX}/event/matches/{{}}/?series_id=all"
@@ -39,6 +41,8 @@ STANDINGS_URL = f"{PREFIX}/vct-{{}}/standings"
 
 TBD = "tbd"
 NA = "n/a"  # VLR's navigation placeholder for a game that has no stats panel yet
+# Entity IDs as VLR names them: digits with no leading zero.
+ID_REGEX = r"^[1-9][0-9]{0,9}$"
 TEST_MATCH_ID = "3141592653"
 TEST_TICK_KEY = "vlrgg:push:test_tick"
 # A tracked match whose page fails this many cron runs in a row is ended (e.g. VLR blocked our IP).
@@ -143,6 +147,61 @@ class VetoAction(StrEnum):
     PICK = "pick"
     REMAINS = "remains"  # the decider left over after picks/bans; ``team`` is None
     UNKNOWN = "unknown"  # note text the parser didn't recognize; ``map`` holds the raw text
+
+
+class Circuit(StrEnum):
+    """Competition circuit an event's matches count towards."""
+
+    VCT = "vct"
+    VCL = "vcl"  # Challengers
+    T3 = "t3"
+    GC = "gc"  # Game Changers
+    COLLEGIATE = "collegiate"
+    OFFSEASON = "offseason"
+    OTHER = "other"
+
+
+# Event tier filter values, as shown by the tier tabs on VLR's /events page.
+TIER_CIRCUITS = {
+    "60": Circuit.VCT,
+    "61": Circuit.VCL,
+    "62": Circuit.T3,
+    "63": Circuit.GC,
+    "64": Circuit.COLLEGIATE,
+    "67": Circuit.OFFSEASON,
+}
+
+
+class RankingScope(StrEnum):
+    """Whether a result moves the series Elo or the per-map Elo."""
+
+    MATCH = "match"
+    MAP = "map"
+
+
+class RankingSort(StrEnum):
+    ELO = "elo"
+    MAP_ELO = "map_elo"
+    MATCHES = "matches"
+    WIN_RATE = "win_rate"
+
+
+class RankingOrder(StrEnum):
+    ASC = "asc"
+    DESC = "desc"
+
+
+ELO_BASE = 1500.0
+ELO_K = 48.0
+ELO_MAP_ALPHA = 0.3  # weight of a series' map-win share in the observed result
+ELO_ALGORITHM = "k48-hnone-m0.3-r0"
+RANKING_MIN_MATCHES = 5  # series inside RANKING_WINDOW_DAYS that make a team rankable
+RANKING_ACTIVE_DAYS = 90  # a team must have played within this many days to be active
+RANKING_WINDOW_DAYS = 180  # series older than this do not count towards RANKING_MIN_MATCHES
+# Match-scope ledger rows carry no map; the archive's sentinel for "the series result".
+MATCH_SCOPE_MAP_INDEX = -1
+# Timezone matches are dated in, matching the source's local match day.
+MATCH_TIMEZONE = "America/New_York"
 
 
 class NewsVideoProvider(StrEnum):

@@ -27,6 +27,35 @@ Most endpoints are public. Some internal endpoints may require `X-API-Key` heade
 | GET | `/search` | Search teams, players, and events |
 | GET | `/version` | Get API version info |
 
+## Team rankings (v2)
+
+`/api/v2/rankings` ranks teams by Elo computed from the match ledger in the
+application database, not from VLR's points table. The series rating follows the
+`k48-hnone-m0.3-r0` algorithm: every result on a calendar day is scored against
+the ratings as they were before that day, so a team that plays twice on a day
+meets both opponents with the same rating; a 48-point K-factor moves the winner
+and loser equally; and a complete map score blends into the result with weight
+0.3 (`observed = 0.7 * series_outcome + 0.3 * map_share`). Ratings never decay,
+so an inactive team keeps its rating; played maps keep a separate Elo for map
+predictions and head-to-head map records. The list ranks by series Elo unless a
+different sort is requested.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v2/rankings/` | Ranked team list |
+| GET | `/api/v2/rankings/teams/{id}` | Team Elo profile, form, and recent results |
+| GET | `/api/v2/rankings/predict?team_a={id}&team_b={id}` | Match and map win probabilities plus head-to-head history |
+
+The list accepts `circuit` (`vct`, `vcl`, `t3`, `gc`, `collegiate`,
+`offseason`, `other`), `min_matches` (default 5), `include_inactive`, `sort`
+(`elo`, `map_elo`, `matches`, `win_rate`), `order` (`asc`, `desc`), `limit`,
+and `offset`. A team appears after at least `min_matches` rated series inside the
+last 180 days and, unless `include_inactive` is set, a match within the last 90
+days. Each item carries its rank in the requested selection, its overall rank
+(ignoring the circuit filter), the stored ratings, win-loss records, circuits, and
+the primary circuit it played most. A circuit is derived from the event's VLR tier
+listing and refreshed from the tier pages when a new event is first ingested.
+
 ## News article content
 
 `GET /news/{id}` returns `blocks` in article document order. Clients should render

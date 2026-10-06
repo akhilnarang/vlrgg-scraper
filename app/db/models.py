@@ -1,9 +1,11 @@
-"""Minimal SQLAlchemy models for live-update subscriptions."""
+"""SQLAlchemy models for live-update subscriptions and the team ranking ledger."""
 
-from sqlalchemy import Enum, ForeignKey, String, Text, UniqueConstraint
+from datetime import date
+
+from sqlalchemy import Enum, ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from app.constants import Platform
+from app.constants import ELO_BASE, Circuit, Platform, RankingScope
 from app.db.types import JSONB
 
 
@@ -109,3 +111,103 @@ class IdMapping(Base):
     kind: Mapped[str] = mapped_column(String(8), primary_key=True)
     key: Mapped[str] = mapped_column(Text, primary_key=True)
     id: Mapped[str] = mapped_column(String(10))
+
+
+class EventRecord(Base):
+    """A VLR event whose matches are in the ranking ledger."""
+
+    __tablename__ = "events"
+
+    id: Mapped[str] = mapped_column(String(10), primary_key=True)
+    name: Mapped[str] = mapped_column(Text)
+    circuit: Mapped[Circuit] = mapped_column(
+        Enum(Circuit, native_enum=False, length=16, values_callable=lambda enum: [member.value for member in enum]),
+        server_default=Circuit.OTHER.value,
+        index=True,
+    )
+    circuit_checked_at: Mapped[int | None] = mapped_column(nullable=True)
+
+
+class MatchRecord(Base):
+    """A completed match in the ranking ledger; team IDs are NULL when VLR shows TBD."""
+
+    __tablename__ = "matches"
+
+    id: Mapped[str] = mapped_column(String(10), primary_key=True)
+    event_id: Mapped[str] = mapped_column(ForeignKey("events.id"), index=True)
+    stage: Mapped[str | None] = mapped_column(Text, nullable=True)
+    played_on: Mapped[date] = mapped_column(index=True)
+    team_a_id: Mapped[str | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
+    team_b_id: Mapped[str | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
+    team_a_score: Mapped[int | None] = mapped_column(nullable=True)
+    team_b_score: Mapped[int | None] = mapped_column(nullable=True)
+    patch: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source: Mapped[str] = mapped_column(String(16))
+    ingested_at: Mapped[int] = mapped_column()
+
+
+class MapRecord(Base):
+    """One played map of a match, oriented to the match's team order."""
+
+    __tablename__ = "maps"
+
+    match_id: Mapped[str] = mapped_column(ForeignKey("matches.id"), primary_key=True)
+    map_index: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(Text)
+    team_a_score: Mapped[int] = mapped_column()
+    team_b_score: Mapped[int] = mapped_column()
+
+
+class RankingResult(Base):
+    """One Elo-moving result: a series or a played map, with the ratings before it."""
+
+    __tablename__ = "ranking_results"
+    __table_args__ = (
+        UniqueConstraint("match_id", "scope", "map_index"),
+        Index("ix_ranking_results_team_a_scope_seq", "team_a_id", "scope", "seq"),
+        Index("ix_ranking_results_team_b_scope_seq", "team_b_id", "scope", "seq"),
+    )
+
+    seq: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    match_id: Mapped[str] = mapped_column(ForeignKey("matches.id"))
+    scope: Mapped[RankingScope] = mapped_column(
+        Enum(RankingScope, native_enum=False, length=8, values_callable=lambda enum: [member.value for member in enum])
+    )
+    map_index: Mapped[int] = mapped_column()
+    played_on: Mapped[date] = mapped_column()
+    team_a_id: Mapped[str] = mapped_column(ForeignKey("teams.id"))
+    team_b_id: Mapped[str] = mapped_column(ForeignKey("teams.id"))
+    winner_team_id: Mapped[str] = mapped_column(ForeignKey("teams.id"))
+    team_a_elo_before: Mapped[float] = mapped_column()
+    team_b_elo_before: Mapped[float] = mapped_column()
+    team_a_delta: Mapped[float] = mapped_column()
+
+
+class TeamElo(Base):
+    """A team's stored Elo per scope; ratings never decay, so no date marker is kept."""
+
+    __tablename__ = "team_elo"
+
+    team_id: Mapped[str] = mapped_column(ForeignKey("teams.id"), primary_key=True)
+    match_elo: Mapped[float] = mapped_column(default=ELO_BASE)
+    map_elo: Mapped[float] = mapped_column(default=ELO_BASE)
+    matches: Mapped[int] = mapped_column(default=0)
+    match_wins: Mapped[int] = mapped_column(default=0)
+    maps: Mapped[int] = mapped_column(default=0)
+    map_wins: Mapped[int] = mapped_column(default=0)
+    first_played_on: Mapped[date | None] = mapped_column(nullable=True)
+    last_played_on: Mapped[date | None] = mapped_column(nullable=True)
+
+
+class TeamCircuit(Base):
+    """How many rated matches a team played in one circuit, and when it last did."""
+
+    __tablename__ = "team_circuits"
+
+    team_id: Mapped[str] = mapped_column(ForeignKey("teams.id"), primary_key=True)
+    circuit: Mapped[Circuit] = mapped_column(
+        Enum(Circuit, native_enum=False, length=16, values_callable=lambda enum: [member.value for member in enum]),
+        primary_key=True,
+    )
+    matches: Mapped[int] = mapped_column()
+    last_played_on: Mapped[date] = mapped_column()
