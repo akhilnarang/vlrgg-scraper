@@ -27,9 +27,19 @@ stored without both teams, a decisive score, or every played map, or contradicte
 the listing's teams and scores. It then replays the whole ledger into the series Elo
 (`k48-hnone-m0.3-r0`, no decay), the per-map Elo, and the circuit counts. The replay
 is deterministic, so a fetch or write failure only leaves that match for the next
-run and can never move a rating out of order. Historical database seeding and
-catch-up are manual deployment steps; import scripts are not included in this
-change. Complete them before enabling ongoing ingestion.
+run and can never move a rating out of order.
+
+The job only sees matches still on VLR's results listing, so a new ledger holds a few
+weeks of series: too few for a team to reach the ranking minimum, and too few tiered
+events to classify a VCT team's region. Seed the history once with
+`scripts/import_ranking_archive.py`, which reads the `history.sqlite` bundle built by
+valorant-prediction-model from the match archive, assigns each new event its circuit
+from the tier listings, and rebuilds the ratings. It leaves stored matches, teams, and
+events alone, so it can run after ingestion has started and can be rerun:
+
+```sh
+uv run python -m scripts.import_ranking_archive path/to/history.sqlite
+```
 
 ## Implementation
 
