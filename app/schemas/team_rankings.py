@@ -82,8 +82,8 @@ class TeamRankingItem(BaseModel):
     rank: int
     overall_rank: int
     team: TeamSummary
-    elo: float
-    map_elo: float
+    elo: int
+    map_elo: int
     matches: Stats
     maps: Stats
     last_played_on: date | None
@@ -134,8 +134,8 @@ class TeamRankingProfileResponse(BaseModel):
     circuit_rank: int | None
     region: Region | None = None
     region_rank: int | None = None
-    elo: float
-    map_elo: float
+    elo: int
+    map_elo: int
     matches: Stats
     maps: Stats
     first_played_on: date | None
@@ -156,8 +156,8 @@ class WinProbabilities(BaseModel):
 class TeamEloSummary(TeamSummary):
     """Team identity plus the ratings a prediction uses."""
 
-    elo: float
-    map_elo: float
+    elo: int
+    map_elo: int
     matches: Stats
     maps: Stats
     last_played_on: date | None

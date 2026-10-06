@@ -376,14 +376,24 @@ def _stats(played: int, wins: int) -> schemas.Stats:
     )
 
 
-def _team_summary(team: Team) -> schemas.TeamSummary:
+def _team_summary(team: Team, region: Region | str | None = None) -> schemas.TeamSummary:
     """Build the shared team identity payload.
 
+    The stored team row usually carries no region; the Elo row's classification
+    fills that gap so every client reads the region off the team itself.
+
     :param team: Stored team row.
+    :param region: Region from the team's Elo row, used when the stored row has none.
     :return: Team summary.
     """
+    stored_region = team.region if team.region is not None else region
     return schemas.TeamSummary(
-        id=team.id, name=team.name or "", tag=team.tag, logo=team.logo, country=team.country, region=team.region
+        id=team.id,
+        name=team.name or "",
+        tag=team.tag,
+        logo=team.logo,
+        country=team.country,
+        region=stored_region.value if isinstance(stored_region, Region) else stored_region,
     )
 
 
@@ -526,9 +536,9 @@ async def rank_teams(session: AsyncSession, query: schemas.RankingQuery) -> sche
             schemas.TeamRankingItem(
                 rank=ranks[row.elo.team_id],
                 overall_rank=overall_ranks[row.elo.team_id],
-                team=_team_summary(row.team),
-                elo=row.elo.match_elo,
-                map_elo=row.elo.map_elo,
+                team=_team_summary(row.team, row.elo.region),
+                elo=round(row.elo.match_elo),
+                map_elo=round(row.elo.map_elo),
                 matches=_stats(row.elo.matches, row.elo.match_wins),
                 maps=_stats(row.elo.maps, row.elo.map_wins),
                 last_played_on=row.elo.last_played_on,
@@ -622,13 +632,13 @@ async def team_profile(session: AsyncSession, team_id: str) -> schemas.TeamRanki
         )
     recent = await _recent_items(session, team_id, 10)
     return schemas.TeamRankingProfileResponse(
-        team=_team_summary(team),
+        team=_team_summary(team, region),
         rank=rank,
         circuit_rank=circuit_rank,
         region=region,
         region_rank=region_rank,
-        elo=elo.match_elo,
-        map_elo=elo.map_elo,
+        elo=round(elo.match_elo),
+        map_elo=round(elo.map_elo),
         matches=_stats(elo.matches, elo.match_wins),
         maps=_stats(elo.maps, elo.map_wins),
         first_played_on=elo.first_played_on,
@@ -731,9 +741,9 @@ def _elo_summary(team: Team, elo: TeamElo) -> schemas.TeamEloSummary:
     :return: Team identity with its ratings.
     """
     return schemas.TeamEloSummary(
-        **_team_summary(team).model_dump(),
-        elo=elo.match_elo,
-        map_elo=elo.map_elo,
+        **_team_summary(team, elo.region).model_dump(),
+        elo=round(elo.match_elo),
+        map_elo=round(elo.map_elo),
         matches=_stats(elo.matches, elo.match_wins),
         maps=_stats(elo.maps, elo.map_wins),
         last_played_on=elo.last_played_on,

@@ -649,9 +649,13 @@ def test_rankings_api_serves_lists_profiles_and_predictions(monkeypatch, ranking
     )
     first, second = listed.teams
     assert (first.rank, first.overall_rank, first.team.id, first.team.name) == (1, 1, "1", "Team A")
-    # Five same-day wins at K=48 move Team A up 120 points and Team B down the same.
-    assert first.elo == pytest.approx(ELO_BASE + 5 * ELO_K / 2)
-    assert second.elo == pytest.approx(ELO_BASE - 5 * ELO_K / 2)
+    # Five same-day wins at K=48 move Team A up 120 points and Team B down the same,
+    # and the published ratings are whole numbers rather than floats.
+    won_elo, lost_elo = round(ELO_BASE + 5 * ELO_K / 2), round(ELO_BASE - 5 * ELO_K / 2)
+    assert (first.elo, first.map_elo) == (won_elo, won_elo)
+    assert (second.elo, second.map_elo) == (lost_elo, lost_elo)
+    assert [row["elo"] for row in response.json()["teams"]] == [won_elo, lost_elo]
+    assert isinstance(response.json()["teams"][0]["elo"], int)
     assert (first.matches.played, first.matches.wins, first.matches.losses, first.matches.win_rate) == (5, 5, 0, 1.0)
     assert (first.maps.played, first.maps.wins) == (5, 5)
     assert (first.primary_circuit, first.circuits, first.last_played_on) == (
@@ -819,9 +823,12 @@ def test_rankings_api_filters_and_ranks_by_region(monkeypatch, ranking_sessions)
     all_teams = {"min_matches": 0, "include_inactive": True}
     americas = client.get("/api/v2/rankings/", params=all_teams | {"region": "americas"}).json()
     assert (americas["region"], americas["total"]) == ("americas", 2)
-    assert [(row["team"]["id"], row["rank"], row["overall_rank"], row["region"]) for row in americas["teams"]] == [
-        ("1", 1, 1, "americas"),
-        ("2", 2, 3, "americas"),
+    assert [
+        (row["team"]["id"], row["team"]["region"], row["rank"], row["overall_rank"], row["region"])
+        for row in americas["teams"]
+    ] == [
+        ("1", "americas", 1, 1, "americas"),
+        ("2", "americas", 2, 3, "americas"),
     ]
     emea = client.get("/api/v2/rankings/", params=all_teams | {"region": "EMEA"}).json()
     assert [(row["team"]["id"], row["rank"]) for row in emea["teams"]] == [("3", 1), ("4", 2)]
@@ -833,10 +840,26 @@ def test_rankings_api_filters_and_ranks_by_region(monkeypatch, ranking_sessions)
     assert [row["team"]["id"] for row in combined["teams"]] == ["1", "2"]
     assert client.get("/api/v2/rankings/", params=all_teams | {"circuit": "vct", "region": "emea"}).json()["total"] == 0
 
-    # The profile carries the team's region and its rank inside that region.
+    # The profile carries the region on the team itself as well as at the top level,
+    # with whole-number ratings.
     profile = client.get("/api/v2/rankings/teams/2").json()
-    assert (profile["region"], profile["region_rank"], profile["rank"]) == ("americas", 2, 3)
+    assert (profile["region"], profile["team"]["region"], profile["region_rank"], profile["rank"]) == (
+        "americas",
+        "americas",
+        2,
+        3,
+    )
+    assert (profile["elo"], profile["map_elo"]) == (1380, 1260)
     assert client.get("/api/v2/rankings/", params={"region": "nope"}).status_code == 422
+
+    # The prediction summary carries the same region and rounded rating on its sides.
+    prediction = client.get("/api/v2/rankings/predict", params={"team_a": "1", "team_b": "2"}).json()
+    assert (prediction["team_a"]["region"], prediction["team_a"]["elo"], prediction["team_a"]["map_elo"]) == (
+        "americas",
+        1620,
+        1740,
+    )
+    assert (prediction["team_b"]["region"], prediction["team_b"]["map_elo"]) == ("americas", 1260)
 
 
 @pytest.mark.asyncio
