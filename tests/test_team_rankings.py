@@ -505,6 +505,12 @@ def test_rankings_api_serves_lists_profiles_and_predictions(monkeypatch, ranking
 
     # The circuit filter narrows the list; pagination slices it.
     assert client.get("/api/v2/rankings/", params={"circuit": "gc"}).json()["total"] == 0
+    all_circuits = client.get(
+        "/api/v2/rankings/", params={"circuit": "all", "min_matches": 0, "include_inactive": True}
+    )
+    assert all_circuits.status_code == 200
+    assert all_circuits.json()["circuit"] == "all"
+    assert all_circuits.json()["total"] == 2
     page = client.get("/api/v2/rankings/", params={"limit": 1, "offset": 1}).json()
     assert (page["total"], [row["team"]["id"] for row in page["teams"]]) == (2, ["2"])
     # Ordering by win rate ascending puts the winless team first.

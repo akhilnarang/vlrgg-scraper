@@ -1,9 +1,9 @@
 """Response and query models for the Elo team rankings API."""
 
 from datetime import date
-from typing import Annotated, Self
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.constants import ID_REGEX, RANKING_MIN_MATCHES, Circuit, RankingOrder, RankingSort
 
@@ -13,13 +13,24 @@ EntityId = Annotated[str, Field(pattern=ID_REGEX)]
 class RankingQuery(BaseModel):
     """Validated query for the ranked team list."""
 
-    circuit: Circuit | None = None  # None ranks every circuit together
+    circuit: Circuit | Literal["all"] | None = None  # None or "all" ranks every circuit together
     min_matches: int = Field(default=RANKING_MIN_MATCHES, ge=0, le=1000)
     include_inactive: bool = False
     sort: RankingSort = RankingSort.ELO
     order: RankingOrder = RankingOrder.DESC
     limit: int = Field(default=50, ge=1, le=200)
     offset: int = Field(default=0, ge=0)
+
+    @field_validator("circuit", mode="before")
+    @classmethod
+    def normalize_circuit(cls, value: Any) -> Any:
+        """Allow 'all' and case-insensitive circuit names."""
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            if lowered in ("", "all"):
+                return None
+            return lowered
+        return value
 
 
 class PredictQuery(BaseModel):
