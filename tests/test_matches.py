@@ -24,7 +24,6 @@ async def test_match_details_follow_the_public_response_contract(http_response):
     assert result.event.series == "Event Series"
     assert result.event.patch == "13.05"
     assert result.map_count == 2
-    # One entry per rendered game, each carrying its true navigation-slot number: game 2 has no panel.
     assert [(item.number, item.map, [team.score for team in item.teams], item.winner) for item in result.data] == [
         (1, "Lotus", [13, 10], "Team A"),
         (3, "Split", [None, None], None),
@@ -32,13 +31,11 @@ async def test_match_details_follow_the_public_response_contract(http_response):
     member = result.data[0].members[0]
     assert (member.id, member.name, member.team) == ("2114", "Kinguyen", "Team A")
     assert (member.agents[0].title, member.rating, member.kills) == ("Raze", 1.42, 29)
-    # VLR's stream grid: broadcasts only (watch parties excluded), including off-platform links.
     assert [(stream.name, str(stream.url)) for stream in result.videos.streams] == [
         ("VCT", "https://www.youtube.com/@ValorantEsports/live"),
         ("VAL KR", "https://play.sooplive.co.kr/valorant"),
     ]
     assert [(vod.name, str(vod.url)) for vod in result.videos.vods] == [("Map 1", "https://youtu.be/abc123?t=132")]
-    # Fixture note isn't a per-step veto, so it must surface as unknown with the raw text, never be dropped.
     assert [(v.team, v.action, v.map) for v in result.veto] == [(None, "unknown", "Map ban: Bind, Haven")]
     assert [
         (v.team, v.action, v.map)
@@ -49,14 +46,12 @@ async def test_match_details_follow_the_public_response_contract(http_response):
         (None, "remains", "Sunset"),
     ]
 
-    # A panel-less decider VLR has named in its navigation still has no entry, and game 3 keeps number 3.
     decider = (FIXTURE_DIR / "match_12345.html").read_text().replace("2 N/A", "2 Haven").encode()
     with patch("httpx2.AsyncClient.get", return_value=http_response("https://www.vlr.gg/12345", decider)):
         decider_result = await matches.match_by_id("12345", AsyncMock())
 
     assert [(item.number, item.map) for item in decider_result.data] == [(1, "Lotus"), (3, "Split")]
 
-    # An all-TBD upcoming match renders no game identity, so no empty map or teams entry is emitted.
     upcoming = (
         (FIXTURE_DIR / "match_12345.html").read_text().replace("1 Lotus", "1 TBD").replace("3 Split", "3 TBD").encode()
     )
@@ -98,19 +93,18 @@ def test_display_strings_follow_accept_language(monkeypatch, http_response):
         unknown = client.get("/api/v1/matches/12345", headers={"Accept-Language": "xx"})
 
     assert english.status_code == hindi.status_code == 200
-    # Repeat requests within the TTL are served from cache, still localized per request.
     assert vlr_get.call_count == 1
     assert english.headers["content-language"] == "en" and hindi.headers["content-language"] == "hi"
     en_event, hi_event = english.json()["event"], hindi.json()["event"]
     assert (en_event["status"], en_event["status_label"]) == ("completed", "Completed")
-    assert (hi_event["status"], hi_event["status_label"]) == ("completed", "समाप्त")  # existing field never changes
+    assert (hi_event["status"], hi_event["status_label"]) == ("completed", "समाप्त")
     assert (english.json()["veto"][0]["action_label"], hindi.json()["veto"][0]["action_label"]) == ("Unknown", "अज्ञात")
     assert unknown.json() == english.json() and unknown.headers["content-language"] == "en"
 
     assert i18n.resolve("pt") == "pt-BR" and i18n.resolve("de;q=0.5, ko;q=0.8") == "ko"
-    assert i18n.resolve("de;q=0, ko") == "ko"  # q=0 means not acceptable
-    assert i18n.resolve("de ;Q=0.1, ko;q=0.5") == "ko" and i18n.resolve("de;q=2, ko;q=1") == "ko"  # lenient syntax
-    assert unknown.headers["vary"] == "Accept-Encoding, Accept-Language"  # GZip's Vary must survive
+    assert i18n.resolve("de;q=0, ko") == "ko"
+    assert i18n.resolve("de ;Q=0.1, ko;q=0.5") == "ko" and i18n.resolve("de;q=2, ko;q=1") == "ko"
+    assert unknown.headers["vary"] == "Accept-Encoding, Accept-Language"
 
 
 def test_unreachable_vlr_returns_503(monkeypatch):
@@ -213,7 +207,6 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
         fcm_token = {"token": "dGVzdA_x-1:APA91bH", "platform": "android"}
         assert client.put(f"{base}/token", headers=headers, json=fcm_token).status_code == 204
 
-        # Android reports whether live updates are on; a registration without the field keeps the stored setting.
         from app.db.models import Client
 
         async def live_updates_setting():
@@ -226,12 +219,10 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
         )
         assert client.put(f"{base}/token", headers=headers, json=fcm_token).status_code == 204
         assert asyncio.run(live_updates_setting()) is False
-        # Turned off, the client can't start a live update either.
         with patch("app.services.push.deliver_instant_start", AsyncMock()) as instant_start:
             turned_off = client.post(f"{base}/matches/123/live-activity", headers=headers)
         assert turned_off.status_code == 409
         instant_start.assert_not_awaited()
-        # Omitting platform keeps existing iOS clients working, and iOS still requires a hex APNs token.
         assert client.put(f"{base}/token", headers=headers, json={"token": fcm_token["token"]}).status_code == 422
         assert (
             client.put(f"{base}/token", headers=headers, json={"token": "AABB", "live_updates": True}).status_code
@@ -253,10 +244,8 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             "players": ["3"],
             "events": ["4"],
         }
-        # Apps send only what the user just favorited, so a PUT adds and never drops existing favorites.
         assert client.put(f"{base}/favorites", headers=headers, json={"teams": ["5", "1"]}).status_code == 204
         assert client.get(f"{base}/favorites", headers=headers).json()["teams"] == ["1", "5"]
-        # DELETE removes only the favorites in its body.
         removal = {"teams": ["1"], "matches": ["2"], "events": ["9"]}
         assert client.request("DELETE", f"{base}/favorites", headers=headers, json=removal).status_code == 204
         assert client.get(f"{base}/favorites", headers=headers).json() == {
@@ -268,7 +257,6 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
         unknown = "/api/v1/live-updates/clients/33333333-3333-4333-8333-333333333333/favorites"
         assert client.request("DELETE", unknown, headers=headers, json=removal).status_code == 404
 
-        # Instant Live Activity start for an in-progress match
         mock_apns = AsyncMock()
         mock_apns.create_channel.return_value = "channel-live-123"
         monkeypatch.setattr(connections, "apns_client", mock_apns)
@@ -281,12 +269,17 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
                 TeamWithImage(id="2", name="Beta", tag="BET", score=0, img="https://cdn.vlr.gg/b.png"),
             ],
             bans=[],
-            event=Event(id="99", img="https://cdn.vlr.gg/e.png", series="Series", stage="Stage", status="live"),
+            event=Event(
+                id="99",
+                img="https://cdn.vlr.gg/e.png",
+                series="Series",
+                stage="Playoffs: Grand Final",
+                status="live",
+            ),
             videos=MatchVideos(streams=[], vods=[]),
             map_count=1,
             total_maps=3,
             data=[
-                # Beta took map 1 in overtime; VLR can list a map's teams in either order.
                 MatchData(
                     number=1,
                     map="Ascent",
@@ -309,7 +302,6 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
         completed_detail = live_detail.model_copy(
             update={"event": live_detail.event.model_copy(update={"status": "completed"})}
         )
-        # The match detail response names the live map, with scores in the match's team order.
         assert live_detail.model_dump()["current_map"] == {"name": "Bind", "scores": [12, 11], "number": 2}
         assert completed_detail.model_dump()["current_map"] is None
 
@@ -323,7 +315,6 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             assert (token_arg, channel_arg) == ("aabb", "channel-live-123")
             assert (state_arg.total_maps, state_arg.current_map.number) == (3, 2)
 
-            # Re-triggering reuses the existing broadcast channel without recreating it
             retrigger = client.post(f"{base}/matches/123/live-activity", headers=headers)
             assert retrigger.status_code == 204
             assert mock_apns.create_channel.await_count == 1
@@ -332,7 +323,6 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
         with patch("app.services.matches.match_by_id", AsyncMock(return_value=completed_detail)):
             assert client.post(f"{base}/matches/456/live-activity", headers=headers).status_code == 400
 
-        # A rejected first start retains its new channel while removing the token despite the HTTP 503.
         from app.services.apns import APNsError
         from app.services.subscription_store import SubscriptionStore
 
@@ -395,12 +385,10 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
                 3,
                 2,
             )
-            # Winner's team ID per finished map; null for the map in progress and the unplayed one.
             assert state_data["map_winners"] == ["2", None, None]
-            # Team IDs let clients match map_winners to a team.
             assert [(team["id"], team["score"]) for team in state_data["teams"]] == [("1", 1), ("2", 0)]
+            assert state_data["stage"] == "Playoffs: Grand Final"
 
-            # Android delivery must not suppress a later automatic iOS start for this client.
             assert (
                 client.put(f"{android_client}/favorites", headers=headers, json={"matches": ["123"]}).status_code == 204
             )
@@ -418,7 +406,6 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
                 == 204
             )
 
-            # Firebase's unregistered response must remove the token despite the HTTP 503.
             send_fcm.return_value = messaging.BatchResponse(
                 [messaging.SendResponse(None, messaging.UnregisteredError("registration token expired"))]
             )

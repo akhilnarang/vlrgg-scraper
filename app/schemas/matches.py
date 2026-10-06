@@ -215,10 +215,13 @@ class CompactState(BaseModel):
     observed_at: int
     terminal: bool
     total_maps: int = 1
+    stage: str | None = Field(default=None, description='VLR\'s stage label verbatim, e.g. "Playoffs: Grand Final"')
     teams: list[PushTeam]
     current_map: PushCurrentMap | None = None
-    map_winners: list[str | None] = []  # winning team ID per map; None while in progress or unplayed
-    pause: PushPause | None = None  # active broadcast pause, if any
+    map_winners: list[str | None] = Field(
+        default_factory=list, description="Winning team ID per map; None while in progress or unplayed"
+    )
+    pause: PushPause | None = Field(default=None, description="Active broadcast pause, if any")
 
     def semantic(self) -> str:
         """Serialize state without observation time for change detection.

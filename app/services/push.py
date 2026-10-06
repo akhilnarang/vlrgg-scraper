@@ -137,6 +137,7 @@ def project_state(match_id: str, detail: MatchWithDetails, video: VideoScore | N
         observed_at=int(time.time()),
         terminal=terminal,
         total_maps=detail.total_maps,
+        stage=detail.event.stage or None,
         teams=[
             PushTeam(id=team.id, name=team.name, tag=team.tag, img=team.img, score=team.score) for team in detail.teams
         ],

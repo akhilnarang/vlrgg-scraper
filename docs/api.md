@@ -162,9 +162,10 @@ last score sent to iOS and to each Android follower's token.
 Provider errors are logged and skipped; there is no delivery history or retry state
 machine.
 
-The compact state carries `observed_at` (absolute server epoch seconds) and may carry a
-`pause` with its `kind` and an optional `reason`. A client derives "paused since" from
-`observed_at`: the inbound tracker field `pause.since` is that tracker's own relative
+The compact state carries `observed_at` (absolute server epoch seconds) and `stage`, VLR's
+stage label verbatim (e.g. `Playoffs: Grand Final`) or `null` when VLR renders none. It may
+carry a `pause` with its `kind` and an optional `reason`. A client derives "paused since"
+from `observed_at`: the inbound tracker field `pause.since` is that tracker's own relative
 second and is never forwarded.
 
 Favorite match `3141592653` on a test device, then `POST /api/v1/live-updates/test-match`
