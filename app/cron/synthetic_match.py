@@ -21,6 +21,25 @@ async def next_observation(client: Redis) -> MatchWithDetails:
         await client.delete(constants.TEST_TICK_KEY)
     alpha, beta = tick, tick - 1
     image = "https://www.vlr.gg/img/vlr/logo_header.png"
+    # Alternate the round winners from team1 so the final round score is the map score.
+    rounds = []
+    first = second = 0
+    for round_number in range(1, alpha + beta + 1):
+        if round_number % 2:
+            first += 1
+            winner, side = constants.RoundWinner.TEAM1, "attack"
+        else:
+            second += 1
+            winner, side = constants.RoundWinner.TEAM2, "defense"
+        rounds.append(
+            {
+                "round_number": round_number,
+                "round_score": f"{first}-{second}",
+                "winner": winner,
+                "side": side,
+                "win_type": "Elimination",
+            }
+        )
     return MatchWithDetails.model_validate(
         {
             "teams": [
@@ -44,7 +63,7 @@ async def next_observation(client: Redis) -> MatchWithDetails:
                     "map": "Test Range",
                     "teams": [{"name": "Test Alpha", "score": alpha}, {"name": "Test Beta", "score": beta}],
                     "members": [],
-                    "rounds": [],
+                    "rounds": rounds,
                 }
             ],
             "previous_encounters": [],

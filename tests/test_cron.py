@@ -46,7 +46,7 @@ def _live_detail(status: str, series: tuple[int, int]):
 
 
 def test_video_score_targets_its_original_game_number():
-    from app.schemas.matches import MatchData, Team, VideoPause, VideoScore
+    from app.schemas.matches import MatchData, Round, Team, VideoPause, VideoScore
     from app.services import push
 
     detail = _live_detail("live", (0, 0))
@@ -57,7 +57,10 @@ def test_video_score_targets_its_original_game_number():
             map="Lotus",
             teams=[Team(name="Alpha", score=0), Team(name="Beta", score=0)],
             members=[],
-            rounds=[],
+            rounds=[
+                Round(round_number=1, round_score="1-0", winner="team1", side="attack", win_type="Elimination"),
+                Round(round_number=2, round_score="2-0", winner="team1", side="attack", win_type="Elimination"),
+            ],
         )
     )
     video = VideoScore.model_validate(
@@ -101,6 +104,8 @@ def test_video_score_targets_its_original_game_number():
     assert state is not None and state.current_map is not None
     assert [team.name for team in state.teams] == ["Beta", "Alpha"]
     assert state.current_map.scores == [4, 8]
+    # Round winners follow the reordered match teams: Lotus's team1 (Alpha) is now index 1.
+    assert state.map_round_winners == [[], [], [], [1, 1]]
 
     # Map winner stays on game 4 without shifting over the game VLR has not rendered.
     detail.data[1].teams[0].score, detail.data[1].teams[1].score = 9, 13
@@ -706,6 +711,8 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert last_fcm_state["terminal"] is True
         assert last_fcm_state["total_maps"] == 3
         assert last_fcm_state["current_map"]["number"] == 1
+        # The synthetic match alternates round winners, so the test push carries them for every played round.
+        assert last_fcm_state["map_round_winners"] == [[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], [], []]
         assert match_by_id_mock.await_count == 8  # synthetic observations never hit VLR
 
         # Fetched match pages store their teams with tags; the synthetic test match stays out of the store.

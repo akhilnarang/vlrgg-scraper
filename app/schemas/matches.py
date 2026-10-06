@@ -215,9 +215,11 @@ class CompactState(BaseModel):
     observed_at: int
     terminal: bool
     total_maps: int = 1
+    stage: str | None = None  # VLR's stage label verbatim, e.g. "Playoffs: Grand Final"
     teams: list[PushTeam]
     current_map: PushCurrentMap | None = None
     map_winners: list[str | None] = []  # winning team ID per map; None while in progress or unplayed
+    map_round_winners: list[list[int | None]] = []  # per map slot, round winner as index into `teams` (0 or 1), or None
     pause: PushPause | None = None  # active broadcast pause, if any
 
     def semantic(self) -> str:

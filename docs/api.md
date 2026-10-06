@@ -167,6 +167,11 @@ The compact state carries `observed_at` (absolute server epoch seconds) and may 
 `observed_at`: the inbound tracker field `pause.since` is that tracker's own relative
 second and is never forwarded.
 
+The state also carries `stage`, VLR's stage label verbatim (e.g. `Playoffs: Grand Final`),
+and `map_round_winners`: one list per map slot, in `map_winners` order, holding each played
+round's winner as an index into `teams` (`0` or `1`), or `null` when a round has no winner.
+A map slot with no rounds is an empty list.
+
 Favorite match `3141592653` on a test device, then `POST /api/v1/live-updates/test-match`
 with your API key to start a synthetic match. It updates each minute and ends on tick 6;
 trigger it again to restart. Triggering while it is running returns `409 Conflict`.
