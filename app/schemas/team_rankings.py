@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.constants import ID_REGEX, RANKING_MIN_MATCHES, Circuit, RankingOrder, RankingSort
+from app.constants import ID_REGEX, RANKING_MIN_MATCHES, Circuit, RankingOrder, RankingSort, Region
 
 EntityId = Annotated[str, Field(pattern=ID_REGEX)]
 
@@ -13,7 +13,12 @@ EntityId = Annotated[str, Field(pattern=ID_REGEX)]
 class RankingQuery(BaseModel):
     """Validated query for the ranked team list."""
 
-    circuit: Circuit | Literal["all"] | None = None  # None or "all" ranks every circuit together
+    circuit: Circuit | Literal["all"] | None = Field(
+        default=None, description='None or "all" ranks every circuit together'
+    )
+    region: Region | Literal["all"] | None = Field(
+        default=None, description='None or "all" ranks every region together'
+    )
     min_matches: int = Field(default=RANKING_MIN_MATCHES, ge=0, le=1000)
     include_inactive: bool = False
     sort: RankingSort = RankingSort.ELO
@@ -21,10 +26,10 @@ class RankingQuery(BaseModel):
     limit: int = Field(default=50, ge=1, le=200)
     offset: int = Field(default=0, ge=0)
 
-    @field_validator("circuit", mode="before")
+    @field_validator("circuit", "region", mode="before")
     @classmethod
-    def normalize_circuit(cls, value: Any) -> Any:
-        """Allow 'all' and case-insensitive circuit names."""
+    def normalize_filters(cls, value: Any) -> Any:
+        """Allow 'all' and case-insensitive circuit and region names."""
         if isinstance(value, str):
             lowered = value.strip().lower()
             if lowered in ("", "all"):
@@ -84,14 +89,16 @@ class TeamRankingItem(BaseModel):
     last_played_on: date | None
     primary_circuit: Circuit | None
     circuits: list[Circuit]
+    region: Region | None = None
 
 
 class RankingListResponse(BaseModel):
-    """Paginated team ranking for one circuit and sort order."""
+    """Paginated team ranking for one circuit and region."""
 
     as_of: date
     algorithm: str
-    circuit: str  # the requested circuit, or "all"
+    circuit: Circuit | Literal["all"] = Field(description='The requested circuit, or "all"')
+    region: Region | Literal["all"] = Field(default="all", description='The requested region, or "all"')
     total: int
     limit: int
     offset: int
@@ -125,6 +132,8 @@ class TeamRankingProfileResponse(BaseModel):
     team: TeamSummary
     rank: int | None
     circuit_rank: int | None
+    region: Region | None = None
+    region_rank: int | None = None
     elo: float
     map_elo: float
     matches: Stats

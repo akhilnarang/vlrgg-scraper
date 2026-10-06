@@ -41,9 +41,11 @@ class StoredMap:
 
 @dataclass(slots=True, frozen=True)
 class StoredMatch:
-    """A ratable stored match with its circuit and decisive maps."""
+    """A ratable stored match with its event, circuit, and decisive maps."""
 
     match_id: str
+    event_id: str
+    event_name: str
     played_on: date
     circuit: Circuit
     team_a_id: str
@@ -121,7 +123,7 @@ async def stored_matches(session: AsyncSession) -> list[StoredMatch]:
     :return: Matches ordered by ``(played_on, id)``.
     """
     rows = await session.execute(
-        select(MatchRecord, EventRecord.circuit)
+        select(MatchRecord, EventRecord.circuit, EventRecord.name)
         .join(EventRecord, EventRecord.id == MatchRecord.event_id)
         .where(MatchRecord.team_a_id.is_not(None))
         .where(MatchRecord.team_b_id.is_not(None))
@@ -141,6 +143,8 @@ async def stored_matches(session: AsyncSession) -> list[StoredMatch]:
     return [
         StoredMatch(
             match_id=match.id,
+            event_id=match.event_id,
+            event_name=event_name,
             played_on=match.played_on,
             circuit=circuit,
             team_a_id=cast(str, match.team_a_id),
@@ -149,7 +153,7 @@ async def stored_matches(session: AsyncSession) -> list[StoredMatch]:
             team_b_score=cast(int, match.team_b_score),
             maps=tuple(maps.get(match.id, ())),
         )
-        for match, circuit in rows
+        for match, circuit, event_name in rows
     ]
 
 
