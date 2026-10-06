@@ -57,6 +57,8 @@ class StoredMatch:
 class StoredListing:
     """What the ledger holds for one listed match, to detect a needed repair."""
 
+    played_on: date
+    ingested_at: int
     team_a_id: str | None
     team_b_id: str | None
     team_a_score: int | None
@@ -97,6 +99,8 @@ async def stored_listings(session: AsyncSession) -> dict[str, StoredListing]:
     )
     return {
         match.id: StoredListing(
+            played_on=match.played_on,
+            ingested_at=match.ingested_at,
             team_a_id=match.team_a_id,
             team_b_id=match.team_b_id,
             team_a_score=match.team_a_score,
@@ -201,6 +205,7 @@ async def needs_rebuild(session: AsyncSession) -> bool:
                 RankingResult.winner_team_id != match_winner,
                 RankingResult.team_a_id != MatchRecord.team_a_id,
                 RankingResult.team_b_id != MatchRecord.team_b_id,
+                RankingResult.played_on != MatchRecord.played_on,
             )
         )
     )
@@ -224,6 +229,7 @@ async def needs_rebuild(session: AsyncSession) -> bool:
                 RankingResult.winner_team_id != map_winner,
                 RankingResult.team_a_id != MatchRecord.team_a_id,
                 RankingResult.team_b_id != MatchRecord.team_b_id,
+                RankingResult.played_on != MatchRecord.played_on,
             )
         )
     )
@@ -312,6 +318,22 @@ async def set_event_circuit(session: AsyncSession, event_id: str, name: str, cir
     )
 
 
+async def stale_other_events(session: AsyncSession, checked_before: int) -> list[EventRecord]:
+    """Read events still assigned no circuit whose tier listing check has gone stale.
+
+    :param session: Caller-owned database session.
+    :param checked_before: Unix time before which a circuit check counts as stale.
+    :return: Events to look up in the tier listings again, ordered by ID.
+    """
+    rows = await session.execute(
+        select(EventRecord)
+        .where(EventRecord.circuit == Circuit.OTHER)
+        .where(EventRecord.circuit_checked_at < checked_before)
+        .order_by(EventRecord.id)
+    )
+    return list(rows.scalars())
+
+
 async def teams_by_id(session: AsyncSession, team_ids: Iterable[str]) -> dict[str, Team]:
     """Read stored teams by ID.
 
@@ -346,13 +368,17 @@ async def ranked_elos(session: AsyncSession) -> list[RankedElo]:
     return [RankedElo(*row) for row in rows.all()]
 
 
-async def team_circuits(session: AsyncSession) -> dict[str, list[TeamCircuit]]:
+async def team_circuits(session: AsyncSession, active_since: date | None = None) -> dict[str, list[TeamCircuit]]:
     """Read circuit activity grouped by team.
 
     :param session: Caller-owned database session.
+    :param active_since: Only circuits last played on or after this date; None reads the full history.
     :return: Circuit rows keyed by team ID, most played first.
     """
-    rows = await session.execute(select(TeamCircuit).order_by(TeamCircuit.matches.desc(), TeamCircuit.circuit))
+    query = select(TeamCircuit)
+    if active_since is not None:
+        query = query.where(TeamCircuit.last_played_on >= active_since)
+    rows = await session.execute(query.order_by(TeamCircuit.matches.desc(), TeamCircuit.circuit))
     grouped: dict[str, list[TeamCircuit]] = {}
     for row in rows.scalars():
         grouped.setdefault(row.team_id, []).append(row)

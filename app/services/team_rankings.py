@@ -40,6 +40,12 @@ logger = logging.getLogger(__name__)
 
 _MATCH_TZ = ZoneInfo(MATCH_TIMEZONE)
 
+# An incomplete stored match is fetched again only after this cooldown, so a VLR page
+# that rendered without maps is not re-scraped on every cron tick.
+REPAIR_COOLDOWN_SECONDS = 4 * 3600
+# A match this old whose page never produced maps is left incomplete instead of polled forever.
+REPAIR_GIVE_UP_DAYS = 7
+
 
 def ranking_date() -> date:
     """Return today in the timezone matches are dated in, the date rankings are read on.
@@ -409,7 +415,9 @@ async def rank_teams(session: AsyncSession, query: schemas.RankingQuery) -> sche
     :return: Paginated ranking.
     """
     as_of = ranking_date()
-    by_team = await ranking_store.team_circuits(session)
+    # A circuit a team has not played inside the window is history, not a current membership.
+    active_since = None if query.include_inactive else window_start(as_of)
+    by_team = await ranking_store.team_circuits(session, active_since)
     circuit_sets = {team_id: {row.circuit for row in rows} for team_id, rows in by_team.items()}
     window_counts = await ranking_store.series_window_counts(session, window_start(as_of), as_of)
     rows = sorted(
@@ -641,14 +649,27 @@ def _elo_summary(team: Team, elo: TeamElo) -> schemas.TeamEloSummary:
     )
 
 
-def needs_repair(listed: schemas.Match, stored: ranking_store.StoredListing | None) -> bool:
+def needs_repair(listed: schemas.Match, stored: ranking_store.StoredListing | None, now: int | None = None) -> bool:
     """Whether a final listing is missing from the ledger or contradicts it.
+
+    An incomplete stored match is fetched again, but not on every cron tick: the
+    fetch waits out a cooldown, and a match old enough that its page never produced
+    maps is left as stored instead of polled forever. Both checks need ``now``.
 
     :param listed: Final match from the VLR listing.
     :param stored: What the ledger holds for its ID, or None when unknown.
+    :param now: Unix time the listing was read; without it an incomplete match is fetched immediately.
     :return: True when the match page should be fetched and upserted.
     """
-    if stored is None or not stored.complete:
+    if stored is None:
+        return True
+    if not stored.complete:
+        if now is not None:
+            today = datetime.fromtimestamp(now, _MATCH_TZ).date()
+            if stored.maps == 0 and stored.played_on < today - timedelta(days=REPAIR_GIVE_UP_DAYS):
+                return False
+            if now - stored.ingested_at < REPAIR_COOLDOWN_SECONDS:
+                return False
         return True
     if listed.team1.id is None or listed.team2.id is None:
         # Without mapped listing IDs there is no side to contradict the stored one.

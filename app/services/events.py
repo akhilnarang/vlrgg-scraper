@@ -640,10 +640,14 @@ def tier_event_ids(content: bytes) -> list[str]:
     return ids
 
 
-async def tier_event_circuits(stop_ids: set[str] | None = None) -> dict[str, constants.Circuit]:
+async def tier_event_circuits(stop_ids: set[str] | None = None, max_pages: int = 2) -> dict[str, constants.Circuit]:
     """Map event IDs to circuits from VLR's tier-filtered event listings.
 
+    Active and upcoming events sit on the first pages of every tier tab, so only a
+    bounded number of pages is crawled per tier.
+
     :param stop_ids: Event IDs to resolve, stopping once every one is listed; None reads every listed event.
+    :param max_pages: Highest page crawled per tier.
     :return: Event ID mapped to the circuit of the tier that lists it.
     :raises ScrapingError: If any tier page returns a non-200.
     """
@@ -651,7 +655,7 @@ async def tier_event_circuits(stop_ids: set[str] | None = None) -> dict[str, con
     tiers = dict(constants.TIER_CIRCUITS)
     async with get_http_client() as client:
         page = 1
-        while tiers and page <= constants.MAX_PAGINATION_PAGES:
+        while tiers and page <= max_pages:
             responses = await asyncio.gather(
                 *(client.get(constants.EVENTS_TIER_URL.format(tier, page)) for tier in tiers)
             )

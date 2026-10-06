@@ -19,7 +19,7 @@ from app.core.config import settings
 from app.cron.team_rankings import team_rankings_cron
 from app.db.engine import create_engine
 from app.db.migrations import upgrade_to_head
-from app.db.models import EventRecord, MapRecord, MatchRecord, RankingResult, Team, TeamElo
+from app.db.models import EventRecord, MapRecord, MatchRecord, RankingResult, Team, TeamCircuit, TeamElo
 from app.schemas.matches import MatchData
 from app.schemas.matches import Team as MapTeam
 from app.services import matches, ranking_store, team_rankings
@@ -247,6 +247,22 @@ async def test_ingest_match_repairs_an_incomplete_match_and_rebuilds_ratings(ran
         stored = (await ranking_store.stored_listings(session))["12345"]
         assert stored.complete is False
         assert team_rankings.needs_repair(listed, stored) is True
+        # An incomplete fetch waits out the repair cooldown before it is fetched again...
+        fetched = replace(stored, ingested_at=int(datetime(2025, 10, 1, 12, tzinfo=UTC).timestamp()))
+        assert (
+            team_rankings.needs_repair(listed, fetched, now=int(datetime(2025, 10, 1, 13, tzinfo=UTC).timestamp()))
+            is False
+        )
+        assert (
+            team_rankings.needs_repair(listed, fetched, now=int(datetime(2025, 10, 1, 17, tzinfo=UTC).timestamp()))
+            is True
+        )
+        # ...while a match whose page never produced maps is abandoned after a week.
+        ancient = replace(fetched, maps=0, played_on=date(2025, 9, 1))
+        assert (
+            team_rankings.needs_repair(listed, ancient, now=int(datetime(2025, 9, 15, 12, tzinfo=UTC).timestamp()))
+            is False
+        )
 
     async with ranking_sessions.begin() as session:
         assert await team_rankings.ingest_match(session, "12345", details, Circuit.VCT) is True
@@ -461,6 +477,39 @@ async def test_team_rankings_cron_rebuilds_a_ledger_left_stale_by_a_crash(rankin
         assert [(row.team_a_id, row.team_b_id, row.winner_team_id) for row in h2h_matches] == [("3", "2", "2")]
         assert [row.winner_team_id for row in sorted(h2h_maps, key=lambda row: row.map_index)] == ["2", "2", "2"]
 
+    # A correction to the date alone leaves the counts, winners, and participants alone;
+    # only the stored dates catch it, and the rebuild moves the ledger rows with it.
+    async with ranking_sessions.begin() as session:
+        moved = await session.get(MatchRecord, "12345")
+        moved.played_on = date(2025, 10, 3)
+    async with ranking_sessions() as session:
+        assert await ranking_store.needs_rebuild(session) is True
+
+    await team_rankings_cron({"redis": redis})
+
+    fetch.assert_not_awaited()
+    async with ranking_sessions() as session:
+        assert set((await session.execute(select(RankingResult.played_on))).scalars()) == {date(2025, 10, 3)}
+        assert await ranking_store.needs_rebuild(session) is False
+
+    # An event assigned no circuit is looked up in the tier listings again once its
+    # check has aged out; a listing that now carries it fixes the circuit and rebuilds.
+    async with ranking_sessions.begin() as session:
+        other = await session.get(EventRecord, "10")
+        other.circuit = Circuit.OTHER
+        other.circuit_checked_at = 0
+    monkeypatch.setattr("app.cron.team_rankings.tier_event_circuits", AsyncMock(return_value={"10": Circuit.VCT}))
+
+    await team_rankings_cron({"redis": redis})
+
+    fetch.assert_not_awaited()
+    async with ranking_sessions() as session:
+        event = await session.get(EventRecord, "10")
+        assert event.circuit == Circuit.VCT
+        assert event.circuit_checked_at is not None and event.circuit_checked_at > 0
+        circuits = list((await session.execute(select(TeamCircuit))).scalars())
+        assert {(row.team_id, row.circuit) for row in circuits} == {("2", Circuit.VCT), ("3", Circuit.VCT)}
+
 
 def test_rankings_api_serves_lists_profiles_and_predictions(monkeypatch, ranking_sessions, http_response):
     monkeypatch.setattr(team_rankings, "ranking_date", lambda: date(2025, 10, 2))
@@ -475,6 +524,13 @@ def test_rankings_api_serves_lists_profiles_and_predictions(monkeypatch, ranking
             await team_rankings.rebuild_ratings(session)
 
     asyncio.run(seed())
+
+    async def seed_stale_circuit():
+        # Team B last played Game Changers well outside the 180-day window; that is history.
+        async with ranking_sessions.begin() as session:
+            session.add(TeamCircuit(team_id="2", circuit=Circuit.GC, matches=4, last_played_on=date(2025, 3, 1)))
+
+    asyncio.run(seed_stale_circuit())
 
     app = FastAPI()
     app.include_router(router, prefix="/api/v2")
@@ -503,8 +559,11 @@ def test_rankings_api_serves_lists_profiles_and_predictions(monkeypatch, ranking
     )
     assert second.matches.wins == 0
 
-    # The circuit filter narrows the list; pagination slices it.
+    # The circuit filter narrows the list; pagination slices it. Team B's stale Game
+    # Changers membership only shows when inactive teams are requested.
     assert client.get("/api/v2/rankings/", params={"circuit": "gc"}).json()["total"] == 0
+    stale_circuit = client.get("/api/v2/rankings/", params={"circuit": "gc", "include_inactive": True}).json()
+    assert (stale_circuit["total"], stale_circuit["teams"][0]["team"]["id"]) == (1, "2")
     all_circuits = client.get(
         "/api/v2/rankings/", params={"circuit": "all", "min_matches": 0, "include_inactive": True}
     )
