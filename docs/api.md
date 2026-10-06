@@ -46,6 +46,8 @@ different sort is requested.
 | GET | `/api/v2/rankings/teams/{id}` | Team Elo profile, form, and recent results |
 | GET | `/api/v2/rankings/predict?team_a={id}&team_b={id}` | Match and map win probabilities plus head-to-head history |
 
+`/api/v2/rankings/predict` calculates match and map win probabilities and head-to-head history. When `PREDICTION_SERVICE_URL` is configured (HTTP URL or Unix socket `unix:///path/to/socket.sock`), the series win probability is queried from the external ML prediction service with automatic fallback to Elo when unconfigured or unreachable.
+
 The list accepts `circuit` (`vct`, `vcl`, `t3`, `gc`, `collegiate`,
 `offseason`, `other`), `min_matches` (default 5), `include_inactive`, `sort`
 (`elo`, `map_elo`, `matches`, `win_rate`), `order` (`asc`, `desc`), `limit`,
