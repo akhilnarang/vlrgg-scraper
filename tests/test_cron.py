@@ -218,6 +218,158 @@ async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeyp
     assert mark_delivered.await_count == 1
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("error", "listed"),
+    [
+        pytest.param(ValueError("bad markup"), set(), id="parser-error"),
+        pytest.param(ScrapingError(upstream_status=429), set(), id="rate-limited"),
+        pytest.param(ScrapingError(upstream_status=502), {"123"}, id="listed-live"),
+        pytest.param(ScrapingError(upstream_status=502), None, id="listing-unavailable"),
+    ],
+)
+async def test_live_push_cron_only_ends_on_unlisted_vlr_fetch_failures(monkeypatch, error, listed):
+    """A parser error, a rate limit, a fetch failure while VLR lists the match live, or no listing never ends it."""
+    from app.core import connections
+    from app.services import push
+
+    class Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def commit(self):
+            pass
+
+    class Store:
+        def __init__(self, session):
+            pass
+
+        async def list_match_ids(self):
+            return ["123"]
+
+    async def fetch_detail(client, match_id):
+        raise error
+
+    monkeypatch.setattr(live_push.settings, "ENABLE_LIVE_PUSH", True)
+    monkeypatch.setattr(live_push.settings, "GOOGLE_APPLICATION_CREDENTIALS", None)
+    monkeypatch.setattr(connections, "subscription_sessions", Session)
+    monkeypatch.setattr(live_push, "SubscriptionStore", Store)
+    monkeypatch.setattr(push, "video_score", AsyncMock(return_value=None))
+    monkeypatch.setattr(live_push, "_match_left_to_video", AsyncMock(return_value=None))
+    monkeypatch.setattr(live_push, "_listed_live_ids", AsyncMock(return_value=listed))
+    monkeypatch.setattr(live_push, "_fetch_detail", fetch_detail)
+    monkeypatch.setattr(live_push, "_cache_details", AsyncMock())
+    monkeypatch.setattr(live_push, "_store_teams", AsyncMock())
+    end = AsyncMock()
+    monkeypatch.setattr(live_push, "_end_unavailable_match", end)
+    redis = AsyncMock()
+
+    for _ in range(constants.PUSH_FETCH_FAILURE_LIMIT + 1):
+        await live_push.live_push_cron({"redis": redis})
+
+    end.assert_not_awaited()
+    redis.incr.assert_not_awaited()
+    # The non-consecutive failure streaks the match may have had are cleared.
+    redis.delete.assert_awaited_with(constants.PUSH_FETCH_FAILURES_KEY.format("123"))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("page_gone", [True, False], ids=["page-gone", "completed-scoreless"])
+async def test_live_push_cron_drops_an_unstarted_match_without_a_final_push(monkeypatch, page_gone):
+    """A tracked match whose state has no play must not announce a fake "FINAL 0-0"."""
+    from app.core import connections
+    from app.schemas.matches import CompactState, PushTeam
+    from app.services import push
+
+    events = []
+
+    class Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def commit(self):
+            events.append("commit")
+
+    unstarted = CompactState(
+        match_id="123",
+        observed_at=int(time.time()),
+        terminal=False,
+        teams=[PushTeam(id="1", name="Alpha", score=0), PushTeam(id="2", name="Beta", score=0)],
+    )
+    deleted = []
+
+    class Store:
+        def __init__(self, session):
+            pass
+
+        async def list_match_ids(self):
+            return ["123"]
+
+        async def get_match(self, match_id):
+            return SimpleNamespace(channel_id="channel-1", last_state_json=unstarted.semantic())
+
+        async def live_android_tokens(self, routing):
+            return ["fcm-token:APA91b"]
+
+        async def delete_match(self, match_id):
+            deleted.append(match_id)
+
+    completed = _live_detail("completed", (0, 0))
+    completed.data = []
+
+    async def fetch_detail(client, match_id):
+        if page_gone:
+            raise ScrapingError(upstream_status=404)
+        return completed
+
+    ends = []
+    channels = []
+
+    async def publish(channel_id, state, terminal, *, immediate_dismissal):
+        events.append("publish")
+        ends.append((channel_id, state, terminal, immediate_dismissal))
+
+    async def delete_channel(channel_id):
+        events.append("delete_channel")
+        channels.append(channel_id)
+
+    apns = SimpleNamespace(publish=publish, delete_channel=delete_channel)
+
+    monkeypatch.setattr(live_push.settings, "ENABLE_LIVE_PUSH", True)
+    monkeypatch.setattr(live_push.settings, "GOOGLE_APPLICATION_CREDENTIALS", "configured")
+    monkeypatch.setattr(connections, "subscription_sessions", Session)
+    monkeypatch.setattr(connections, "apns_client", apns)
+    monkeypatch.setattr(live_push, "SubscriptionStore", Store)
+    monkeypatch.setattr(push, "video_score", AsyncMock(return_value=None))
+    monkeypatch.setattr(live_push, "_match_left_to_video", AsyncMock(return_value=None))
+    monkeypatch.setattr(live_push, "_listed_live_ids", AsyncMock(return_value=set()))
+    monkeypatch.setattr(live_push, "_fetch_detail", fetch_detail)
+    monkeypatch.setattr(live_push, "_cache_details", AsyncMock())
+    monkeypatch.setattr(live_push, "_store_teams", AsyncMock())
+    monkeypatch.setattr(live_push.fcm, "get_app", lambda: object())
+    publish_direct = AsyncMock()
+    monkeypatch.setattr(live_push.fcm, "publish_direct", publish_direct)
+    redis = AsyncMock()
+
+    await live_push.live_push_cron({"redis": redis})
+
+    publish_direct.assert_not_awaited()
+    assert [(channel, terminal, immediate) for channel, _, terminal, immediate in ends] == [("channel-1", True, True)]
+    state = ends[0][1]
+    assert state.terminal and state.current_map is None
+    assert [team.score for team in state.teams] == [0, 0]
+    assert channels == ["channel-1"]
+    assert deleted == ["123"]
+    # The session's write is committed before the APNs end and channel deletion.
+    assert events.index("commit") < events.index("publish") < events.index("delete_channel")
+
+
 def test_video_scores_require_one_to_one_team_identity():
     """One broadcast entry must not stand in for both VLR teams; name/tag evidence must pair one-to-one."""
     from app.schemas.matches import Team, VideoScore
@@ -455,6 +607,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             httpx2.ConnectTimeout("timed out"),
             ScrapingError(upstream_status=503),
             ScrapingError(upstream_status=500),
+            ScrapingError(upstream_status=500),
         ],
         "456": [ScrapingError(upstream_status=404)],
     }
@@ -465,26 +618,50 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             raise outcome
         return outcome
 
-    monkeypatch.setattr(live_push.matches, "get_upcoming_matches", AsyncMock(side_effect=[[listed]] * 4 + [[]] * 4))
+    monkeypatch.setattr(live_push.matches, "get_upcoming_matches", AsyncMock(side_effect=[[listed]] * 4 + [[]] * 5))
     match_by_id_mock = AsyncMock(side_effect=fetch)
     monkeypatch.setattr(live_push.matches, "match_by_id", match_by_id_mock)
     monkeypatch.setattr(live_push.settings, "ENABLE_LIVE_PUSH", True)
     monkeypatch.setattr(live_push.settings, "GOOGLE_APPLICATION_CREDENTIALS", "configured")
 
+    created_sessions = []
+
+    class TrackingSessions:
+        """Session factory the app opens, recording every session it hands out."""
+
+        def __call__(self):
+            session = sessions()
+            created_sessions.append(session)
+            return session
+
+        def begin(self):
+            return sessions.begin()
+
+    def session_in_transaction() -> bool:
+        """Whether a database session the app opened is still holding a transaction."""
+        return any(session.in_transaction() for session in created_sessions)
+
     requests = []
     started_before_send = []
     blocked_during_channel_create = []
+    blocked_during_end = []
+    in_transaction_during_apns = []
+
+    def write_lock_held() -> bool:
+        """Whether another connection holds the database's write lock right now."""
+        try:
+            with closing(sqlite3.connect(tmp_path / "db.sqlite3", timeout=0.1, isolation_level=None)) as db:
+                db.execute("BEGIN IMMEDIATE")
+                db.rollback()
+            return False
+        except sqlite3.OperationalError:
+            return True
 
     async def handler(request):
         requests.append(request)
+        in_transaction_during_apns.append(session_in_transaction())
         if request.method == "POST" and request.url.path.endswith("/channels"):
-            try:
-                with closing(sqlite3.connect(tmp_path / "db.sqlite3", timeout=0.1, isolation_level=None)) as db:
-                    db.execute("BEGIN IMMEDIATE")
-                    db.rollback()
-                blocked_during_channel_create.append(False)
-            except sqlite3.OperationalError:
-                blocked_during_channel_create.append(True)
+            blocked_during_channel_create.append(write_lock_held())
             return httpx2.Response(201, headers={"apns-channel-id": "channel-123"})
         if "/3/device/" in request.url.path:
             match_id = json.loads(request.content)["aps"]["attributes"]["match_id"]
@@ -496,6 +673,8 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
                     )
                 )
             started_before_send.append(started is not None)
+        elif request.method == "DELETE" or "/broadcasts/" in request.url.path:
+            blocked_during_end.append(write_lock_held())
         return httpx2.Response(200)
 
     credentials = apns_service.APNsCredentials(
@@ -507,7 +686,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
     )
     apns = apns_service.APNsClient(credentials, transport=httpx2.MockTransport(handler))
     monkeypatch.setattr(apns, "_jwt", lambda: "provider-token")
-    monkeypatch.setattr(connections, "subscription_sessions", sessions)
+    monkeypatch.setattr(connections, "subscription_sessions", TrackingSessions())
     monkeypatch.setattr(connections, "apns_client", apns)
     firebase_app = object()
     monkeypatch.setattr(live_push.fcm, "get_app", lambda: firebase_app)
@@ -610,27 +789,36 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         await live_push.live_push_cron({"redis": redis})
         assert len(fcm_calls) == 5
 
-        for failures in (1, 1, 2):
+        for failures in (1, None, 1):
             await live_push.live_push_cron({"redis": redis})
             assert await stored_match_ids() == ["123"]
-            assert ticks["vlrgg:push:fetch_failures:123"] == failures
+            assert ticks.get("vlrgg:push:fetch_failures:123") == failures
             assert "123" in json.loads(videos[constants.PUSH_DETAILS_KEY])
+        await live_push.live_push_cron({"redis": redis})
+        assert await stored_match_ids() == ["123"]
+        assert ticks["vlrgg:push:fetch_failures:123"] == 2
         await live_push.live_push_cron({"redis": redis})
         assert await stored_match_ids() == []
         assert not [key for key in ticks if key.startswith("vlrgg:push:fetch_failures:")]
-        assert match_by_id_mock.await_count == 8
+        assert match_by_id_mock.await_count == 9
         end_payloads = [
             json.loads(request.content)["aps"]
             for request in requests
             if request.url.path.endswith("/broadcasts/apps/com.example.app")
         ]
         assert [aps["event"] for aps in end_payloads] == ["update", "end"]
+        assert "dismissal-date" not in end_payloads[0]
+        assert end_payloads[1]["dismissal-date"] == end_payloads[1]["timestamp"] + constants.APNS_DISMISSAL_SECONDS
         end_teams = end_payloads[-1]["content-state"]["teams"]
         assert [(team["tag"], team["score"]) for team in end_teams] == [("ALP", 1), ("BET", 0)]
         assert [team["tag"] for team in json.loads(fcm_calls[5][0].data["state"])["teams"]] == ["ALP", "BET"]
         assert any(request.method == "DELETE" for request in requests)
         assert len(fcm_calls) == 6
         assert json.loads(fcm_calls[5][0].data["state"])["terminal"] is True
+        # The APNs end broadcast and channel deletion must not run while the cron holds the write lock.
+        assert blocked_during_end and not any(blocked_during_end)
+        # No APNs request may start while the app still has a database transaction open.
+        assert in_transaction_during_apns and not any(in_transaction_during_apns)
 
         from app.api.v1.endpoints.live_updates import router
 
@@ -683,7 +871,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             {"map_number": 2, "winners": []},
             {"map_number": 3, "winners": []},
         ]
-        assert match_by_id_mock.await_count == 8
+        assert match_by_id_mock.await_count == 9
 
         from app import schemas
         from app.cron import jobs

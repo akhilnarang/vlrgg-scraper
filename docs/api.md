@@ -185,10 +185,13 @@ registration token; there is no topic fanout and no topic fallback. The legacy
 `match-`, `event-`, and `team-` topics carry only the "match starting soon" alert, because
 released app versions show every message on those as a notification; those installs keep
 getting just that alert. A matching iOS favorite creates one APNs broadcast
-channel and one push-to-start request per client. Final state ends and deletes the
-channel. If VLR returns 404 for a tracked match, or its page fails to load on three
-runs in a row (DNS failure, refused connection, timeout, or 5xx), it ends with the
-last score sent to iOS and to each Android follower's token.
+channel and one push-to-start request per client. A final state ends the Live
+Activity, which the system dismisses shortly after, and deletes the channel. A
+tracked match is ended only by VLR fetch failures while VLR no longer lists it as
+live: a 404, or a 5xx on three consecutive runs. Parser errors never end a match,
+and a stored state with no play is dropped without a broadcast instead of
+announced as "FINAL 0-0". The end carries the last score sent to iOS and to each
+Android follower's token.
 Provider errors are logged and skipped; there is no delivery history or retry state
 machine.
 

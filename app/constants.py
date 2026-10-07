@@ -303,3 +303,6 @@ MAX_TOKEN_LENGTH = 4096
 ACTIVITY_ATTRIBUTES_TYPE = "MatchActivityAttributes"
 APNS_START_EXPIRATION = 600  # seconds APNs keeps a push-to-start for a device it cannot reach
 APNS_STORE_LATEST_BROADCAST = 1  # channel message-storage-policy: keep the latest update for offline devices
+# Seconds an ended Live Activity remains on the Lock Screen; APNs' default of four hours would
+# leave a stale final card visible long after the match, beside any later live card.
+APNS_DISMISSAL_SECONDS = 300

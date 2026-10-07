@@ -240,15 +240,33 @@ class APNsClient:
         )
         self._check(response, (200,))
 
-    async def publish(self, channel: str, state: CompactState, terminal: bool) -> None:
+    async def publish(
+        self,
+        channel: str,
+        state: CompactState,
+        terminal: bool,
+        *,
+        immediate_dismissal: bool = False,
+    ) -> None:
         """Broadcast a Live Activity update or end event.
 
         :param channel: Broadcast channel identifier.
         :param state: Compact match state.
         :param terminal: Whether to end the activity.
+        :param immediate_dismissal: Whether an ended activity is dismissed now instead of after the usual delay.
         :return: None.
         :raises APNsError: If APNs rejects the broadcast.
         """
+        aps = {
+            "timestamp": state.observed_at,
+            "event": "end" if terminal else "update",
+            "content-state": state.model_dump(mode="json"),
+        }
+        if terminal:
+            # Without a dismissal date an ended activity stays on the Lock Screen for up to four
+            # hours, long enough to sit beside a new activity if the match is registered again.
+            delay = 0 if immediate_dismissal else constants.APNS_DISMISSAL_SECONDS
+            aps["dismissal-date"] = state.observed_at + delay
         response = await self.client.post(
             f"{self.send_host}/4/broadcasts/apps/{self.credentials.bundle_id}",
             headers=self._headers(
@@ -259,13 +277,7 @@ class APNsClient:
                     "apns-expiration": "0",
                 }
             ),
-            json={
-                "aps": {
-                    "timestamp": state.observed_at,
-                    "event": "end" if terminal else "update",
-                    "content-state": state.model_dump(mode="json"),
-                }
-            },
+            json={"aps": aps},
         )
         self._check(response, (200,))
 

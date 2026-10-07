@@ -51,7 +51,8 @@ async def live_push_cron(ctx: dict) -> None:
     left_to_video = await _match_left_to_video(client, video)
     live_ids = await _listed_live_ids(client)
     async with sessions() as session:
-        match_ids = sorted((live_ids | set(await SubscriptionStore(session).list_match_ids())) - {left_to_video})
+        stored = set(await SubscriptionStore(session).list_match_ids())
+    match_ids = sorted(((live_ids or set()) | stored) - {left_to_video})
     details = await asyncio.gather(*(_fetch_detail(client, match_id) for match_id in match_ids), return_exceptions=True)
     video = await push.video_score(client)  # the tracker may have written a newer score during the fetches
     fcm_app = fcm.get_app() if settings.GOOGLE_APPLICATION_CREDENTIALS else None
@@ -66,14 +67,36 @@ async def live_push_cron(ctx: dict) -> None:
             async with sessions() as session:
                 store = SubscriptionStore(session)
                 if isinstance(detail, BaseException):
-                    gone = isinstance(detail, ScrapingError) and detail.upstream_status == HTTPStatus.NOT_FOUND
-                    # An unreachable VLR says nothing about the match, so it never counts toward ending it.
-                    if isinstance(detail, httpx2.TransportError) or not (
-                        gone or await _fetch_failure_limit_reached(client, failures_key)
-                    ):
-                        raise detail
-                    logger.warning("ending match %s: VLR page unavailable (%r)", match_id, detail)
-                    await _end_unavailable_match(store, session, fcm_app, match_id)
+                    if not isinstance(detail, ScrapingError):
+                        # A parser bug or an unreachable VLR says nothing about the match, so neither
+                        # counts toward ending it; only VLR's own fetch failures do.
+                        if isinstance(detail, httpx2.TransportError):
+                            logger.warning("could not read match %s: VLR unreachable", match_id, exc_info=detail)
+                        else:
+                            logger.exception("could not read match %s", match_id, exc_info=detail)
+                    elif live_ids is None:
+                        # Without a listing, a missing live ID says nothing about whether the match is gone.
+                        logger.warning(
+                            "could not read match %s while the live listing is unavailable", match_id, exc_info=detail
+                        )
+                    elif match_id in live_ids:
+                        # VLR's listing still shows the match as live, so a failed detail fetch is a hiccup.
+                        logger.warning("could not read match %s while it is listed live", match_id, exc_info=detail)
+                    else:
+                        status = detail.upstream_status
+                        if status == HTTPStatus.NOT_FOUND or (
+                            status >= HTTPStatus.INTERNAL_SERVER_ERROR
+                            and await _fetch_failure_limit_reached(client, failures_key)
+                        ):
+                            logger.warning("ending match %s: VLR page unavailable (%r)", match_id, detail)
+                            await _end_unavailable_match(store, session, fcm_app, match_id)
+                        elif status >= HTTPStatus.INTERNAL_SERVER_ERROR:
+                            # The failure was counted; keep the streak and retry on the next run.
+                            raise detail
+                        else:
+                            # A rate limit or a rejection says VLR is up, so it never counts toward
+                            # ending the match; the fetch may succeed on the next run.
+                            logger.warning("could not read match %s: VLR returned %s", match_id, status)
                 else:
                     scores = video_match[2] if video_match is not None and video_match[0] == match_id else None
                     if video is not None and scores is not None:
@@ -87,11 +110,12 @@ async def live_push_cron(ctx: dict) -> None:
                         fcm_app,
                         match_id,
                         detail,
-                        listed_live=match_id in live_ids,
+                        listed_live=live_ids is not None and match_id in live_ids,
                         # Apply video pause only to the resolved match; game numbers are not unique across matches.
                         video=video if scores is not None else None,
                     )
                 await session.commit()
+            # The match was read, ended, or the failure didn't count, so consecutive failures restart.
             await client.delete(failures_key)
             if delivered and represented and video is not None:
                 await _mark_delivered(client, match_id, video)
@@ -278,21 +302,20 @@ async def _match_left_to_video(client: Redis, video: VideoScore | None) -> str |
     return delivered.match_id if delivered.video.same_score(video) else None
 
 
-async def _listed_live_ids(client: Redis) -> set[str]:
+async def _listed_live_ids(client: Redis) -> set[str] | None:
     """Return the match IDs the VLR listing shows as live, plus a running test match.
 
     The listing is fetched from VLR only while the cached match list (refreshed every five minutes) has a match
     that is live or starts within ``PUSH_LISTING_LEAD``, so idle minutes cost no VLR request.
 
     :param client: Redis client.
-    :return: Live match IDs; empty when the listing cannot be fetched or no match is due.
+    :return: Live match IDs, or None when the listing cannot be fetched or parsed.
     """
-    listed = []
     try:
-        if await _match_due(client):
-            listed = await matches.get_upcoming_matches(redis_client=client)
+        listed = await matches.get_upcoming_matches(redis_client=client) if await _match_due(client) else []
     except Exception:
         logger.warning("could not list live matches", exc_info=True)
+        return None
     live_ids = {match.id for match in listed if is_live(match.status)}
     if await client.exists(constants.TEST_TICK_KEY):
         live_ids.add(constants.TEST_MATCH_ID)
@@ -361,9 +384,16 @@ async def _push_match(
     await session.commit()  # finish the token read before the provider send
 
     if state.terminal:
-        sent = await _send_fcm(tokens, fcm_app, state)
+        unstarted = _unstarted(state)
+        if unstarted:
+            # A cancelled or walkover match has no play to report, so a broadcast would be a fake "FINAL 0-0".
+            logger.warning("ending match %s without a final push: its state has no play", match_id)
+            sent = True
+        else:
+            sent = await _send_fcm(tokens, fcm_app, state)
         if row is not None and row.channel_id:
-            await _end_apns(row.channel_id, state)
+            # A card for a match with no play is dismissed now instead of after the usual delay.
+            await _end_apns(row.channel_id, state, immediate_dismissal=unstarted)
         await store.delete_match(match_id)
         return sent
 
@@ -387,6 +417,15 @@ async def _fetch_failure_limit_reached(client: Redis, failures_key: str) -> bool
     return failures >= constants.PUSH_FETCH_FAILURE_LIMIT
 
 
+def _unstarted(state: CompactState) -> bool:
+    """Check whether a compact state shows no play at all.
+
+    :param state: Compact score state.
+    :return: True when no map is current or won and the series is scoreless.
+    """
+    return state.current_map is None and not any(state.map_winners) and all(not team.score for team in state.teams)
+
+
 async def _end_unavailable_match(
     store: SubscriptionStore, session: AsyncSession, fcm_app: App | None, match_id: str
 ) -> None:
@@ -405,6 +444,16 @@ async def _end_unavailable_match(
     # Only matches with an APNs channel have a stored score; Android-only rows are just removed.
     if row.last_state_json is not None:
         state = push.final_from_last_sent(row.last_state_json)
+        if _unstarted(state):
+            # Terminal or not, a scoreless state would announce a fake "FINAL 0-0" for a match that never played.
+            logger.warning("dropping match %s without a final push: its last state has no play", match_id)
+            channel_id = row.channel_id
+            await store.delete_match(match_id)
+            await session.commit()  # release the SQLite write lock before the APNs call
+            if channel_id:
+                # End the activity now, so the scoreless pre-match card does not linger on the screen.
+                await _end_apns(channel_id, state, immediate_dismissal=True)
+            return
         # Without the match page, event and player IDs are unknown; the stored teams still carry theirs.
         team_ids = [team.id for team in state.teams if team.id]
         routing = Routing(match_id, None, team_ids, [])
@@ -451,18 +500,19 @@ async def _send_fcm(tokens: list[str], fcm_app: App | None, state: CompactState,
     return True
 
 
-async def _end_apns(channel_id: str, state: CompactState) -> None:
+async def _end_apns(channel_id: str, state: CompactState, *, immediate_dismissal: bool = False) -> None:
     """Send the final state to the APNs channel and delete it, logging any failure.
 
     :param channel_id: APNs broadcast channel ID.
     :param state: Final compact score state.
+    :param immediate_dismissal: Whether to dismiss the ended activity now instead of after the usual delay.
     :return: None.
     """
     apns = connections.apns_client
     if apns is None:
         return
     try:
-        await apns.publish(channel_id, state, terminal=True)
+        await apns.publish(channel_id, state, terminal=True, immediate_dismissal=immediate_dismissal)
         await apns.delete_channel(channel_id)
     except Exception:
         logger.warning("APNs final update failed for match %s", state.match_id, exc_info=True)
@@ -488,6 +538,7 @@ async def _push_apns(
     :raises SQLAlchemyError: If a database operation fails.
     """
     starts = await store.pending_starts(routing)
+    await session.commit()  # finish the start query before the provider calls
     channel_id = row.channel_id if row is not None else None
     last_state = row.last_state_json if row is not None else None
     if starts and channel_id is None:
@@ -499,12 +550,15 @@ async def _push_apns(
         # The start payload carries the current state, so it counts as sent.
         last_state = state.semantic()
         await store.save_match(state.match_id, channel_id, last_state)
+        await session.commit()  # release the SQLite write lock before the provider calls
     if channel_id is None:
         return True
 
     for client_id, token in starts:
         await _start_activity(store, session, apns, client_id, token, channel_id, state)
 
+    # A start that was already recorded leaves its read transaction open, and the broadcast must not hold one.
+    await session.commit()
     if state.semantic() != last_state:
         try:
             await apns.publish(channel_id, state, terminal=False)
