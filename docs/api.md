@@ -44,9 +44,37 @@ different sort is requested.
 |--------|----------|-------------|
 | GET | `/api/v2/rankings/` | Ranked team list |
 | GET | `/api/v2/rankings/teams/{id}` | Team Elo profile, form, and recent results |
-| GET | `/api/v2/rankings/predict?team_a={id}&team_b={id}` | Match and map win probabilities plus head-to-head history |
+| GET | `/api/v2/rankings/predict?team_a={id}&team_b={id}` | Match and map win probabilities with their sources and warnings, plus head-to-head history |
 
-`/api/v2/rankings/predict` calculates match and map win probabilities and head-to-head history. When `PREDICTION_SERVICE_URL` is configured (HTTP URL or Unix socket `unix:///path/to/socket.sock`), the series win probability is queried from the external ML prediction service with automatic fallback to Elo when unconfigured or unreachable.
+`/api/v2/rankings/predict` calculates match and map win probabilities and
+head-to-head history. When `PREDICTION_SERVICE_URL` is configured (HTTP URL or
+Unix socket `unix:///path/to/socket.sock`), the series win probability is queried
+from the external ML prediction service with automatic fallback to Elo when
+unconfigured or unusable; the response says which.
+
+Both `match` and `map` carry complementary `team_a`/`team_b` probabilities, the
+`source` that produced them, and typed `warnings`:
+
+- `{"kind": "model", "model_version": ..., "history": {...}, "coverage": {...}}`
+  is the `match` source when the service answered. `history` is the model's
+  latest observation (`max_date`, `freshness_days`); `coverage` is the evidence
+  behind the prediction (`history_matches`, `history_max_played_on`,
+  `head_to_head_results`, `patch_scope`, and per-team `match_results`,
+  `map_results`, `map_name_results`, and `patch_map_results`, each with its
+  effective time-weighted count and `last_seen`).
+- `{"kind": "elo", "rating": "series"}` is the `match` source when stored Elo
+  produced the probability. `map` always uses
+  `{"kind": "elo", "rating": "map"}`, because the service predicts one named map
+  at a time.
+- `warnings` lists typed indicators. Model warnings appear as a bare code
+  (`unknown_team`, `low_coverage`, `unknown_patch`, `no_eligible_history`,
+  `no_team_map_history`, `limited_team_map_history`, `map_not_in_model`,
+  `unvalidated_map_fallback`) for clients to map to their own wording. An Elo
+  fallback adds `{"code": "elo_fallback", "reason": ...}`, where `reason` is one
+  of `model_not_configured`, `model_timeout`, `model_http_error`,
+  `model_unavailable`, or `model_invalid_response`. A code the scraper does not
+  recognize stays visible as `{"code": "unknown", "upstream_code": ...}`, with
+  the upstream `message` when one was supplied.
 
 The list accepts `circuit` (`vct`, `vcl`, `t3`, `gc`, `collegiate`,
 `offseason`, `other`), `min_matches` (default 5), `include_inactive`, `sort`
