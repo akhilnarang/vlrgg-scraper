@@ -31,6 +31,14 @@ async def test_match_details_follow_the_public_response_contract(http_response):
     member = result.data[0].members[0]
     assert (member.id, member.name, member.team) == ("2114", "Kinguyen", "Team A")
     assert (member.agents[0].title, member.rating, member.kills) == ("Raze", 1.42, 29)
+    # The halftime "Side swap" spacer column must not shift or break the round timeline.
+    assert [
+        (round_.round_number, round_.round_score, round_.winner, round_.side) for round_ in result.data[0].rounds
+    ] == [
+        (1, "0-1", "team2", "attack"),
+        (2, "1-1", "team1", "defense"),
+        (13, "2-1", "team1", ""),
+    ]
     assert [(stream.name, str(stream.url)) for stream in result.videos.streams] == [
         ("VCT", "https://www.youtube.com/@ValorantEsports/live"),
         ("VAL KR", "https://play.sooplive.co.kr/valorant"),

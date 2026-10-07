@@ -289,6 +289,9 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
         # TODO: find a better solution, only done to prevent warning at 201 (tuple[int, ...] vs tuple[int, int])
         prev: tuple[int, ...] = (0, 0)
         for round_data in map_data.find_all("div", class_="vlr-rounds-row-col")[1:]:
+            # VLR renders a halftime side-swap spacer between rounds 12 and 13 with no round number.
+            if (round_number := round_data.find("div", class_="rnd-num")) is None:
+                continue
             if round_current_score := round_data.get("title"):
                 round_score = clean_string(round_current_score)
                 side, round_winner = "", ""
@@ -318,7 +321,7 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
 
                 rounds.append(
                     {
-                        "round_number": clean_string(round_data.find("div", class_="rnd-num").get_text()),
+                        "round_number": clean_string(round_number.get_text()),
                         "round_score": round_score,
                         "winner": round_winner,
                         "side": side,
@@ -415,7 +418,7 @@ def parse_overview_scoreboard(data: Tag, team_name_mapping: dict[str, str]) -> l
                 "team": team_name_mapping.get(team_name_short, team_name_short),
                 "agents": [
                     {"title": agent["title"], "img": get_image_url(agent["src"])}
-                    for agent in player_data.select("div.ovw-agents img")
+                    for agent in player.select("div.ovw-agents img")
                 ],
                 "rating": overall_stat(player, "rating2"),
                 "acs": overall_stat(player, "acs"),
