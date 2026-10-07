@@ -128,6 +128,77 @@ def test_video_score_targets_its_original_game_number():
 
 
 @pytest.mark.asyncio
+async def test_apns_indexes_full_history_without_changing_android_state(monkeypatch, tmp_path):
+    """APNs adds indexed strings while existing iOS and Android clients retain their original state fields."""
+    import httpx2
+
+    from app.schemas.matches import Round
+    from app.services import apns as apns_service
+    from app.services import fcm, push
+
+    detail = _live_detail("live", (1, 0))
+    detail.total_maps = 5
+    detail.data[0].rounds = [
+        Round(round_number=number, round_score="", winner=winner, side="attack", win_type="Elimination")
+        for number, winner in [(1, "team1"), (2, "team2"), (3, "team1")]
+    ]
+    payloads = []
+
+    def handler(request):
+        payloads.append(json.loads(request.content)["aps"])
+        return httpx2.Response(200)
+
+    client = apns_service.APNsClient(
+        apns_service.APNsCredentials(
+            team_id="test", key_id="test", bundle_id="com.example.test", private_key_path=str(tmp_path / "unused.p8")
+        ),
+        transport=httpx2.MockTransport(handler),
+    )
+    monkeypatch.setattr(client, "_jwt", lambda: "provider-token")
+    async with client.client:
+        state = push.project_state("123", detail)
+        assert state is not None
+        await client.send_start("aabb", "channel-123", state)
+        message = fcm.build_direct_message("tok:123", state)
+        assert message.data is not None
+        android = json.loads(message.data["state"])
+        assert "team_0" not in android and "team_1" not in android
+        assert android["map_winners"] == ["1", None, None, None, None]
+        assert android["map_round_winners"] == [
+            {"map_number": 1, "winners": [0, 1, 0]},
+            *[{"map_number": number, "winners": []} for number in range(2, 6)],
+        ]
+
+        detail.teams.reverse()
+        state = push.project_state("123", detail)
+        assert state is not None
+        await client.publish("channel-123", state, terminal=False)
+
+        detail.data[0].rounds[1].winner = "unknown"
+        detail.teams[0].id = None
+        state = push.project_state("123", detail)
+        assert state is not None
+        await client.publish("channel-123", state, terminal=False)
+
+        await client.publish("channel-123", state, terminal=True)
+
+    initial, swapped, unknown, final = [item["content-state"] for item in payloads]
+    assert [item["event"] for item in payloads] == ["start", "update", "update", "end"]
+    assert {key: initial[key] for key in android} == android
+    assert (initial["team_0"], initial["team_1"]) == ("1", "2")
+    assert "map_winner_indexes" not in initial
+    assert initial["map_rounds"] == ["010", "", "", "", ""]
+    assert (swapped["team_0"], swapped["team_1"]) == ("2", "1")
+    assert [team["id"] for team in swapped["teams"]] == ["2", "1"]
+    assert swapped["map_winners"] == ["1", None, None, None, None]
+    assert swapped["map_rounds"] == ["101", "", "", "", ""]
+    assert (unknown["team_0"], unknown["team_1"]) == (None, "1")
+    assert unknown["map_round_winners"][0]["winners"] == [1, None, 1]
+    assert unknown["map_rounds"] == final["map_rounds"] == ["", "", "", "", ""]
+    assert unknown["current_map"]["scores"] == final["current_map"]["scores"] == [9, 13]
+
+
+@pytest.mark.asyncio
 async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeypatch):
     from app.core import connections
     from app.schemas.matches import VideoScore
@@ -683,6 +754,18 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             {"map_number": 2, "winners": []},
             {"map_number": 3, "winners": []},
         ]
+        assert "team_0" not in last_fcm_state and "team_1" not in last_fcm_state
+        synthetic_end = [
+            json.loads(request.content)["aps"]["content-state"]
+            for request in requests
+            if "/4/broadcasts/" in request.url.path
+        ][-1]
+        assert synthetic_end == {
+            **last_fcm_state,
+            "team_0": "test-alpha",
+            "team_1": "test-beta",
+            "map_rounds": ["01010101010", "", ""],
+        }
         assert match_by_id_mock.await_count == 8
 
         from app import schemas

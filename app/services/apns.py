@@ -107,6 +107,27 @@ def load_credentials() -> APNsCredentials | None:
     return credentials.model_copy(update={"private_key_path": str(key_path)})
 
 
+def _content_state(state: CompactState) -> dict:
+    """Encode a complete iOS snapshot with team-index round history.
+
+    :param state: Shared match state, with team IDs and round winner arrays.
+    :return: APNs content state with one round winner string per map slot.
+    """
+    slots = max(
+        state.total_maps, len(state.map_winners), max((item.map_number for item in state.map_round_winners), default=0)
+    )
+    round_winners = [""] * slots
+    for item in state.map_round_winners:
+        if all(winner is not None for winner in item.winners):
+            round_winners[item.map_number - 1] = "".join(str(winner) for winner in item.winners)
+    return {
+        **state.model_dump(mode="json"),
+        "team_0": state.teams[0].id,
+        "team_1": state.teams[1].id,
+        "map_rounds": round_winners,
+    }
+
+
 class APNsClient:
     """Send Live Activity starts and broadcast updates through APNs."""
 
@@ -232,7 +253,7 @@ class APNsClient:
                     "event": "start",
                     "attributes-type": constants.ACTIVITY_ATTRIBUTES_TYPE,
                     "attributes": {"match_id": state.match_id},
-                    "content-state": state.model_dump(mode="json"),
+                    "content-state": _content_state(state),
                     "input-push-channel": channel,
                     "alert": {"title": f"{names[0]} vs {names[1]}", "body": "Match is live"},
                 }
@@ -263,7 +284,7 @@ class APNsClient:
                 "aps": {
                     "timestamp": state.observed_at,
                     "event": "end" if terminal else "update",
-                    "content-state": state.model_dump(mode="json"),
+                    "content-state": _content_state(state),
                 }
             },
         )
