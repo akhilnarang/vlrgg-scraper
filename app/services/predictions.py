@@ -2,6 +2,7 @@
 
 import logging
 import math
+import re
 from datetime import date
 from typing import Literal
 
@@ -73,17 +74,24 @@ class _ModelResponse(BaseModel):
         )
 
 
-async def predict_match(team_a_id: str, team_b_id: str, as_of: date) -> WinProbabilities | PredictionFallbackReason:
+async def predict_match(
+    team_a_id: str, team_b_id: str, as_of: date, patch: str | None = None
+) -> WinProbabilities | PredictionFallbackReason:
     """Request a model prediction or identify why the caller should use Elo.
 
     :param team_a_id: First team's ID.
     :param team_b_id: Second team's ID.
     :param as_of: Prediction date.
+    :param patch: Latest stored patch; only a major.minor patch is sent, since
+        the upstream rejects explicit nulls and malformed values.
     :return: Model probabilities or an explicit fallback reason.
     """
     url = settings.PREDICTION_SERVICE_URL
     if not url:
         return PredictionFallbackReason.MODEL_NOT_CONFIGURED
+    payload = {"task": "match_win", "as_of": as_of.isoformat(), "team_a_id": team_a_id, "team_b_id": team_b_id}
+    if patch is not None and re.fullmatch(r"\d+\.\d+", patch):
+        payload["patch"] = patch
     try:
         if url.startswith(("unix://", "/")) or url.endswith(".sock"):
             transport = httpx2.AsyncHTTPTransport(uds=url.removeprefix("unix://"))
@@ -92,10 +100,7 @@ async def predict_match(team_a_id: str, team_b_id: str, as_of: date) -> WinProba
             transport = None
             target = f"{url.rstrip('/')}/predict"
         async with httpx2.AsyncClient(transport=transport, timeout=2.0) as client:
-            response = await client.post(
-                target,
-                json={"task": "match_win", "as_of": as_of.isoformat(), "team_a_id": team_a_id, "team_b_id": team_b_id},
-            )
+            response = await client.post(target, json=payload)
             response.raise_for_status()
         return _ModelResponse.model_validate(response.json()).prediction(team_a_id, team_b_id)
     except httpx2.TimeoutException as error:

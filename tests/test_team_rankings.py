@@ -798,6 +798,23 @@ def test_rankings_api_serves_lists_profiles_and_predictions(monkeypatch, ranking
         "as_of": "2025-10-02",
         "team_a_id": "1",
         "team_b_id": "2",
+        "patch": "13.05",
+    }
+
+    # With no stored patch the key stays out entirely; the service rejects an explicit null.
+    async def clear_patches():
+        async with ranking_sessions.begin() as session:
+            for match_id in DETAIL_MATCH_IDS:
+                (await session.get(MatchRecord, match_id)).patch = None
+
+    asyncio.run(clear_patches())
+    unpatched = client.get("/api/v2/rankings/predict", params={"team_a": "1", "team_b": "2"})
+    assert unpatched.status_code == 200
+    assert post.call_args.kwargs["json"] == {
+        "task": "match_win",
+        "as_of": "2025-10-02",
+        "team_a_id": "1",
+        "team_b_id": "2",
     }
 
     # A malformed payload (a string probability) falls back to pure Elo instead of failing the request.

@@ -657,8 +657,9 @@ async def team_profile(session: AsyncSession, team_id: str) -> schemas.TeamRanki
 async def predict(session: AsyncSession, team_a_id: str, team_b_id: str) -> schemas.PredictResponse:
     """Predict a match and its maps, preferring the configured prediction service.
 
-    Map probability comes from the two teams' stored map Elo. Both estimates
-    expose their source, and model warnings remain visible to callers.
+    The latest stored match patch scopes the model's history. Map probability
+    comes from the two teams' stored map Elo. Both estimates expose their
+    source, and model warnings remain visible to callers.
 
     :param session: Caller-owned database session.
     :param team_a_id: First team's ID.
@@ -673,7 +674,9 @@ async def predict(session: AsyncSession, team_a_id: str, team_b_id: str) -> sche
     elos = await ranking_store.elos(session, [team_a_id, team_b_id])
     elo_a = elos.get(team_a_id) or _new_team_elo(team_a_id)
     elo_b = elos.get(team_b_id) or _new_team_elo(team_b_id)
-    model_prediction = await predictions.predict_match(team_a_id, team_b_id, as_of)
+    model_prediction = await predictions.predict_match(
+        team_a_id, team_b_id, as_of, patch=await ranking_store.latest_patch(session)
+    )
     if isinstance(model_prediction, PredictionFallbackReason):
         fallback_reason = model_prediction
         match_a = expected(elo_a.match_elo, elo_b.match_elo)

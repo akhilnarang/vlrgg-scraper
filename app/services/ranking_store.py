@@ -263,6 +263,20 @@ async def series_window_counts(session: AsyncSession, start: date, end: date) ->
     return dict(Counter(cast(str, team_id) for pair in rows for team_id in pair))
 
 
+async def latest_patch(session: AsyncSession) -> str | None:
+    """Read the patch of the most recently played match that carries one.
+
+    :param session: Caller-owned database session.
+    :return: Newest match's patch, or None when no stored match has one.
+    """
+    return await session.scalar(
+        select(MatchRecord.patch)
+        .where(MatchRecord.patch.is_not(None))
+        .order_by(MatchRecord.played_on.desc(), MatchRecord.id.desc())
+        .limit(1)
+    )
+
+
 async def replace_rankings(
     session: AsyncSession,
     results: Sequence[Mapping[str, object]],
