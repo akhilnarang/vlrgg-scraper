@@ -35,12 +35,14 @@ jobs:
       run: echo "INTERNAL_API_KEY=$(openssl rand -hex 16)" >> $GITHUB_ENV
 
     # Structural checks on windowed endpoints + exact snapshots on frozen ones.
-    # Upstream 5xx/429 becomes a skip (see tests/live/conftest.py), so a red run
-    # means the parser is broken, not that VLR had a bad night.
+    # Upstream 5xx/429 becomes a skip (see tests/live/conftest.py), and VLR
+    # sometimes answers 200 with degraded content, so failed checks are retried
+    # (pytest-rerunfailures) before the run goes red -- a red run means the
+    # parser is broken, not that VLR had a bad night.
     - name: Run live parser checks
       run: >
         uv run pytest -m "live_health or live_golden" tests/live tests/golden
-        -v --tb=short --junitxml=health.xml
+        -v --tb=short --reruns 2 --reruns-delay 5 --junitxml=health.xml
 
     # A job where everything skipped is the failure mode this suite was built to
     # end: green while testing nothing. Skips must not be able to mask the run.

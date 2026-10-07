@@ -33,6 +33,7 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "pytest-regressions",
+    "pytest-rerunfailures>=16.7",
     "ruff>=0.16.9",
     "ty>=0.0.84",
 ]
