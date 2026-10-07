@@ -6,6 +6,7 @@ from typing import Annotated, Any, Literal, Self
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.constants import ID_REGEX, RANKING_MIN_MATCHES, Circuit, RankingOrder, RankingSort, Region
+from app.schemas.predictions import WinProbabilities
 
 EntityId = Annotated[str, Field(pattern=ID_REGEX)]
 
@@ -144,13 +145,6 @@ class TeamRankingProfileResponse(BaseModel):
     circuits: list[TeamCircuitSummary]
     form: str
     recent: list[RecentMatchItem]
-
-
-class WinProbabilities(BaseModel):
-    """Complementary win probabilities for the two sides."""
-
-    team_a: float
-    team_b: float
 
 
 class TeamEloSummary(TeamSummary):

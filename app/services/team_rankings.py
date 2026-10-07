@@ -11,7 +11,6 @@ from datetime import date, datetime, timedelta
 from itertools import groupby
 from zoneinfo import ZoneInfo
 
-import httpx2
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,16 +26,18 @@ from app.constants import (
     RANKING_MIN_MATCHES,
     RANKING_WINDOW_DAYS,
     Circuit,
+    PredictionFallbackReason,
+    PredictionRating,
     RankingOrder,
     RankingScope,
     RankingSort,
     Region,
 )
-from app.core.config import settings
 from app.db.models import EventRecord, MapRecord, MatchRecord, Team, TeamCircuit, TeamElo
 from app.exceptions import NotFoundError
 from app.schemas.matches import TeamWithImage
-from app.services import ranking_store, scrape_store
+from app.schemas.predictions import EloFallbackWarning, EloPredictionSource
+from app.services import predictions, ranking_store, scrape_store
 from app.services.events import tier_event_circuits
 
 logger = logging.getLogger(__name__)
@@ -653,49 +654,11 @@ async def team_profile(session: AsyncSession, team_id: str) -> schemas.TeamRanki
     )
 
 
-async def _external_match_probability(team_a_id: str, team_b_id: str, as_of: date) -> float | None:
-    """Ask the configured prediction service for team A's series win probability.
-
-    The service predicts one named map at a time, so only the series
-    probability is taken from it; map probability stays Elo.
-
-    :param team_a_id: First team's ID.
-    :param team_b_id: Second team's ID.
-    :param as_of: Prediction date.
-    :return: Team A's win probability, or None when the service is unset or unusable.
-    """
-    url = settings.PREDICTION_SERVICE_URL
-    if not url:
-        return None
-    if url.startswith(("unix://", "/")) or url.endswith(".sock"):
-        transport = httpx2.AsyncHTTPTransport(uds=url.removeprefix("unix://"))
-        target = "http://localhost/predict"
-    else:
-        transport = None
-        target = f"{url.rstrip('/')}/predict"
-    try:
-        async with httpx2.AsyncClient(transport=transport, timeout=2.0) as client:
-            response = await client.post(
-                target,
-                json={"task": "match_win", "as_of": as_of.isoformat(), "team_a_id": team_a_id, "team_b_id": team_b_id},
-            )
-            response.raise_for_status()
-        probabilities = {row["team_id"]: row["probability"] for row in response.json()["team_probabilities"]}
-        probability = probabilities[team_a_id]
-    except httpx2.HTTPError, httpx2.InvalidURL, KeyError, TypeError, ValueError:
-        logger.warning("prediction service failed; falling back to Elo", exc_info=True)
-        return None
-    if isinstance(probability, bool) or not isinstance(probability, int | float) or not 0.0 <= probability <= 1.0:
-        logger.warning("prediction service returned an invalid probability; falling back to Elo")
-        return None
-    return float(probability)
-
-
 async def predict(session: AsyncSession, team_a_id: str, team_b_id: str) -> schemas.PredictResponse:
     """Predict a match and its maps, preferring the configured prediction service.
 
-    Map probability always comes from the two teams' stored map Elo, because
-    the service predicts one named map at a time.
+    Map probability comes from the two teams' stored map Elo. Both estimates
+    expose their source, and model warnings remain visible to callers.
 
     :param session: Caller-owned database session.
     :param team_a_id: First team's ID.
@@ -710,17 +673,31 @@ async def predict(session: AsyncSession, team_a_id: str, team_b_id: str) -> sche
     elos = await ranking_store.elos(session, [team_a_id, team_b_id])
     elo_a = elos.get(team_a_id) or _new_team_elo(team_a_id)
     elo_b = elos.get(team_b_id) or _new_team_elo(team_b_id)
-    match_a = await _external_match_probability(team_a_id, team_b_id, as_of)
-    if match_a is None:
+    model_prediction = await predictions.predict_match(team_a_id, team_b_id, as_of)
+    if isinstance(model_prediction, PredictionFallbackReason):
+        fallback_reason = model_prediction
         match_a = expected(elo_a.match_elo, elo_b.match_elo)
+        match_probabilities = schemas.WinProbabilities(
+            team_a=match_a,
+            team_b=1.0 - match_a,
+            source=EloPredictionSource(rating=PredictionRating.SERIES),
+            warnings=[EloFallbackWarning(reason=fallback_reason)],
+        )
+    else:
+        match_probabilities = model_prediction
     map_a = expected(elo_a.map_elo, elo_b.map_elo)
     match_rows, map_rows = await ranking_store.head_to_head_results(session, team_a_id, team_b_id)
     return schemas.PredictResponse(
         as_of=as_of,
         team_a=_elo_summary(teams[team_a_id], elo_a),
         team_b=_elo_summary(teams[team_b_id], elo_b),
-        match=schemas.WinProbabilities(team_a=match_a, team_b=1.0 - match_a),
-        map=schemas.WinProbabilities(team_a=map_a, team_b=1.0 - map_a),
+        match=match_probabilities,
+        map=schemas.WinProbabilities(
+            team_a=map_a,
+            team_b=1.0 - map_a,
+            source=EloPredictionSource(rating=PredictionRating.MAP),
+            warnings=[],
+        ),
         head_to_head=schemas.HeadToHeadSummary(
             matches=len(match_rows),
             team_a_wins=sum(row.winner_team_id == team_a_id for row in match_rows),

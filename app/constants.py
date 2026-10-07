@@ -207,6 +207,37 @@ class RankingOrder(StrEnum):
     DESC = "desc"
 
 
+class PredictionSourceKind(StrEnum):
+    MODEL = "model"
+    ELO = "elo"
+
+
+class PredictionRating(StrEnum):
+    SERIES = "series"
+    MAP = "map"
+
+
+class PredictionWarningCode(StrEnum):
+    UNKNOWN_TEAM = "unknown_team"
+    LOW_COVERAGE = "low_coverage"
+    UNKNOWN_PATCH = "unknown_patch"
+    NO_ELIGIBLE_HISTORY = "no_eligible_history"
+    NO_TEAM_MAP_HISTORY = "no_team_map_history"
+    LIMITED_TEAM_MAP_HISTORY = "limited_team_map_history"
+    MAP_NOT_IN_MODEL = "map_not_in_model"
+    UNVALIDATED_MAP_FALLBACK = "unvalidated_map_fallback"
+    ELO_FALLBACK = "elo_fallback"
+    UNKNOWN = "unknown"
+
+
+class PredictionFallbackReason(StrEnum):
+    MODEL_NOT_CONFIGURED = "model_not_configured"
+    MODEL_TIMEOUT = "model_timeout"
+    MODEL_UNAVAILABLE = "model_unavailable"
+    MODEL_HTTP_ERROR = "model_http_error"
+    MODEL_INVALID_RESPONSE = "model_invalid_response"
+
+
 ELO_BASE = 1500.0
 ELO_K = 48.0
 ELO_MAP_ALPHA = 0.3  # weight of a series' map-win share in the observed result

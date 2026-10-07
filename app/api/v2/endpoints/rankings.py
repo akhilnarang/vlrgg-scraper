@@ -23,7 +23,7 @@ async def predict_match(
     session: deps.DatabaseSessionDep,
     query: Annotated[schemas.PredictQuery, Query()],
 ) -> schemas.PredictResponse:
-    """Predict a match and its maps from both teams' Elo."""
+    """Predict a series with source and warnings, plus generic map Elo."""
     return await team_rankings.predict(session, query.team_a, query.team_b)
 
 

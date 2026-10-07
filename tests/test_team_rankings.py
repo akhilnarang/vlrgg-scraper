@@ -25,13 +25,59 @@ from app.db.migrations import upgrade_to_head
 from app.db.models import EventRecord, MapRecord, MatchRecord, RankingResult, Team, TeamCircuit, TeamElo
 from app.schemas.matches import MatchData
 from app.schemas.matches import Team as MapTeam
-from app.services import matches, ranking_store, team_rankings
+from app.services import matches, predictions, ranking_store, team_rankings
 from app.services.ranking_store import StoredMap, StoredMatch
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
 # The fixture is Team A 2-1 Team B with one played map (Lotus 13-10), played 2025-10-01.
 DETAIL_MATCH_IDS = [str(match_id) for match_id in range(12345, 12350)]
+
+
+def _model_prediction():
+    """Build the production match-win response supplied by the model service."""
+    return {
+        "task": "match_win",
+        "model_version": "vlr-prediction-v1-test",
+        "team_probabilities": [
+            {"team_id": "1", "probability": 0.75},
+            {"team_id": "2", "probability": 0.25},
+        ],
+        "history": {"max_date": "2025-10-01", "freshness_days": 1},
+        "coverage": {
+            "history_matches": 150,
+            "history_max_played_on": "2025-10-01",
+            "head_to_head_results": 2,
+            "patch_scope": "all",
+            "team_a": {
+                "match_results": 5,
+                "effective_match_results": 3.5,
+                "map_results": 12,
+                "effective_map_results": 9.5,
+                "map_name_results": 0,
+                "effective_map_name_results": 0.0,
+                "patch_map_results": 0,
+                "effective_patch_map_results": 0.0,
+                "last_seen": "2025-10-01",
+            },
+            "team_b": {
+                "match_results": 2,
+                "effective_match_results": 1.5,
+                "map_results": 5,
+                "effective_map_results": 3.5,
+                "map_name_results": 0,
+                "effective_map_name_results": 0.0,
+                "patch_map_results": 0,
+                "effective_patch_map_results": 0.0,
+                "last_seen": "2025-09-30",
+            },
+        },
+        "warnings": [
+            {"code": "low_coverage", "message": "Limited effective team history."},
+            {"code": "unknown_patch", "message": "No patch supplied."},
+            {"code": "future_warning", "message": "An upstream warning added after the scraper release."},
+        ],
+    }
 
 
 @pytest.fixture
@@ -615,6 +661,7 @@ async def test_team_rankings_cron_rebuilds_a_ledger_left_stale_by_a_crash(rankin
 
 def test_rankings_api_serves_lists_profiles_and_predictions(monkeypatch, ranking_sessions, http_response):
     monkeypatch.setattr(team_rankings, "ranking_date", lambda: date(2025, 10, 2))
+    monkeypatch.setattr(settings, "PREDICTION_SERVICE_URL", None)
 
     async def seed():
         details = await _details(http_response)
@@ -700,6 +747,10 @@ def test_rankings_api_serves_lists_profiles_and_predictions(monkeypatch, ranking
     predicted = prediction.json()
     assert predicted["match"]["team_a"] > 0.5 > predicted["match"]["team_b"]
     assert predicted["map"]["team_a"] > 0.5
+    assert predicted["match"]["source"] == {"kind": "elo", "rating": "series"}
+    assert predicted["match"]["warnings"] == [{"code": "elo_fallback", "reason": "model_not_configured"}]
+    assert predicted["map"]["source"] == {"kind": "elo", "rating": "map"}
+    assert predicted["map"]["warnings"] == []
     assert predicted["head_to_head"] == {
         "matches": 5,
         "team_a_wins": 5,
@@ -717,19 +768,30 @@ def test_rankings_api_serves_lists_profiles_and_predictions(monkeypatch, ranking
 
     # A configured prediction service supplies the series probability, called with its expected contract.
     monkeypatch.setattr(settings, "PREDICTION_SERVICE_URL", "http://predictions.test")
-    post = AsyncMock(
-        return_value=MagicMock(
-            json=lambda: {
-                "team_probabilities": [
-                    {"team_id": "1", "probability": 0.75},
-                    {"team_id": "2", "probability": 0.25},
-                ]
-            }
-        )
-    )
+    model_response = _model_prediction()
+    post = AsyncMock(return_value=MagicMock(json=lambda: model_response))
     monkeypatch.setattr(httpx2.AsyncClient, "post", post)
     external = client.get("/api/v2/rankings/predict", params={"team_a": "1", "team_b": "2"}).json()
-    assert external["match"] == {"team_a": 0.75, "team_b": 0.25}
+    assert external["match"] == {
+        "team_a": 0.75,
+        "team_b": 0.25,
+        "source": {
+            "kind": "model",
+            "model_version": model_response["model_version"],
+            "history": model_response["history"],
+            "coverage": model_response["coverage"],
+        },
+        "warnings": [
+            {"code": "low_coverage"},
+            {"code": "unknown_patch"},
+            {
+                "code": "unknown",
+                "upstream_code": "future_warning",
+                "message": model_response["warnings"][2]["message"],
+            },
+        ],
+    }
+    assert external["map"] == predicted["map"]
     assert post.call_args.args == ("http://predictions.test/predict",)
     assert post.call_args.kwargs["json"] == {
         "task": "match_win",
@@ -739,21 +801,52 @@ def test_rankings_api_serves_lists_profiles_and_predictions(monkeypatch, ranking
     }
 
     # A malformed payload (a string probability) falls back to pure Elo instead of failing the request.
-    post = AsyncMock(
-        return_value=MagicMock(
-            json=lambda: {
-                "team_probabilities": [
-                    {"team_id": "1", "probability": "0.75"},
-                    {"team_id": "2", "probability": 0.25},
-                ]
-            }
-        )
-    )
+    invalid_probability = _model_prediction()
+    invalid_probability["team_probabilities"][0]["probability"] = "0.75"
+    post = AsyncMock(return_value=MagicMock(json=lambda: invalid_probability))
     monkeypatch.setattr(httpx2.AsyncClient, "post", post)
     expected_a = team_rankings.expected(first.elo, second.elo)
     fallback = client.get("/api/v2/rankings/predict", params={"team_a": "1", "team_b": "2"}).json()
     assert fallback["match"]["team_a"] == pytest.approx(expected_a)
     assert fallback["match"]["team_b"] == pytest.approx(1.0 - expected_a)
+    assert fallback["match"]["source"] == {"kind": "elo", "rating": "series"}
+    assert fallback["match"]["warnings"] == [{"code": "elo_fallback", "reason": "model_invalid_response"}]
+
+    # A well-formed response whose probabilities contradict the requested pair or do not sum
+    # to one still falls back; structure validation is already covered above.
+    wrong_opponent = _model_prediction()
+    wrong_opponent["team_probabilities"][1]["team_id"] = "3"
+    unnormalized = _model_prediction()
+    unnormalized["team_probabilities"][1]["probability"] = 0.5
+    for invalid_response in (wrong_opponent, unnormalized):
+        post.return_value = MagicMock(json=MagicMock(return_value=invalid_response))
+        invalid = client.get("/api/v2/rankings/predict", params={"team_a": "1", "team_b": "2"})
+        assert invalid.status_code == 200
+        assert invalid.json()["match"] == fallback["match"]
+
+    # Distinct outage causes stay visible to callers while a usable Elo estimate remains available.
+    for error, reason in (
+        (httpx2.ReadTimeout("model took too long"), "model_timeout"),
+        (
+            httpx2.HTTPStatusError(
+                "model returned 503",
+                request=httpx2.Request("POST", "http://predictions.test/predict"),
+                response=httpx2.Response(503),
+            ),
+            "model_http_error",
+        ),
+        (httpx2.ConnectError("model socket unavailable"), "model_unavailable"),
+    ):
+        post.side_effect = error
+        unavailable = client.get("/api/v2/rankings/predict", params={"team_a": "1", "team_b": "2"})
+        assert unavailable.status_code == 200
+        assert unavailable.json()["match"] == {
+            "team_a": pytest.approx(expected_a),
+            "team_b": pytest.approx(1.0 - expected_a),
+            "source": {"kind": "elo", "rating": "series"},
+            "warnings": [{"code": "elo_fallback", "reason": reason}],
+        }
+        assert unavailable.json()["map"] == predicted["map"]
 
     # The 90-day activity cutoff needs include_inactive; the 180-day window caps the minimum count.
     monkeypatch.setattr(team_rankings, "ranking_date", lambda: date(2026, 1, 15))
@@ -863,25 +956,21 @@ def test_rankings_api_filters_and_ranks_by_region(monkeypatch, ranking_sessions)
 
 
 @pytest.mark.asyncio
-async def test_external_match_probability_uses_a_unix_socket_when_configured(monkeypatch):
+async def test_prediction_provider_uses_a_unix_socket_when_configured(monkeypatch):
     # A unix:// URL must reach the service over its socket rather than as a TCP host.
     monkeypatch.setattr(settings, "PREDICTION_SERVICE_URL", "unix:///tmp/mock.sock")
     transport = MagicMock(return_value=AsyncMock())
     monkeypatch.setattr(httpx2, "AsyncHTTPTransport", transport)
-    post = AsyncMock(
-        return_value=MagicMock(
-            json=lambda: {
-                "team_probabilities": [
-                    {"team_id": "1", "probability": 0.75},
-                    {"team_id": "2", "probability": 0.25},
-                ]
-            }
-        )
-    )
+    response = _model_prediction()
+    del response["warnings"]  # the service may omit warnings; that must not invalidate the prediction
+    post = AsyncMock(return_value=MagicMock(json=lambda: response))
     monkeypatch.setattr(httpx2.AsyncClient, "post", post)
 
-    probability = await team_rankings._external_match_probability("1", "2", date(2025, 10, 2))
+    probability = await predictions.predict_match("1", "2", date(2025, 10, 2))
 
-    assert probability == 0.75
+    assert isinstance(probability, schemas.WinProbabilities)
+    assert (probability.team_a, probability.team_b) == (0.75, 0.25)
+    assert probability.source.kind == "model"
+    assert probability.warnings == []
     transport.assert_called_once_with(uds="/tmp/mock.sock")
     assert post.call_args.args == ("http://localhost/predict",)
