@@ -12,7 +12,7 @@ from app.api import deps
 from app.cron import synthetic_match
 from app.exceptions import BadRequestError, ConflictError, NotFoundError, ScrapingError
 from app.schemas.matches import CompactState, Favorites, MatchWithDetails, TokenRegistration
-from app.services import matches, push
+from app.services import matches, push, video_rounds
 from app.services.subscription_store import SubscriptionStore
 from app.utils import is_live
 
@@ -99,6 +99,7 @@ async def _resolve_live_state(
     detail = await _fetch_match_detail(match_id, redis_client)
     if not is_live(detail.event.status):
         raise BadRequestError("Match is not live")
+    await video_rounds.apply_history(redis_client, match_id, detail)
     if (state := push.project_state(match_id, detail)) is None:
         raise BadRequestError("Match data is incomplete")
     return state, channel_id

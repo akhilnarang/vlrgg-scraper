@@ -59,7 +59,7 @@ def test_video_score_targets_its_original_game_number():
             members=[],
             rounds=[
                 Round(round_number=1, round_score="1-0", winner="team1", side="attack", win_type="Elimination"),
-                Round(round_number=2, round_score="2-0", winner="team1", side="attack", win_type="Elimination"),
+                Round(round_number=3, round_score="2-1", winner="team1", side="attack", win_type="Elimination"),
             ],
         )
     )
@@ -105,7 +105,7 @@ def test_video_score_targets_its_original_game_number():
         PushMapRounds(map_number=1),
         PushMapRounds(map_number=2),
         PushMapRounds(map_number=3),
-        PushMapRounds(map_number=4, winners=[1, 1]),
+        PushMapRounds(map_number=4, winners=[1, None, 1]),
     ]
 
     detail.data[1].teams[0].score, detail.data[1].teams[1].score = 9, 13
@@ -202,6 +202,7 @@ async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeyp
     monkeypatch.setattr(live_push, "_mark_delivered", mark_delivered)
     monkeypatch.setattr(live_push, "_store_teams", AsyncMock())
     redis = AsyncMock()
+    redis.get.return_value = None
 
     await live_push.live_push_cron({"redis": redis})
 
@@ -266,6 +267,7 @@ async def test_live_push_cron_only_ends_on_unlisted_vlr_fetch_failures(monkeypat
     end = AsyncMock()
     monkeypatch.setattr(live_push, "_end_unavailable_match", end)
     redis = AsyncMock()
+    redis.get.return_value = None
 
     for _ in range(constants.PUSH_FETCH_FAILURE_LIMIT + 1):
         await live_push.live_push_cron({"redis": redis})
@@ -356,6 +358,7 @@ async def test_live_push_cron_drops_an_unstarted_match_without_a_final_push(monk
     publish_direct = AsyncMock()
     monkeypatch.setattr(live_push.fcm, "publish_direct", publish_direct)
     redis = AsyncMock()
+    redis.get.return_value = None
 
     await live_push.live_push_cron({"redis": redis})
 
@@ -720,11 +723,14 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
 
     redis = AsyncMock()
     redis.get.return_value = None
-    redis.get.side_effect = lambda key: videos.get(key, DEFAULT)
+    redis.get.side_effect = lambda key: videos.get(key, DEFAULT if key == "matches" else None)
     redis.set.side_effect = set_tick
     redis.exists.side_effect = lambda key: key in ticks
     redis.delete.side_effect = lambda key: ticks.pop(key, None)
     redis.incr.side_effect = increment
+    from tests.test_video_round_history import MemoryPipeline
+
+    redis.pipeline = lambda **_kwargs: MemoryPipeline(redis)
 
     async def stored_match_ids():
         async with sessions() as session:
@@ -806,9 +812,9 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             for request in requests
             if request.url.path.endswith("/broadcasts/apps/com.example.app")
         ]
-        assert [aps["event"] for aps in end_payloads] == ["update", "end"]
-        assert "dismissal-date" not in end_payloads[0]
-        assert end_payloads[1]["dismissal-date"] == end_payloads[1]["timestamp"] + constants.APNS_DISMISSAL_SECONDS
+        assert [aps["event"] for aps in end_payloads] == ["update", "update", "end"]
+        assert all("dismissal-date" not in aps for aps in end_payloads if aps["event"] == "update")
+        assert end_payloads[-1]["dismissal-date"] == end_payloads[-1]["timestamp"] + constants.APNS_DISMISSAL_SECONDS
         end_teams = end_payloads[-1]["content-state"]["teams"]
         assert [(team["tag"], team["score"]) for team in end_teams] == [("ALP", 1), ("BET", 0)]
         assert [team["tag"] for team in json.loads(fcm_calls[5][0].data["state"])["teams"]] == ["ALP", "BET"]
@@ -860,7 +866,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             for request in requests
             if request.url.path.endswith("/broadcasts/apps/com.example.app")
         ]
-        assert test_events == ["update", "end", "update", "update", "update", "update", "end"]
+        assert test_events == ["update", "update", "end", "update", "update", "update", "update", "end"]
         assert [message.token for message in fcm_calls[-1]] == ["fcm-token:APA91b"]
         last_fcm_state = json.loads(fcm_calls[-1][0].data["state"])
         assert last_fcm_state["terminal"] is True
@@ -934,6 +940,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             store = SubscriptionStore(session)
             await store.register_token(android_id, "fcm-token:APA91b", Platform.ANDROID, live_updates=False)
             await store.add_favorites(android_id, Favorites(matches=["789"]))
+            await store.add_favorites(client_id, Favorites(matches=["789"]))
         sent = len(fcm_calls)
         await live_push.live_push_cron({"redis": redis})
         assert len(fcm_calls) == sent
@@ -950,7 +957,24 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         pushed = len(fcm_calls)
         assert (await put_video()).status_code == 204
         assert len(fcm_calls) == pushed + 1
+        cached_vlr = videos[constants.PUSH_DETAILS_KEY]
+        vlr_fetches = match_by_id_mock.await_count
+        video["teams"][0]["score"] = 16
+        pushed = len(fcm_calls)
+        assert (await put_video()).status_code == 204
+        assert len(fcm_calls) == pushed + 1
+        assert videos[constants.PUSH_DETAILS_KEY] == cached_vlr
+        assert match_by_id_mock.await_count == vlr_fetches
+        apns_state = [
+            json.loads(request.content)["aps"]["content-state"]
+            for request in requests
+            if request.url.path.endswith("/broadcasts/apps/com.example.app")
+            and json.loads(request.content)["aps"]["content-state"]["match_id"] == "789"
+        ][-1]
+        assert apns_state["current_map"]["scores"] == [16, 14]
+        assert apns_state["map_round_winners"][0]["winners"] == [None] * 29 + [0]
         changed_state = json.loads(fcm_calls[pushed][0].data["state"])
+        assert changed_state["map_round_winners"] == apns_state["map_round_winners"]
         ticks.pop(constants.PUSH_REFRESH_KEY.format("789"))
         await put_video()
         assert len(fcm_calls) == pushed + 2
@@ -962,7 +986,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         pushed = len(fcm_calls)
         ticks.pop(constants.PUSH_REFRESH_KEY.format("789"))
         newer = json.loads(videos[constants.VIDEO_SCORE_KEY])
-        newer["teams"][0]["score"], newer["teams"][1]["score"] = 16, 14
+        newer["teams"][0]["score"], newer["teams"][1]["score"] = 17, 14
         live_tokens = SubscriptionStore.live_android_tokens
 
         async def store_newer_during_token_read(store, routing):
@@ -1072,7 +1096,8 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
         ),
     }
     redis = AsyncMock()
-    redis.get.side_effect = lambda key: videos.get(key, DEFAULT)
+    redis.get.return_value = None
+    redis.get.side_effect = lambda key: videos.get(key, DEFAULT if key == "matches" else None)
 
     app = FastAPI()
     app.include_router(video_router, prefix="/api/v1/video", dependencies=[Depends(deps.verify_video_token)])

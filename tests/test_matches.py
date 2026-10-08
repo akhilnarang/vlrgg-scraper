@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from bs4 import BeautifulSoup
 
 from app import constants
 from app.exceptions import ScrapingError
@@ -37,7 +38,7 @@ async def test_match_details_follow_the_public_response_contract(http_response):
     ] == [
         (1, "0-1", "team2", "attack"),
         (2, "1-1", "team1", "defense"),
-        (13, "2-1", "team1", ""),
+        (13, "2-1", "", ""),
     ]
     assert [(stream.name, str(stream.url)) for stream in result.videos.streams] == [
         ("VCT", "https://www.youtube.com/@ValorantEsports/live"),
@@ -67,6 +68,37 @@ async def test_match_details_follow_the_public_response_contract(http_response):
         upcoming_result = await matches.match_by_id("12345", AsyncMock())
 
     assert upcoming_result.data == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("timeline", "winners"),
+    [
+        ([(1, "1-0"), (2, "1-0"), (3, "1-1")], ["team1", "", "team2"]),
+        ([(1, "1-0"), (2, "3-0"), (3, "3-1")], ["team1", "", "team2"]),
+        ([(1, "1-0"), (3, "2-0"), (4, "2-1")], ["team1", "", "team2"]),
+        ([(1, "1-0"), (1, "2-0"), (2, "2-1")], ["team1", "", "team2"]),
+    ],
+    ids=["duplicate-score", "score-jump", "missing-round", "duplicate-round"],
+)
+async def test_round_winners_require_a_consecutive_single_round_score_change(timeline, winners, http_response):
+    soup = BeautifulSoup((FIXTURE_DIR / "match_12345.html").read_bytes(), "lxml")
+    row = soup.select_one('.vm-stats-game[data-game-id="283202"] .vlr-rounds-row')
+    for column in row.select(".vlr-rounds-row-col:not(.mod-teams)"):
+        column.decompose()
+    for number, score in timeline:
+        column = soup.new_tag("div", attrs={"class": "vlr-rounds-row-col", "title": score})
+        round_number = soup.new_tag("div", attrs={"class": "rnd-num"})
+        round_number.string = str(number)
+        column.append(round_number)
+        row.append(column)
+    response = http_response("https://www.vlr.gg/12345", str(soup).encode())
+
+    with patch("httpx2.AsyncClient.get", return_value=response):
+        result = await matches.match_by_id("12345", AsyncMock())
+
+    assert [round_.round_number for round_ in result.data[0].rounds] == [number for number, _ in timeline]
+    assert [round_.winner for round_ in result.data[0].rounds] == winners
 
 
 def test_display_strings_follow_accept_language(monkeypatch, http_response):
@@ -203,6 +235,9 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
 
     app = FastAPI()
     app.include_router(router, prefix="/api/v1/live-updates")
+    redis = AsyncMock()
+    redis.get.return_value = None
+    app.dependency_overrides[deps.get_redis_client] = lambda: redis
     client = TestClient(app)
     headers = {"Authorization": "Bearer secret"}
     base = "/api/v1/live-updates/clients/11111111-1111-4111-8111-111111111111"

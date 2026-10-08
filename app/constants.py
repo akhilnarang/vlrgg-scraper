@@ -52,6 +52,8 @@ PUSH_FETCH_FAILURES_TTL = 600  # seconds; failures are consecutive per-minute ru
 # The live push cron fetches the VLR listing only while a cached match is live or starts within this lead.
 PUSH_LISTING_LEAD = timedelta(minutes=15)
 VIDEO_SCORE_KEY = "vlrgg:push:video_score"
+VIDEO_ROUNDS_KEY = "vlrgg:push:video_rounds:{}:{}"  # verified round history by match ID and map number
+VIDEO_ROUNDS_TTL = 86400  # retain completed maps through long series and stream breaks
 VIDEO_DELIVERED_KEY = "vlrgg:push:video_delivered"
 PUSH_REFRESH_KEY = "vlrgg:push:refresh:{}"  # per-match cooldown for unchanged FCM refreshes
 PUSH_REFRESH_SECONDS = 60  # seconds between unchanged-state follower refreshes

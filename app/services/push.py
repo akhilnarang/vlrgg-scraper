@@ -407,9 +407,11 @@ def _map_round_winners(detail: MatchWithDetails) -> list[PushMapRounds]:
         if sorted(names) != sorted(order):
             continue
         index = {constants.RoundWinner.TEAM1: order.index(names[0]), constants.RoundWinner.TEAM2: order.index(names[1])}
-        winners[map_data.number - 1] = PushMapRounds(
-            map_number=map_data.number, winners=[index.get(item.winner) for item in map_data.rounds]
-        )
+        rounds = [None] * max((item.round_number for item in map_data.rounds), default=0)
+        for item in map_data.rounds:
+            if item.round_number >= 1:
+                rounds[item.round_number - 1] = index.get(item.winner)
+        winners[map_data.number - 1] = PushMapRounds(map_number=map_data.number, winners=rounds)
     return winners
 
 

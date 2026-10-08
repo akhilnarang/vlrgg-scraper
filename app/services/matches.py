@@ -286,8 +286,8 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
         ]
         team_name_mapping = {short: long["name"] for short, long in zip(team_short_name, teams)}
         rounds = []
-        # TODO: find a better solution, only done to prevent warning at 201 (tuple[int, ...] vs tuple[int, int])
-        prev: tuple[int, ...] = (0, 0)
+        prev = (0, 0)
+        previous_round = 0
         for round_data in map_data.find_all("div", class_="vlr-rounds-row-col")[1:]:
             # VLR renders a halftime side-swap spacer between rounds 12 and 13 with no round number.
             if (round_number := round_data.find("div", class_="rnd-num")) is None:
@@ -296,13 +296,16 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
                 round_score = clean_string(round_current_score)
                 side, round_winner = "", ""
                 if round_score != "":
-                    current = tuple(map(int, round_score.split("-")))
-                    if prev[0] == current[0]:
-                        round_winner = constants.RoundWinner.TEAM2
-                    elif prev[1] == current[1]:
-                        round_winner = constants.RoundWinner.TEAM1
-
+                    first, second = map(int, round_score.split("-"))
+                    current = (first, second)
+                    round_index = int(clean_string(round_number.get_text()))
+                    if round_index == previous_round + 1:
+                        if current == (prev[0] + 1, prev[1]):
+                            round_winner = constants.RoundWinner.TEAM1
+                        elif current == (prev[0], prev[1] + 1):
+                            round_winner = constants.RoundWinner.TEAM2
                     prev = current
+                    previous_round = round_index
 
                 win_type: str | None = None
                 if round_win_data := round_data.find_all("div", class_="mod-win"):

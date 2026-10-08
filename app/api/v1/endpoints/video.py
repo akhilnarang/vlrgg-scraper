@@ -2,12 +2,11 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, BackgroundTasks
 
-from app import constants
 from app.api.deps import RedisDep
 from app.cron import live_push
 from app.exceptions import NotFoundError
 from app.schemas.matches import VideoContext, VideoContextCodes, VideoScore
-from app.services import push
+from app.services import push, video_rounds
 
 router = APIRouter()
 
@@ -15,10 +14,9 @@ router = APIRouter()
 @router.put("/score", status_code=HTTPStatus.NO_CONTENT)
 async def store_video_score(video: VideoScore, background: BackgroundTasks, client: RedisDep) -> None:
     """Store broadcast tracker score, pushing updates or re-sending on heartbeat."""
-    previous = await client.set(
-        constants.VIDEO_SCORE_KEY, video.model_dump_json(), ex=constants.VIDEO_SCORE_TTL, get=True
-    )
-    if (stored := VideoScore.from_cache(previous)) is None or not stored.same_score(video):
+    resolved = await push.resolve_video_match(client, video)
+    _, changed = await video_rounds.store_score(client, video, resolved)
+    if changed:
         # A changed score push restarts the match refresh window.
         background.add_task(live_push.push_video_match)
     else:
