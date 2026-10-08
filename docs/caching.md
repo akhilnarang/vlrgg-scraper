@@ -21,12 +21,24 @@ The application uses Redis for caching to improve performance and reduce load on
 | `standings_{year}` | VCT standings for year | 25 hours |
 | `team:{id}:{completed_pages}` | Team pages | 1 minute |
 | `player:{id}:{match_pages}` | Player pages | 1 minute |
-| `vlrgg:push:details` | Each tracked match's last fetched details | 1 hour |
-| `vlrgg:push:video_score` | Latest broadcast tracker score | 1 hour |
+| `valesports:vlr:details` | Each tracked match's last fetched details | 1 hour |
+| `valesports:tracker:score` | Latest broadcast tracker score | 1 hour |
+| `valesports:tracker:rounds:{match_id}:{map_number}` | Round winners per map, inferred from consecutive verified tracker scores | 24 hours |
 
-`vlrgg:push:video_delivered` (the last pushed video score) and `vlrgg:push:refresh:{match_id}`
-(the cooldown on unchanged FCM refreshes) are markers with side effects, not payload caches,
-so a purge leaves them alone.
+`valesports:tracker:delivered` (the last pushed video score), `valesports:push:refresh:{match_id}`
+(the cooldown on unchanged FCM refreshes), and `valesports:push:fetch_failures:{match_id}` (the
+consecutive failed fetches that end an unlisted match) are markers with side effects, not
+payload caches, so a purge leaves them alone.
+
+`valesports:vlr:details` has a durable fallback: the live push cron mirrors each tracked match's
+details into SQLite's `live_matches` table, so the video push still resolves a match after a
+restart or an expired key. See
+[Database: Live-match fallback](database.md#live-match-fallback-live_matches).
+
+`valesports:tracker:rounds` entries are read leniently: an unreadable or missing entry counts as
+no history and is rebuilt from the next verified tracker score, so a stale schema never raises
+or 5xxs. Purging them only delays round winners until VLR renders them or a later score
+arrives.
 
 ## Implementation
 
@@ -101,12 +113,16 @@ Environment variables:
   calls if Redis is not local):
 
   ```sh
-  for p in rankings matches events news 'standings_*' 'match:*' 'team:*' 'player:*' vlrgg:push:details vlrgg:push:video_score; do redis-cli --scan --pattern "$p" | xargs -r redis-cli del; done
+  for p in rankings matches events news 'standings_*' 'match:*' 'team:*' 'player:*' valesports:vlr:details valesports:tracker:score 'valesports:tracker:rounds:*'; do redis-cli --scan --pattern "$p" | xargs -r redis-cli del; done
   ```
 
   Never `FLUSHALL`/`FLUSHDB`: the same Redis holds the arq job queue, and
-  `vlrgg:push:video_delivered` and `vlrgg:push:refresh:*` must survive (losing either
+  `valesports:tracker:delivered` and `valesports:push:refresh:*` must survive (losing either
   can duplicate a push). See [AGENTS.md: Caching](../AGENTS.md#caching).
+
+  `valesports:tracker:rounds:*` is listed because a winner-semantics change would otherwise
+  survive in old entries until their TTL; unlike the models above it is read leniently, so
+  omitting it degrades round coverage instead of raising.
 - **Versioning**: Include version in keys for breaking changes
 
 ## Monitoring
