@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 from collections.abc import Awaitable
 from datetime import UTC, datetime
 from http import HTTPStatus
@@ -21,7 +22,7 @@ from app.cron import synthetic_match
 from app.db.models import MatchPushState
 from app.exceptions import ScrapingError
 from app.schemas.matches import CompactState, MatchWithDetails, VideoDelivery, VideoScore
-from app.services import fcm, matches, push, scrape_store, video_rounds
+from app.services import fcm, live_store, matches, push, scrape_store, video_rounds
 from app.services.apns import APNsClient, APNsError
 from app.services.push import Routing
 from app.services.subscription_store import SubscriptionStore
@@ -36,7 +37,8 @@ _DEAD_TOKEN_REASONS = constants.DEAD_TOKEN_REASONS
 async def live_push_cron(ctx: dict) -> None:
     """Send compact updates for matches that are live or have stored push state.
 
-    A match the video tracker is healthily reading, and whose latest score was delivered, is left to its updates.
+    A match the video tracker is healthily reading, and whose latest score was delivered, has its details fetched
+    and stored for the video, but gets no duplicate update from here.
 
     :param ctx: arq job context holding the Redis client.
     :return: None.
@@ -52,14 +54,18 @@ async def live_push_cron(ctx: dict) -> None:
     live_ids = await _listed_live_ids(client)
     async with sessions() as session:
         stored = set(await SubscriptionStore(session).list_match_ids())
-    match_ids = sorted(((live_ids or set()) | stored) - {left_to_video})
+    match_ids = sorted((live_ids or set()) | stored)
     details = await asyncio.gather(*(_fetch_detail(client, match_id) for match_id in match_ids), return_exceptions=True)
     video = await push.video_score(client)  # the tracker may have written a newer score during the fetches
     fcm_app = fcm.get_app() if settings.GOOGLE_APPLICATION_CREDENTIALS else None
-    await _cache_details(client, match_ids, details, left_to_video)
+    await _cache_details(client, sessions, match_ids, details, left_to_video)
     video_match = await push.resolve_video_match(client, video) if video is not None else None
 
     for match_id, detail in zip(match_ids, details, strict=True):
+        if match_id == left_to_video and not (isinstance(detail, MatchWithDetails) and is_final(detail.event.status)):
+            # The video tracker pushes this match, but a final VLR status is this cron's terminal
+            # delivery: it sends the final push and cleans up the match's push and stored state.
+            continue
         failures_key = constants.PUSH_FETCH_FAILURES_KEY.format(match_id)
         delivered = False
         represented = False
@@ -173,15 +179,24 @@ async def _deliver_video_match(
 ) -> None:
     """Deliver the match the tracker resolves to, immediately or as a rate-limited refresh.
 
+    The match's details come from the Redis cache, or from their SQLite copy when the cache is cold or no
+    longer holds the match, so a restart or expiry doesn't silence the video.
+
     :param sessions: Database session factory.
     :param client: Redis client.
     :param video: Latest tracker score.
     :param refresh: Whether this re-sends unchanged state, FCM-only and rate-limited.
     :return: None.
     """
-    if (resolved := await push.resolve_video_match(client, video)) is None:
+    if (resolved := await push.resolve_video_match_with_fallback(client, video)) is None:
         return
     match_id, detail, scores = resolved
+    try:
+        async with sessions.begin() as session:
+            await live_store.upsert_live_video(session, match_id, video.model_dump(mode="json"), int(time.time()))
+    except SQLAlchemyError:
+        # The SQLite copy is only the video push's fallback; losing it must not block this delivery.
+        logger.warning("could not store video score for match %s", match_id, exc_info=True)
     if refresh:
         # Rate-limit unchanged re-sends to at most once per refresh window.
         if not await client.set(
@@ -219,30 +234,51 @@ async def _deliver_video_match(
 
 
 async def _cache_details(
-    client: Redis, match_ids: list[str], details: list[MatchWithDetails | BaseException], left_to_video: str | None
+    client: Redis,
+    sessions: async_sessionmaker[AsyncSession],
+    match_ids: list[str],
+    details: list[MatchWithDetails | BaseException],
+    left_to_video: str | None,
 ) -> None:
     """Keep each tracked match's details, which the video push uses instead of fetching VLR.
 
     A failed fetch keeps the previous details, so a VLR outage doesn't silence the video. Finished matches and
-    matches this run no longer tracks are dropped, so the video can't be matched to them.
+    matches this run no longer tracks are dropped from Redis, so the video can't be matched to them; their
+    SQLite copies outlive the Redis cache so the video push can still end a just-finished match.
 
     :param client: Redis client.
+    :param sessions: Database session factory.
     :param match_ids: Match IDs this run tracks.
     :param details: Each match's details, or the error fetching it.
-    :param left_to_video: The match the video pushes, which this run didn't fetch but still tracks.
+    :param left_to_video: The match the video pushes, which this run still fetches for the video's fresh metadata.
     :return: None.
     """
     cached = await push.cached_details(client)
     kept = {left_to_video: cached[left_to_video]} if left_to_video in cached else {}
+    fetched: list[tuple[str, dict]] = []
     for match_id, detail in zip(match_ids, details, strict=True):
         if match_id == constants.TEST_MATCH_ID:
             continue
         if isinstance(detail, BaseException):
             if match_id in cached:
                 kept[match_id] = cached[match_id]
-        elif not is_final(detail.event.status):
-            kept[match_id] = detail.model_dump(mode="json")
+            continue
+        payload = detail.model_dump(mode="json")
+        if is_final(detail.event.status):
+            # A finished match leaves the video's resolution cache, so the tracker can't be matched
+            # to it after this run's terminal delivery.
+            kept.pop(match_id, None)
+        else:
+            kept[match_id] = payload
+        fetched.append((match_id, payload))
     await client.set(constants.PUSH_DETAILS_KEY, json.dumps(kept), ex=constants.PUSH_DETAILS_TTL)
+    try:
+        async with sessions.begin() as session:
+            for match_id, payload in fetched:
+                await live_store.upsert_live_detail(session, match_id, payload, int(time.time()))
+    except SQLAlchemyError:
+        # The SQLite copy is the video push's fallback; losing it must not fail the cron after its Redis write.
+        logger.warning("could not store live match details", exc_info=True)
 
 
 async def _mark_delivered(client: Redis, match_id: str, video: VideoScore) -> None:
@@ -397,6 +433,8 @@ async def _push_match(
             # A card for a match with no play is dismissed now instead of after the usual delay.
             await _end_apns(row.channel_id, state, immediate_dismissal=unstarted)
         await store.delete_match(match_id)
+        await session.commit()  # the push-state cleanup must be durable before the optional live copy
+        await _delete_live_copy(session, match_id)
         return sent
 
     if not (listed_live or is_live(detail.event.status)):
@@ -405,6 +443,33 @@ async def _push_match(
     if connections.apns_client is not None:
         sent = await _push_apns(store, session, connections.apns_client, state, routing, row) and sent
     return sent
+
+
+async def _delete_live_copy(session: AsyncSession, match_id: str) -> None:
+    """Retire, then delete, a match's optional SQLite live copy, each in a transaction of its own.
+
+    Retirement is committed first, so a failed deletion cannot leave the match's still-live details
+    for the video push's fallback to resolve and resurrect it.
+
+    :param session: Match-scoped database session.
+    :param match_id: Match identifier.
+    :return: None.
+    """
+    try:
+        await live_store.retire_live_match(session, match_id)
+        await session.commit()
+    except SQLAlchemyError:
+        # Without the committed retirement, the deletion below could leave live details behind.
+        await session.rollback()
+        logger.warning("could not retire live match %s", match_id, exc_info=True)
+    try:
+        await live_store.delete_live_match(session, match_id)
+        await session.commit()
+    except SQLAlchemyError:
+        # The live copy is optional; its failure must not touch the already-committed push-state
+        # cleanup and cause a duplicate terminal push.
+        await session.rollback()
+        logger.warning("could not delete live match %s", match_id, exc_info=True)
 
 
 async def _fetch_failure_limit_reached(client: Redis, failures_key: str) -> bool:
@@ -442,6 +507,7 @@ async def _end_unavailable_match(
     """
     row = await store.get_match(match_id)
     if row is None:
+        await _delete_live_copy(session, match_id)
         return
     # Only matches with an APNs channel have a stored score; Android-only rows are just removed.
     if row.last_state_json is not None:
@@ -452,6 +518,7 @@ async def _end_unavailable_match(
             channel_id = row.channel_id
             await store.delete_match(match_id)
             await session.commit()  # release the SQLite write lock before the APNs call
+            await _delete_live_copy(session, match_id)
             if channel_id:
                 # End the activity now, so the scoreless pre-match card does not linger on the screen.
                 await _end_apns(channel_id, state, immediate_dismissal=True)
@@ -465,6 +532,8 @@ async def _end_unavailable_match(
         if row.channel_id:
             await _end_apns(row.channel_id, state)
     await store.delete_match(match_id)
+    await session.commit()  # the push-state cleanup must be durable before the optional live copy
+    await _delete_live_copy(session, match_id)
 
 
 async def _send_fcm(tokens: list[str], fcm_app: App | None, state: CompactState, *, refresh: bool = False) -> bool:

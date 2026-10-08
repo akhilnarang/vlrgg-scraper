@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import sqlite3
 import time
 from contextlib import closing
@@ -10,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app import constants
@@ -220,6 +222,181 @@ async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_final_video_owned_match_gets_terminal_push_and_cleanup(monkeypatch, tmp_path):
+    """A video-owned match VLR marks final still gets the cron's terminal push and state cleanup."""
+    from app.core import connections
+    from app.db.engine import create_engine
+    from app.db.migrations import upgrade_to_head
+    from app.services import live_store, push
+    from app.services.subscription_store import SubscriptionStore
+
+    database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
+    await upgrade_to_head(database_url)
+    engine = create_engine(database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    android_id = "22222222-2222-4222-8222-222222222222"
+    stale = _live_detail("live", (1, 0))
+    final = _live_detail("completed", (1, 0))
+    async with sessions.begin() as session:
+        store = SubscriptionStore(session)
+        await store.register_token(android_id, "fcm-token:APA91b", Platform.ANDROID)
+        await store.add_favorites(android_id, Favorites(matches=["123"]))
+        await store.save_match("123", None, None)
+        await live_store.upsert_live_detail(session, "123", final.model_dump(mode="json"), int(time.time()))
+
+    values = {constants.PUSH_DETAILS_KEY: json.dumps({"123": stale.model_dump(mode="json")})}
+    written = {}
+
+    def write(key, value, **_kwargs):
+        written[key] = value
+        return True
+
+    redis = AsyncMock()
+    redis.get.side_effect = lambda key: values.get(key)
+    redis.set.side_effect = write
+    sent = []
+
+    async def publish_direct(app, tokens, state):
+        sent.append(state)
+        return ["message:1"]
+
+    async def fetch_detail(client, match_id):
+        return final
+
+    monkeypatch.setattr(live_push.settings, "ENABLE_LIVE_PUSH", True)
+    monkeypatch.setattr(live_push.settings, "GOOGLE_APPLICATION_CREDENTIALS", "configured")
+    monkeypatch.setattr(connections, "subscription_sessions", sessions)
+    monkeypatch.setattr(connections, "apns_client", None)
+    monkeypatch.setattr(push, "video_score", AsyncMock(return_value=None))
+    monkeypatch.setattr(live_push, "_match_left_to_video", AsyncMock(return_value="123"))
+    monkeypatch.setattr(live_push, "_listed_live_ids", AsyncMock(return_value={"123"}))
+    monkeypatch.setattr(live_push, "_fetch_detail", fetch_detail)
+    monkeypatch.setattr(live_push, "_store_teams", AsyncMock())
+    monkeypatch.setattr(live_push.fcm, "get_app", lambda: object())
+    monkeypatch.setattr(live_push.fcm, "publish_direct", publish_direct)
+
+    try:
+        await live_push.live_push_cron({"redis": redis})
+
+        assert [(state.match_id, state.terminal) for state in sent] == [("123", True)]
+        async with sessions() as session:
+            assert await SubscriptionStore(session).get_match("123") is None
+            assert await live_store.get_live_match(session, "123") is None
+        # The finished match leaves the video's resolution cache.
+        assert json.loads(written[constants.PUSH_DETAILS_KEY]) == {}
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("page_gone", [False, True], ids=["terminal-fetch", "page-gone"])
+async def test_failed_live_copy_cleanup_keeps_push_state_deleted(monkeypatch, tmp_path, page_gone):
+    """An aborted live-copy cleanup must keep the push-state deletion committed and the match unresolvable."""
+    from app.core import connections
+    from app.db.engine import create_engine
+    from app.db.migrations import upgrade_to_head
+    from app.schemas.matches import CompactState, PushTeam, VideoScore
+    from app.services import live_store, push
+    from app.services.subscription_store import SubscriptionStore
+
+    database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
+    await upgrade_to_head(database_url)
+    engine = create_engine(database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    android_id = "22222222-2222-4222-8222-222222222222"
+    final = _live_detail("completed", (1, 0))
+    # The page-gone ending reads a copy still showing a live match; a successful fetch stores the final one.
+    stored = _live_detail("live", (1, 0)) if page_gone else final
+    played = CompactState(
+        match_id="123",
+        observed_at=int(time.time()),
+        terminal=False,
+        teams=[PushTeam(id="1", name="Alpha", score=1), PushTeam(id="2", name="Beta", score=0)],
+    )
+    async with sessions.begin() as session:
+        store = SubscriptionStore(session)
+        await store.register_token(android_id, "fcm-token:APA91b", Platform.ANDROID)
+        await store.add_favorites(android_id, Favorites(matches=["123"]))
+        # The page-gone ending pushes the stored last sent score; the final fetch already carries one.
+        await store.save_match("123", None, played.semantic() if page_gone else None)
+        await live_store.upsert_live_detail(session, "123", stored.model_dump(mode="json"), int(time.time()))
+
+    values = {constants.PUSH_DETAILS_KEY: json.dumps({"123": _live_detail("live", (1, 0)).model_dump(mode="json")})}
+
+    def write(key, value, **_kwargs):
+        values[key] = value
+        return True
+
+    redis = AsyncMock()
+    redis.get.side_effect = lambda key: values.get(key)
+    redis.set.side_effect = write
+    sent = []
+
+    async def publish_direct(app, tokens, state):
+        sent.append(state)
+        return ["message:1"]
+
+    async def fetch_detail(client, match_id):
+        if page_gone:
+            raise ScrapingError(upstream_status=404)
+        return final
+
+    async def fail_delete(session, match_id):
+        # A database error aborts the live copy's cleanup transaction; the required push-state
+        # deletion must already be committed to survive it.
+        await session.rollback()
+        raise SQLAlchemyError("database is locked")
+
+    monkeypatch.setattr(live_push.settings, "ENABLE_LIVE_PUSH", True)
+    monkeypatch.setattr(live_push.settings, "GOOGLE_APPLICATION_CREDENTIALS", "configured")
+    monkeypatch.setattr(connections, "subscription_sessions", sessions)
+    monkeypatch.setattr(connections, "apns_client", None)
+    monkeypatch.setattr(push, "video_score", AsyncMock(return_value=None))
+    monkeypatch.setattr(live_push, "_match_left_to_video", AsyncMock(return_value=None if page_gone else "123"))
+    monkeypatch.setattr(live_push, "_listed_live_ids", AsyncMock(return_value=set() if page_gone else {"123"}))
+    monkeypatch.setattr(live_push, "_fetch_detail", fetch_detail)
+    monkeypatch.setattr(live_push, "_store_teams", AsyncMock())
+    monkeypatch.setattr(live_push.fcm, "get_app", lambda: object())
+    monkeypatch.setattr(live_push.fcm, "publish_direct", publish_direct)
+    monkeypatch.setattr(live_store, "delete_live_match", fail_delete)
+
+    try:
+        await live_push.live_push_cron({"redis": redis})
+
+        assert [state.terminal for state in sent] == [True]
+        # The committed deletion is durable even though the live copy's cleanup was rolled back.
+        with closing(sqlite3.connect(tmp_path / "db.sqlite3")) as db:
+            assert db.execute("SELECT match_id FROM match_push_states").fetchall() == []
+        async with sessions() as session:
+            surviving = await live_store.get_live_match(session, "123")
+        # The failed deletion left the row, but its details were retired first, so nothing can resolve it.
+        assert surviving is not None and surviving.detail is None
+
+        # A later tracker update must not resolve the surviving row, resend a final, or resurrect the match.
+        values.pop(constants.PUSH_DETAILS_KEY)  # a cold cache, e.g. right after a restart
+        video = VideoScore.model_validate(
+            {
+                "status": "ok",
+                "observed_at": int(time.time()),
+                "map_number": 1,
+                "teams": [
+                    {"code": "ALP", "name": "Alpha", "score": 13},
+                    {"code": "BET", "name": "Beta", "score": 9},
+                ],
+            }
+        )
+        monkeypatch.setattr(push, "video_score", AsyncMock(return_value=video))
+        monkeypatch.setattr(live_push.cache, "get_client", lambda: redis)
+        await live_push.push_video_match()
+
+        assert [state.terminal for state in sent] == [True]
+        async with sessions() as session:
+            assert await SubscriptionStore(session).get_match("123") is None
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("error", "listed"),
     [
@@ -297,6 +474,9 @@ async def test_live_push_cron_drops_an_unstarted_match_without_a_final_push(monk
 
         async def commit(self):
             events.append("commit")
+
+        async def execute(self, _statement):
+            pass
 
     unstarted = CompactState(
         match_id="123",
@@ -573,7 +753,7 @@ async def test_direct_delivery_failures_propagate_to_the_delivered_guard(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_path):
+async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_path, caplog):
     import httpx2
     from firebase_admin import messaging
 
@@ -581,6 +761,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
     from app.db.engine import create_engine
     from app.db.migrations import upgrade_to_head
     from app.services import apns as apns_service
+    from app.services import live_store
     from app.services.subscription_store import SubscriptionStore
 
     database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
@@ -603,6 +784,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
     listed = SimpleNamespace(id="123", status=MatchStatus.LIVE)
     fetches = {
         "123": [
+            _live_detail("upcoming", (1, 0)),
             _live_detail("upcoming", (1, 0)),
             _live_detail("upcoming", (1, 0)),
             _live_detail("upcoming", (1, 0)),
@@ -766,7 +948,10 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         await live_push.live_push_cron({"redis": redis})
         async with sessions() as session:
             row = await SubscriptionStore(session).get_match("123")
+            live = await live_store.get_live_match(session, "123")
         assert row is not None and row.channel_id == "channel-123"
+        assert live is not None and live.detail is not None and live.detail_fetched_at is not None
+        assert [team["tag"] for team in live.detail["teams"]] == ["ALP", "BET"]
         assert await stored_match_ids() == ["123"]
         assert any("/3/device/aabb" in request.url.path for request in requests)
         assert not any("/3/device/ccdd" in request.url.path for request in requests)
@@ -779,10 +964,15 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert constants.VIDEO_SCORE_KEY not in videos and len(fcm_calls) == 1
         assert (await put_video()).status_code == 204
         assert pushed_scores(fcm_calls[1]) == [13, 9]
+        async with sessions() as session:
+            live = await live_store.get_live_match(session, "123")
+        assert live is not None and live.video is not None and live.video_received_at is not None
+        assert [team["code"] for team in live.video["teams"]] == ["ALP", "XYZ"]
         assert match_by_id_mock.await_count == vlr_fetches
         assert (await put_video()).status_code == 204
         await live_push.live_push_cron({"redis": redis})
-        assert len(fcm_calls) == 2 and match_by_id_mock.await_count == vlr_fetches
+        # The cron still fetches the video-tracked match's details, but leaves its pushes to the video.
+        assert len(fcm_calls) == 2 and match_by_id_mock.await_count == vlr_fetches + 1
         silent = json.loads(videos[constants.VIDEO_SCORE_KEY])
         silent["observed_at"] -= constants.VIDEO_STALE_SECONDS + 1
         videos[constants.VIDEO_SCORE_KEY] = json.dumps(silent)
@@ -805,8 +995,10 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert ticks["vlrgg:push:fetch_failures:123"] == 2
         await live_push.live_push_cron({"redis": redis})
         assert await stored_match_ids() == []
+        async with sessions() as session:
+            assert await live_store.get_live_match(session, "123") is None
         assert not [key for key in ticks if key.startswith("vlrgg:push:fetch_failures:")]
-        assert match_by_id_mock.await_count == 9
+        assert match_by_id_mock.await_count == 10
         end_payloads = [
             json.loads(request.content)["aps"]
             for request in requests
@@ -877,7 +1069,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             {"map_number": 2, "winners": []},
             {"map_number": 3, "winners": []},
         ]
-        assert match_by_id_mock.await_count == 9
+        assert match_by_id_mock.await_count == 10
 
         from app import schemas
         from app.cron import jobs
@@ -1046,6 +1238,51 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         opening_state = next(state for state in sent_states if state["match_id"] == "789")
         assert opening_state["current_map"]["number"] == 1
         assert opening_state["pause"] == {"kind": "tech_pause", "reason": "GEAR"}
+
+        async with sessions() as session:
+            live = await live_store.get_live_match(session, "789")
+        assert live is not None and live.detail is not None
+        videos.pop(constants.PUSH_DETAILS_KEY)  # a cold cache, e.g. right after a restart
+        video["teams"][1]["score"] = 1
+        vlr_fetches = match_by_id_mock.await_count
+        pushed = len(fcm_calls)
+        assert (await put_video()).status_code == 204
+        assert len(fcm_calls) == pushed + 1
+        assert match_by_id_mock.await_count == vlr_fetches
+        # The cold cache still resolves the match from SQLite, so the new round's winner is recorded.
+        cold_state = json.loads(fcm_calls[pushed][0].data["state"])
+        assert (cold_state["current_map"]["number"], cold_state["current_map"]["scores"]) == (2, [0, 1])
+        cold_map = next(item for item in cold_state["map_round_winners"] if item["map_number"] == 2)
+        assert cold_map["winners"] == [1]
+        async with sessions() as session:
+            live = await live_store.get_live_match(session, "789")
+        assert live is not None and live.video is not None
+        assert live.video["teams"][1]["score"] == 1
+
+        # A failed live-store write warns and must not block FCM or APNs delivery.
+        async def fail_upsert(*_args, **_kwargs):
+            raise SQLAlchemyError("database is locked")
+
+        video["teams"][1]["score"] = 2
+        video["observed_at"] = int(time.time())
+        vlr_fetches = match_by_id_mock.await_count
+        pushed = len(fcm_calls)
+        caplog.clear()
+        with caplog.at_level(logging.WARNING), monkeypatch.context() as boundary:
+            boundary.setattr(live_store, "upsert_live_video", fail_upsert)
+            assert (await put_video()).status_code == 204
+        assert len(fcm_calls) == pushed + 1
+        assert match_by_id_mock.await_count == vlr_fetches
+        assert [
+            (record.levelno, record.message) for record in caplog.records if record.name == live_push.logger.name
+        ] == [(logging.WARNING, "could not store video score for match 789")]
+        apns_scores = [
+            json.loads(request.content)["aps"]["content-state"]["current_map"]["scores"]
+            for request in requests
+            if request.url.path.endswith("/broadcasts/apps/com.example.app")
+            and json.loads(request.content)["aps"]["content-state"]["match_id"] == "789"
+        ]
+        assert apns_scores[-1] == [0, 2]
     finally:
         await apns.aclose()
         await engine.dispose()

@@ -57,6 +57,19 @@ class MatchPushState(Base):
     last_state_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class LiveMatchRecord(Base):
+    """A live match's last VLR details and tracker score, kept across Redis restarts."""
+
+    __tablename__ = "live_matches"
+
+    match_id: Mapped[str] = mapped_column(String(10), primary_key=True)
+    detail: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    detail_fetched_at: Mapped[int | None] = mapped_column(nullable=True)
+    video: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    video_received_at: Mapped[int | None] = mapped_column(nullable=True)
+    updated_at: Mapped[int] = mapped_column()
+
+
 class LiveActivityStart(Base):
     """Record that a client received a start attempt for a match."""
 

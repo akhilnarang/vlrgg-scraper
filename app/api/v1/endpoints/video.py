@@ -14,7 +14,7 @@ router = APIRouter()
 @router.put("/score", status_code=HTTPStatus.NO_CONTENT)
 async def store_video_score(video: VideoScore, background: BackgroundTasks, client: RedisDep) -> None:
     """Store broadcast tracker score, pushing updates or re-sending on heartbeat."""
-    resolved = await push.resolve_video_match(client, video)
+    resolved = await push.resolve_video_match_with_fallback(client, video)
     _, changed = await video_rounds.store_score(client, video, resolved)
     if changed:
         # A changed score push restarts the match refresh window.

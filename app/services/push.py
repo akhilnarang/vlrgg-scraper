@@ -217,16 +217,49 @@ async def resolve_video_match(client: Redis, video: VideoScore) -> tuple[str, Ma
     :param video: Stored tracker score.
     :return: Tuple of match ID, details, and team scores, or None if unmatched.
     """
-    candidates = [
-        (match_id, MatchWithDetails.model_validate(cached))
-        for match_id, cached in (await cached_details(client)).items()
-    ]
+    return resolve_video_match_in(await cached_details(client), video)
+
+
+def resolve_video_match_in(
+    details: dict[str, dict], video: VideoScore
+) -> tuple[str, MatchWithDetails, dict[str, int]] | None:
+    """Find the match matching the stored video score among the given details.
+
+    :param details: Each candidate match's details as JSON-ready data, keyed by match ID.
+    :param video: Stored tracker score.
+    :return: Tuple of match ID, details, and team scores, or None if unmatched.
+    """
+    candidates = [(match_id, MatchWithDetails.model_validate(cached)) for match_id, cached in details.items()]
     matched = [
         (match_id, detail, scores)
         for match_id, detail in candidates
         if (scores := video_team_scores(detail, video)) is not None
     ]
     return _preferred_match(matched)
+
+
+async def resolve_video_match_with_fallback(
+    client: Redis, video: VideoScore
+) -> tuple[str, MatchWithDetails, dict[str, int]] | None:
+    """Find the match matching the stored video score, from the cache or its stored SQLite details.
+
+    The SQLite details outlive the Redis cache, so a restart still resolves the match and its round
+    history advances instead of losing the new winners.
+
+    :param client: Redis client.
+    :param video: Stored tracker score.
+    :return: Tuple of match ID, details, and team scores, or None if unmatched.
+    """
+    if (resolved := await resolve_video_match(client, video)) is not None:
+        return resolved
+    from app.core import connections
+    from app.services import live_store
+
+    sessions = connections.subscription_sessions
+    if sessions is None:
+        return None
+    async with sessions() as session:
+        return resolve_video_match_in(await live_store.live_details(session), video)
 
 
 async def resolve_video_match_by_codes(client: Redis, codes: list[str]) -> tuple[str, MatchWithDetails] | None:
