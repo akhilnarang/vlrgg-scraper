@@ -104,10 +104,10 @@ def test_video_score_targets_its_original_game_number():
     assert [team.name for team in state.teams] == ["Beta", "Alpha"]
     assert state.current_map.scores == [4, 8]
     assert state.map_round_winners == [
-        PushMapRounds(map_number=1),
+        PushMapRounds(map_number=1, scores=[9, 13]),
         PushMapRounds(map_number=2),
         PushMapRounds(map_number=3),
-        PushMapRounds(map_number=4, winners=[1, None, 1]),
+        PushMapRounds(map_number=4, winners=[1, None, 1], scores=[4, 8]),
     ]
 
     detail.data[1].teams[0].score, detail.data[1].teams[1].score = 9, 13
@@ -127,6 +127,61 @@ def test_video_score_targets_its_original_game_number():
     video.map_number = 4
     video.observed_at = int(time.time()) - constants.VIDEO_STALE_SECONDS - 1
     assert push.project_state("123", detail, video).pause is None
+
+
+def test_finished_maps_floor_the_series_score_and_drop_unplayed_rounds():
+    """A finished map must reach the series score and its timeline must end at the deciding round.
+
+    VLR's top header still showing 1-1 must not hide map 3's confirmed 13-1 win, and the
+    unplayed round columns VLR renders must not trail the finished map's round list.
+    """
+    from app.schemas.matches import MatchData, PushMapRounds, Round, Team
+    from app.services import push
+
+    detail = _live_detail("live", (1, 1))
+    detail.total_maps = 3
+    detail.data = [
+        MatchData(
+            number=1,
+            map="Ascent",
+            teams=[Team(name="Alpha", score=13), Team(name="Beta", score=4)],
+            members=[],
+            rounds=[],
+        ),
+        MatchData(
+            number=2,
+            map="Bind",
+            teams=[Team(name="Alpha", score=2), Team(name="Beta", score=13)],
+            members=[],
+            rounds=[],
+        ),
+        MatchData(
+            number=3,
+            map="Lotus",
+            teams=[Team(name="Alpha", score=13), Team(name="Beta", score=1)],
+            members=[],
+            rounds=[
+                Round(round_number=number, round_score="", winner="team1", side="", win_type="Elimination")
+                for number in range(1, 15)
+            ]
+            + [
+                Round(round_number=number, round_score="", winner="", side="", win_type="Not Played")
+                for number in range(15, 25)
+            ],
+        ),
+    ]
+
+    state = push.project_state("123", detail)
+
+    assert state is not None
+    assert state.map_winners == ["1", "2", "1"]
+    # The confirmed two map wins make it 2-1 while the header still shows 1-1.
+    assert [team.score for team in state.teams] == [2, 1]
+    assert state.map_round_winners == [
+        PushMapRounds(map_number=1, scores=[13, 4]),
+        PushMapRounds(map_number=2, scores=[2, 13]),
+        PushMapRounds(map_number=3, winners=[0] * 14, scores=[13, 1]),
+    ]
 
 
 @pytest.mark.asyncio
@@ -1067,9 +1122,9 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert last_fcm_state["total_maps"] == 3
         assert last_fcm_state["current_map"]["number"] == 1
         assert last_fcm_state["map_round_winners"] == [
-            {"map_number": 1, "winners": [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]},
-            {"map_number": 2, "winners": []},
-            {"map_number": 3, "winners": []},
+            {"map_number": 1, "winners": [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], "scores": [6, 5]},
+            {"map_number": 2, "winners": [], "scores": []},
+            {"map_number": 3, "winners": [], "scores": []},
         ]
         assert match_by_id_mock.await_count == 10
 

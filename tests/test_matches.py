@@ -438,11 +438,12 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
             )
             assert state_data["map_winners"] == ["2", None, None]
             assert state_data["map_round_winners"] == [
-                {"map_number": 1, "winners": [1, 0, 1]},
-                {"map_number": 2, "winners": [1]},
-                {"map_number": 3, "winners": []},
+                {"map_number": 1, "winners": [1, 0, 1], "scores": [12, 14]},
+                {"map_number": 2, "winners": [1], "scores": [12, 11]},
+                {"map_number": 3, "winners": [], "scores": []},
             ]
-            assert [(team["id"], team["score"]) for team in state_data["teams"]] == [("1", 1), ("2", 0)]
+            # Map 1's confirmed win floors Beta's series score, which the header lags at 0.
+            assert [(team["id"], team["score"]) for team in state_data["teams"]] == [("1", 1), ("2", 1)]
             assert state_data["stage"] == "Playoffs: Grand Final"
 
             assert (

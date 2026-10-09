@@ -138,6 +138,7 @@ def project_state(match_id: str, detail: MatchWithDetails, video: VideoScore | N
         return None
     terminal = is_final(detail.event.status)
     current = _current_map(detail, terminal)
+    map_winners = _map_winners(detail)
     return CompactState(
         match_id=match_id,
         observed_at=int(time.time()),
@@ -145,10 +146,18 @@ def project_state(match_id: str, detail: MatchWithDetails, video: VideoScore | N
         total_maps=detail.total_maps,
         stage=detail.event.stage or None,
         teams=[
-            PushTeam(id=team.id, name=team.name, tag=team.tag, img=team.img, score=team.score) for team in detail.teams
+            PushTeam(
+                id=team.id,
+                name=team.name,
+                tag=team.tag,
+                img=team.img,
+                # A confirmed map win floors the series score while VLR's header catches up.
+                score=max(team.score or 0, sum(winner == team.id for winner in map_winners if winner is not None)),
+            )
+            for team in detail.teams
         ],
         current_map=current,
-        map_winners=_map_winners(detail),
+        map_winners=map_winners,
         map_round_winners=_map_round_winners(detail),
         pause=_pause(video, current),
     )
@@ -455,8 +464,10 @@ def _map_round_winners(detail: MatchWithDetails) -> list[PushMapRounds]:
     """Find each map's round winners as indices into the match's team order.
 
     :param detail: Scraped match details.
-    :return: One entry per map slot, each holding that map's winning team index (0 or 1) per round.
+    :return: One entry per map slot, each holding that map's winning team index (0 or 1) per round
+        and, when known, the map's scores in the match's team order.
     """
+    map_winners = _map_winners(detail)
     winners = [PushMapRounds(map_number=number) for number in range(1, _map_slots(detail) + 1)]
     order = [team.name.strip().casefold() for team in detail.teams]
     for map_data in detail.data:
@@ -468,7 +479,15 @@ def _map_round_winners(detail: MatchWithDetails) -> list[PushMapRounds]:
         for item in map_data.rounds:
             if item.round_number >= 1:
                 rounds[item.round_number - 1] = index.get(item.winner)
-        winners[map_data.number - 1] = PushMapRounds(map_number=map_data.number, winners=rounds)
+        scores = _aligned_scores(map_data, detail)
+        if (map_data.winner is not None or map_winners[map_data.number - 1] is not None) and all(
+            score is not None for score in scores
+        ):
+            # VLR renders the whole round timeline; a finished map drops its unplayed placeholders.
+            deciding = sum(score for score in scores if score is not None)
+            while len(rounds) > deciding and rounds[-1] is None:
+                rounds.pop()
+        winners[map_data.number - 1] = PushMapRounds(map_number=map_data.number, winners=rounds, scores=scores)
     return winners
 
 

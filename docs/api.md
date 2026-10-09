@@ -203,9 +203,17 @@ from `observed_at`: the inbound tracker field `pause.since` is that tracker's ow
 second and is never forwarded.
 
 The state also carries `map_round_winners`: one entry per map slot, in `map_winners` order,
-each naming the slot's 1-based `map_number` and its `winners`, holding each played round's
-winner as an index into `teams` (`0` or `1`), or `null` when a round has no winner. A map
-slot with no rounds has an empty `winners` list.
+each naming the slot's 1-based `map_number`, its `winners`, holding each played round's
+winner as an index into `teams` (`0` or `1`), or `null` when a round has no winner, and its
+`scores`, the map's per-team scores in `teams` order (`null` while a team's score is
+unknown, empty when the slot has no data). Positions are preserved, so a gap stays `null`
+instead of collapsing the list; a finished map's trailing unplayed rounds are dropped.
+Rounds come from VLR's rendered timeline as soon as it exists; a round VLR has not rendered
+yet is inferred from consecutive broadcast-tracker scores when exactly one team gained a
+round. A later VLR-rendered winner overrides an inferred one, and a corrected or lower
+verified score clears the rounds it disproves. A map slot with no rounds has an empty
+`winners` list. A team's series score is floored by its confirmed map wins, so a map win
+that VLR's top header has not caught up to is still reflected immediately.
 
 Favorite match `3141592653` on a test device, then `POST /api/v1/live-updates/test-match`
 with your API key to start a synthetic match. It updates each minute and ends on tick 6;

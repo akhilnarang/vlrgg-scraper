@@ -215,6 +215,9 @@ class PushMapRounds(BaseModel):
     winners: list[Literal[0, 1] | None] = Field(
         default_factory=list, description="Round winner as index into teams (0 or 1), or None if unrecorded"
     )
+    scores: list[int | None] = Field(
+        default_factory=list, description="Per-team score on this map in state teams order"
+    )
 
 
 class CompactState(BaseModel):

@@ -134,6 +134,7 @@ async def test_ingestion_pushes_new_round_before_vlr_history_catches_up():
     assert state.current_map is not None
     assert state.current_map.scores == [9, 5]
     assert state.map_round_winners[0].winners == [0] * 8 + [None] * 5 + [0]
+    assert state.map_round_winners[0].scores == [9, 5]
     assert (
         json.loads(values[constants.PUSH_DETAILS_KEY])["123"]["data"][0]["rounds"]
         == cached.model_dump(mode="json")["data"][0]["rounds"]
