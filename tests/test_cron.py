@@ -1006,7 +1006,9 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         ]
         assert [aps["event"] for aps in end_payloads] == ["update", "update", "end"]
         assert all("dismissal-date" not in aps for aps in end_payloads if aps["event"] == "update")
-        assert end_payloads[-1]["dismissal-date"] == end_payloads[-1]["timestamp"] + constants.APNS_DISMISSAL_SECONDS
+        # The final card stays the four hours ActivityKit allows; a shorter window hid the result from
+        # followers who checked their phone later.
+        assert end_payloads[-1]["dismissal-date"] == end_payloads[-1]["timestamp"] + 4 * 60 * 60
         end_teams = end_payloads[-1]["content-state"]["teams"]
         assert [(team["tag"], team["score"]) for team in end_teams] == [("ALP", 1), ("BET", 0)]
         assert [team["tag"] for team in json.loads(fcm_calls[5][0].data["state"])["teams"]] == ["ALP", "BET"]
