@@ -105,8 +105,8 @@ async def projection(client, source):
     resolved = await push.resolve_video_match(client, source)
     assert resolved is not None
     match_id, match, scores = resolved
-    await video_rounds.apply_history(client, match_id, match)
-    push.raise_map_scores(match, source.map_number, scores)
+    baselines = await video_rounds.apply_history(client, match_id, match)
+    push.raise_map_scores(match, source.map_number, scores, baselines.get(source.map_number))
     push.order_teams_for_broadcast(match, source)
     state = push.project_state(match_id, match, source)
     assert state is not None and state.current_map is not None
@@ -252,6 +252,50 @@ async def test_multi_round_jump_keeps_trailing_unknown_rounds():
     state = await projection(client, opening)
     assert state.current_map is not None
     assert state.current_map.scores == [3, 2]
+
+
+@pytest.mark.asyncio
+async def test_cross_team_score_split_cannot_merge_into_a_lead():
+    """VLR's 10-1 with a swapped tracker 1-10 must not merge into a 10-10 projection.
+
+    The old sum-of-both-teams check saw 11 rounds on each side and let the raise through, spending
+    each team's confirmed rounds on the other; the merged per-team lead is nine rounds, not zero.
+    """
+    now = int(time.time()) - 10
+    cached = detail((10, 1))
+    values = {constants.PUSH_DETAILS_KEY: json.dumps({"123": cached.model_dump(mode="json")})}
+    client = memory_redis(values)
+
+    swapped = video((1, 10), now)
+    resolved = await push.resolve_video_match(client, swapped)
+    assert resolved is not None
+    _, changed = await video_rounds.store_score(client, swapped, resolved)
+    assert changed is True
+
+    state = await projection(client, swapped)
+    assert state.current_map is not None
+    assert state.current_map.scores == [10, 1]
+
+
+@pytest.mark.asyncio
+async def test_video_raise_is_bounded_against_vlrs_unmutated_score():
+    """A history overlay's allowed raise must not let the video read ride it past the bound.
+
+    History at 5-1 is three rounds ahead of VLR's 2-1 and may stand, but the caller passes VLR's raw
+    2-1 alongside it so the newer 6-1 (four merged rounds ahead) is still refused.
+    """
+    now = int(time.time()) - 10
+    cached = detail((2, 1))
+    values = {constants.PUSH_DETAILS_KEY: json.dumps({"123": cached.model_dump(mode="json")})}
+    values[constants.VIDEO_ROUNDS_KEY.format("123", 1)] = video_rounds.VideoRounds(
+        observed_at=now - 1, scores={"1": 5, "2": 1}, winners=[None] * 6
+    ).model_dump_json()
+    values[constants.VIDEO_SCORE_KEY] = video((6, 1), now).model_dump_json()
+    client = memory_redis(values)
+
+    state = await projection(client, video((6, 1), now))
+    assert state.current_map is not None
+    assert state.current_map.scores == [5, 1]
 
 
 @pytest.mark.asyncio

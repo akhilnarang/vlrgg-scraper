@@ -32,12 +32,16 @@ def is_final(status: str | None) -> bool:
 def video_lead_plausible(vlr_scores: Iterable[int | None], video_scores: Iterable[int]) -> bool:
     """Check whether a tracker score leads VLR's confirmed rounds on a map by at most a few rounds.
 
+    Compare merged scores: the tracker's per-team score where it is ahead, VLR's where it is not, so a
+    swapped reading cannot spend one team's confirmed rounds on the other.
+
     :param vlr_scores: VLR's team scores for the map, None where VLR shows none.
-    :param video_scores: The tracker's team scores for the same map.
-    :return: True when VLR shows no rounds yet or the lead is within VIDEO_MAX_LEAD_ROUNDS.
+    :param video_scores: The tracker's team scores for the same map, in the same team order.
+    :return: True when VLR shows no rounds yet or the merged lead is within VIDEO_MAX_LEAD_ROUNDS.
     """
-    played = sum(score or 0 for score in vlr_scores)
-    return played == 0 or sum(video_scores) - played <= constants.VIDEO_MAX_LEAD_ROUNDS
+    vlr = [score or 0 for score in vlr_scores]
+    merged = [max(shown, video) for shown, video in zip(vlr, video_scores, strict=True)]
+    return sum(vlr) == 0 or sum(merged) - sum(vlr) <= constants.VIDEO_MAX_LEAD_ROUNDS
 
 
 def resolve_http_url(value: str | list[str] | None) -> str | None:

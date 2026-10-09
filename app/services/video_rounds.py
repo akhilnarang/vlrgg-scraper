@@ -147,16 +147,19 @@ async def store_score(
                 continue
 
 
-async def apply_history(client: Redis, match_id: str, detail: MatchWithDetails) -> None:
+async def apply_history(client: Redis, match_id: str, detail: MatchWithDetails) -> dict[int, list[int | None]]:
     """Overlay tracker winners on fetched or cached details without fetching VLR.
 
     :param client: Redis client.
     :param match_id: Match owning the stored round histories.
     :param detail: Details updated in place before push projection.
+    :return: Each map's scores before this overlay raised them, keyed by game number in map team order,
+        so a later :func:`push.raise_map_scores` can bound the video against VLR itself.
     """
+    baselines = {current_map.number: [team.score for team in current_map.teams] for current_map in detail.data}
     ids = _team_ids(detail)
     if not ids:
-        return
+        return baselines
     for current_map in detail.data:
         history = _read(await client.get(constants.VIDEO_ROUNDS_KEY.format(match_id, current_map.number)))
         if history is None or history.scores.keys() != set(ids.values()):
@@ -164,7 +167,10 @@ async def apply_history(client: Redis, match_id: str, detail: MatchWithDetails) 
         names = [ids.get(team.name.strip().casefold()) for team in current_map.teams]
         if len(names) != 2 or not all(names):
             continue
-        if not video_lead_plausible((team.score for team in current_map.teams), history.scores.values()):
+        # Order the history by the map's team order, so the merged check pairs each team with its own
+        # score, and compare it against VLR's unmutated scores rather than an earlier overlay's raise.
+        history_scores = [history.scores[team_id] for team_id in names if team_id is not None]
+        if not video_lead_plausible(baselines[current_map.number], history_scores):
             logger.warning(
                 "ignoring tracker history for match %s map %s: more than %s rounds ahead of VLR",
                 match_id,
@@ -198,3 +204,4 @@ async def apply_history(client: Redis, match_id: str, detail: MatchWithDetails) 
         if not is_final(detail.event.status):
             for team in current_map.teams:
                 team.score = max(team.score or 0, history.scores[ids[team.name.strip().casefold()]])
+    return baselines

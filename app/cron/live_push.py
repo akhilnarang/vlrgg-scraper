@@ -104,10 +104,10 @@ async def live_push_cron(ctx: dict) -> None:
                             # ending the match; the fetch may succeed on the next run.
                             logger.warning("could not read match %s: VLR returned %s", match_id, status)
                 else:
-                    await video_rounds.apply_history(client, match_id, detail)
+                    baselines = await video_rounds.apply_history(client, match_id, detail)
                     scores = video_match[2] if video_match is not None and video_match[0] == match_id else None
                     if video is not None and scores is not None:
-                        push.raise_map_scores(detail, video.map_number, scores)
+                        push.raise_map_scores(detail, video.map_number, scores, baselines.get(video.map_number))
                         push.order_teams_for_broadcast(detail, video)
                         # Without a stats panel the projection may still show the previous map.
                         represented = push.represents_video(detail, video, scores)
@@ -208,8 +208,8 @@ async def _deliver_video_match(
         await client.set(constants.PUSH_REFRESH_KEY.format(match_id), 1, ex=constants.PUSH_REFRESH_SECONDS)
     if not any(scores.values()):
         return  # at a map's 0-0 VLR still shows the last map, so the cron pushes until a round is won
-    await video_rounds.apply_history(client, match_id, detail)
-    push.raise_map_scores(detail, video.map_number, scores)
+    baselines = await video_rounds.apply_history(client, match_id, detail)
+    push.raise_map_scores(detail, video.map_number, scores, baselines.get(video.map_number))
     push.order_teams_for_broadcast(detail, video)
     fcm_app = fcm.get_app() if settings.GOOGLE_APPLICATION_CREDENTIALS else None
     if refresh:

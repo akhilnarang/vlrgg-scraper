@@ -3,6 +3,7 @@
 import json
 import logging
 import time
+from collections.abc import Sequence
 from typing import NamedTuple
 
 from redis.asyncio import Redis
@@ -307,17 +308,26 @@ def represents_video(detail: MatchWithDetails, video: VideoScore, scores: dict[s
     return all((shown := displayed.get(name)) is not None and shown >= score for name, score in scores.items())
 
 
-def raise_map_scores(detail: MatchWithDetails, map_number: int, scores: dict[str, int]) -> None:
+def raise_map_scores(
+    detail: MatchWithDetails,
+    map_number: int,
+    scores: dict[str, int],
+    baseline: Sequence[int | None] | None = None,
+) -> None:
     """Raise each team's score on a map to the video's where the video is ahead, so neither source lowers it.
 
     :param detail: Scraped match details, updated in place.
     :param map_number: The video's map, counted from 1.
     :param scores: Each team's video score keyed by casefolded VLR name, from :func:`video_team_scores`.
+    :param baseline: The map's scores before :func:`video_rounds.apply_history` raised them, in map team
+        order, so the lead is judged against VLR's confirmed rounds instead of the already-raised overlay.
     :return: None.
     """
     if (map_data := _map_with_number(detail, map_number)) is None:
         return
-    if not video_lead_plausible((team.score for team in map_data.teams), scores.values()):
+    vlr_scores = [team.score for team in map_data.teams] if baseline is None else list(baseline)
+    video_scores = [scores.get(team.name.strip().casefold(), 0) for team in map_data.teams]
+    if not video_lead_plausible(vlr_scores, video_scores):
         logger.warning(
             "ignoring video score %s on map %s: more than %s rounds ahead of VLR",
             scores,
