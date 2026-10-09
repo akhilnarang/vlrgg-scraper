@@ -186,7 +186,8 @@ registration token; there is no topic fanout and no topic fallback. The legacy
 released app versions show every message on those as a notification; those installs keep
 getting just that alert. A matching iOS favorite creates one APNs broadcast
 channel and one push-to-start request per client. A final state ends the Live
-Activity, which the system dismisses shortly after, and deletes the channel. A
+Activity, which stays on the Lock Screen with the final score for four hours (the
+most ActivityKit allows) before the system dismisses it, and deletes the channel. A
 tracked match is ended only by VLR fetch failures while VLR no longer lists it as
 live: a 404, or a 5xx on three consecutive runs. Parser errors never end a match,
 and a stored state with no play is dropped without a broadcast instead of

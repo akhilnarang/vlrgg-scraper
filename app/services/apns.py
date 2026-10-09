@@ -263,8 +263,8 @@ class APNsClient:
             "content-state": state.model_dump(mode="json"),
         }
         if terminal:
-            # Without a dismissal date an ended activity stays on the Lock Screen for up to four
-            # hours, long enough to sit beside a new activity if the match is registered again.
+            # The final card is the follower's only record of the result once the channel is gone,
+            # so it stays for the full window; a match with no play is dismissed at once instead.
             delay = 0 if immediate_dismissal else constants.APNS_DISMISSAL_SECONDS
             aps["dismissal-date"] = state.observed_at + delay
         response = await self.client.post(
