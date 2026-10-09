@@ -1165,7 +1165,8 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             and json.loads(request.content)["aps"]["content-state"]["match_id"] == "789"
         ][-1]
         assert apns_state["current_map"]["scores"] == [16, 9]
-        assert apns_state["map_round_winners"][0]["winners"] == [None] * 24 + [0]
+        # Only the first team scored past VLR's 13-9, so the score alone credits it rounds 23 to 25.
+        assert apns_state["map_round_winners"][0]["winners"] == [None] * 22 + [0, 0, 0]
         changed_state = json.loads(fcm_calls[pushed][0].data["state"])
         assert changed_state["map_round_winners"] == apns_state["map_round_winners"]
         ticks.pop(constants.PUSH_REFRESH_KEY.format("789"))

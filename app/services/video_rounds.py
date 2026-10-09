@@ -76,16 +76,18 @@ def _advance(history: VideoRounds | None, video: VideoScore, detail: MatchWithDe
         for number, team_id in rendered.items():
             if number <= len(winners) and (previous := winners[number - 1]) not in (None, team_id):
                 # VLR's rendered winner is authoritative over the tracker's inference: the round's
-                # point moves teams, so the next single-round gain is credited to the right team.
+                # point moves teams, so the next gain is credited to the right team.
                 baseline[previous] -= 1
                 baseline[team_id] += 1
                 winners[number - 1] = team_id
         differences = {team_id: score - baseline[team_id] for team_id, score in scores.items()}
     winners = winners[:count] + [None] * max(0, count - len(winners))
-    if sum(differences.values()) == 1:
-        winner = next((team_id for team_id, change in differences.items() if change == 1), None)
-        if winner is not None:
-            winners[count - 1] = winner
+    gained = [team_id for team_id, change in differences.items() if change > 0]
+    if len(gained) == 1 and min(differences.values()) >= 0:
+        # Only one team scored since the last verified reading, so every added round is theirs however
+        # many the broadcast skipped; rounds both teams added stay unknown, since their order is.
+        added = sum(differences.values())
+        winners[count - added : count] = [gained[0]] * added
     for number, team_id in rendered.items():
         # VLR's rendered winner is authoritative and also fills rounds the tracker never inferred.
         winners[number - 1] = team_id
@@ -128,7 +130,9 @@ async def store_score(
                     return previous, False
                 history = None
                 old_history = None
-                if key is not None and resolved is not None and video.healthy:
+                # The map-ending score is the tracker's last write for a map and carries the error
+                # status, since the tracker stops reading there; its final round still counts.
+                if key is not None and resolved is not None and (video.healthy or video.ends_map):
                     old_history = _read(await pipe.get(key))
                     history = _advance(old_history, video, resolved[1])
                     if history is None:
