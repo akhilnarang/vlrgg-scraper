@@ -1,6 +1,7 @@
 """Projection helpers for compact live-match push state."""
 
 import json
+import logging
 import time
 from typing import NamedTuple
 
@@ -29,7 +30,9 @@ from app.schemas.matches import (
     PushTeam,
     VideoScore,
 )
-from app.utils import is_final, is_live
+from app.utils import is_final, is_live, video_lead_plausible
+
+logger = logging.getLogger(__name__)
 
 
 class Routing(NamedTuple):
@@ -313,6 +316,14 @@ def raise_map_scores(detail: MatchWithDetails, map_number: int, scores: dict[str
     :return: None.
     """
     if (map_data := _map_with_number(detail, map_number)) is None:
+        return
+    if not video_lead_plausible((team.score for team in map_data.teams), scores.values()):
+        logger.warning(
+            "ignoring video score %s on map %s: more than %s rounds ahead of VLR",
+            scores,
+            map_number,
+            constants.VIDEO_MAX_LEAD_ROUNDS,
+        )
         return
     for team in map_data.teams:
         if (score := scores.get(team.name.strip().casefold())) is not None:

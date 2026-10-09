@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from datetime import datetime
 from urllib.parse import urljoin, urlparse, urlsplit
 from zoneinfo import ZoneInfo
@@ -26,6 +27,17 @@ def is_final(status: str | None) -> bool:
     :return: Whether the match is final.
     """
     return (status or "").strip().casefold() in constants.FINAL_STATUSES
+
+
+def video_lead_plausible(vlr_scores: Iterable[int | None], video_scores: Iterable[int]) -> bool:
+    """Check whether a tracker score leads VLR's confirmed rounds on a map by at most a few rounds.
+
+    :param vlr_scores: VLR's team scores for the map, None where VLR shows none.
+    :param video_scores: The tracker's team scores for the same map.
+    :return: True when VLR shows no rounds yet or the lead is within VIDEO_MAX_LEAD_ROUNDS.
+    """
+    played = sum(score or 0 for score in vlr_scores)
+    return played == 0 or sum(video_scores) - played <= constants.VIDEO_MAX_LEAD_ROUNDS
 
 
 def resolve_http_url(value: str | list[str] | None) -> str | None:

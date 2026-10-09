@@ -61,6 +61,7 @@ PUSH_DETAILS_KEY = "vlrgg:push:details"  # each tracked match's last fetched det
 PUSH_DETAILS_TTL = 3600
 VIDEO_SCORE_TTL = 3600  # keeps the last video score as VLR's floor through breaks between maps
 VIDEO_STALE_SECONDS = 90
+VIDEO_MAX_LEAD_ROUNDS = 3  # rounds the tracker may lead the rounds VLR shows on a map
 
 
 DEAD_TOKEN_REASONS = frozenset({"BadDeviceToken", "Unregistered", "ExpiredToken"})

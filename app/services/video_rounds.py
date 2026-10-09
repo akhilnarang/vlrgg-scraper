@@ -1,12 +1,16 @@
 """Persist round winners from consecutive verified broadcast scores."""
 
+import logging
+
 from pydantic import BaseModel, Field, ValidationError
 from redis.asyncio import Redis
 from redis.exceptions import WatchError
 
 from app import constants
 from app.schemas.matches import MatchWithDetails, Round, VideoScore
-from app.utils import is_final
+from app.utils import is_final, video_lead_plausible
+
+logger = logging.getLogger(__name__)
 
 
 class VideoRounds(BaseModel):
@@ -159,6 +163,14 @@ async def apply_history(client: Redis, match_id: str, detail: MatchWithDetails) 
             continue
         names = [ids.get(team.name.strip().casefold()) for team in current_map.teams]
         if len(names) != 2 or not all(names):
+            continue
+        if not video_lead_plausible((team.score for team in current_map.teams), history.scores.values()):
+            logger.warning(
+                "ignoring tracker history for match %s map %s: more than %s rounds ahead of VLR",
+                match_id,
+                current_map.number,
+                constants.VIDEO_MAX_LEAD_ROUNDS,
+            )
             continue
         existing = {item.round_number: item for item in current_map.rounds}
         final_count = sum(team.score or 0 for team in current_map.teams) if is_final(detail.event.status) else None

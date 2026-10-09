@@ -1145,7 +1145,8 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
 
         video["observed_at"] = int(time.time())
         video["status"] = "ok"
-        video["teams"][0]["score"], video["teams"][1]["score"] = 15, 14
+        # Within the tracker lead bound of VLR's 13-9 map, so the scores still advance the display.
+        video["teams"][0]["score"], video["teams"][1]["score"] = 15, 9
         pushed = len(fcm_calls)
         assert (await put_video()).status_code == 204
         assert len(fcm_calls) == pushed + 1
@@ -1163,8 +1164,8 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             if request.url.path.endswith("/broadcasts/apps/com.example.app")
             and json.loads(request.content)["aps"]["content-state"]["match_id"] == "789"
         ][-1]
-        assert apns_state["current_map"]["scores"] == [16, 14]
-        assert apns_state["map_round_winners"][0]["winners"] == [None] * 29 + [0]
+        assert apns_state["current_map"]["scores"] == [16, 9]
+        assert apns_state["map_round_winners"][0]["winners"] == [None] * 24 + [0]
         changed_state = json.loads(fcm_calls[pushed][0].data["state"])
         assert changed_state["map_round_winners"] == apns_state["map_round_winners"]
         ticks.pop(constants.PUSH_REFRESH_KEY.format("789"))

@@ -204,7 +204,11 @@ async def test_gaps_and_untrusted_reads_do_not_invent_round_winners():
 
 @pytest.mark.asyncio
 async def test_multi_round_jump_keeps_trailing_unknown_rounds():
-    """A leap to 4-1 fills rounds VLR knows and keeps rounds 4 and 5 null, not collapsed."""
+    """A leap to 4-1 fills rounds VLR knows and keeps rounds 4 and 5 null, not collapsed.
+
+    A reading more than a few rounds past VLR's confirmed 2-1 is refused by both the history
+    overlay and the score raise, while VLR's 0-0 still lets a normal tracker lead through.
+    """
     now = int(time.time()) - 10
     cached = detail(
         (2, 1),
@@ -229,6 +233,25 @@ async def test_multi_round_jump_keeps_trailing_unknown_rounds():
     assert state.current_map is not None
     assert state.current_map.scores == [4, 1]
     assert state.map_round_winners[0].winners == [0, 1, 0, None, None]
+
+    # A rogue leap far beyond VLR's confirmed rounds never reaches the projection: both
+    # apply_history and raise_map_scores refuse it, keeping VLR's score and rounds.
+    rogue = video((10, 10), now + 2)
+    await ingest(rogue)
+
+    state = await projection(client, rogue)
+    assert state.current_map is not None
+    assert state.current_map.scores == [2, 1]
+    assert state.map_round_winners[0].winners == [0, 1, 0]
+
+    # VLR's 0-0 confirms no rounds, so the tracker's normal lead is still applied.
+    values[constants.PUSH_DETAILS_KEY] = json.dumps({"123": detail().model_dump(mode="json")})
+    values.pop(constants.VIDEO_ROUNDS_KEY.format("123", 1))
+    opening = video((3, 2), now + 3)
+
+    state = await projection(client, opening)
+    assert state.current_map is not None
+    assert state.current_map.scores == [3, 2]
 
 
 @pytest.mark.asyncio
