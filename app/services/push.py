@@ -316,6 +316,9 @@ def raise_map_scores(
 ) -> None:
     """Raise each team's score on a map to the video's where the video is ahead, so neither source lowers it.
 
+    The lead is judged on the combined result of the history overlay and the video raise, so the two
+    sources' raises cannot stack past the bound.
+
     :param detail: Scraped match details, updated in place.
     :param map_number: The video's map, counted from 1.
     :param scores: Each team's video score keyed by casefolded VLR name, from :func:`video_team_scores`.
@@ -326,8 +329,8 @@ def raise_map_scores(
     if (map_data := _map_with_number(detail, map_number)) is None:
         return
     vlr_scores = [team.score for team in map_data.teams] if baseline is None else list(baseline)
-    video_scores = [scores.get(team.name.strip().casefold(), 0) for team in map_data.teams]
-    if not video_lead_plausible(vlr_scores, video_scores):
+    final_scores = [max(team.score or 0, scores.get(team.name.strip().casefold(), 0)) for team in map_data.teams]
+    if not video_lead_plausible(vlr_scores, final_scores):
         logger.warning(
             "ignoring video score %s on map %s: more than %s rounds ahead of VLR",
             scores,

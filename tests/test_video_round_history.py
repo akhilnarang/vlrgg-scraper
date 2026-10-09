@@ -299,6 +299,28 @@ async def test_video_raise_is_bounded_against_vlrs_unmutated_score():
 
 
 @pytest.mark.asyncio
+async def test_video_raise_is_bounded_against_the_combined_history_and_video_overlay():
+    """History's 2-4 and the video's 5-1 must not combine into a 5-4, six rounds past VLR's 2-1.
+
+    The history overlay is three rounds ahead of VLR and may stand, and the video's 5-1 is three
+    merged rounds ahead, but raising each team to its maximum would persist 5-4. The bound must
+    judge the combined result against VLR instead of either overlay alone.
+    """
+    now = int(time.time()) - 10
+    cached = detail((2, 1))
+    values = {constants.PUSH_DETAILS_KEY: json.dumps({"123": cached.model_dump(mode="json")})}
+    values[constants.VIDEO_ROUNDS_KEY.format("123", 1)] = video_rounds.VideoRounds(
+        observed_at=now - 1, scores={"1": 2, "2": 4}, winners=[None] * 6
+    ).model_dump_json()
+    values[constants.VIDEO_SCORE_KEY] = video((5, 1), now).model_dump_json()
+    client = memory_redis(values)
+
+    state = await projection(client, video((5, 1), now))
+    assert state.current_map is not None
+    assert state.current_map.scores == [2, 4]
+
+
+@pytest.mark.asyncio
 async def test_vlr_rendered_winner_reconciles_wrong_tracker_inference():
     """A VLR round winner replaces a wrong tracker inference instead of staying overwritten."""
     now = int(time.time()) - 10
