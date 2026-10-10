@@ -946,7 +946,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
     videos = {}
 
     def set_tick(key, value, nx=False, ex=None, get=False):
-        if key.startswith(("vlrgg:push:video", constants.PUSH_DETAILS_KEY)):
+        if key.startswith(("valesports:tracker:", constants.PUSH_DETAILS_KEY)):
             previous, videos[key] = videos.get(key), value
             return previous
         if nx and key in ticks:
@@ -1043,16 +1043,16 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         for failures in (1, None, 1):
             await live_push.live_push_cron({"redis": redis})
             assert await stored_match_ids() == ["123"]
-            assert ticks.get("vlrgg:push:fetch_failures:123") == failures
+            assert ticks.get("valesports:push:fetch_failures:123") == failures
             assert "123" in json.loads(videos[constants.PUSH_DETAILS_KEY])
         await live_push.live_push_cron({"redis": redis})
         assert await stored_match_ids() == ["123"]
-        assert ticks["vlrgg:push:fetch_failures:123"] == 2
+        assert ticks["valesports:push:fetch_failures:123"] == 2
         await live_push.live_push_cron({"redis": redis})
         assert await stored_match_ids() == []
         async with sessions() as session:
             assert await live_store.get_live_match(session, "123") is None
-        assert not [key for key in ticks if key.startswith("vlrgg:push:fetch_failures:")]
+        assert not [key for key in ticks if key.startswith("valesports:push:fetch_failures:")]
         assert match_by_id_mock.await_count == 10
         end_payloads = [
             json.loads(request.content)["aps"]

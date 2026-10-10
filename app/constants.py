@@ -44,20 +44,20 @@ NA = "n/a"  # VLR's navigation placeholder for a game that has no stats panel ye
 # Entity IDs as VLR names them: digits with no leading zero.
 ID_REGEX = r"^[1-9][0-9]{0,9}$"
 TEST_MATCH_ID = "3141592653"
-TEST_TICK_KEY = "vlrgg:push:test_tick"
+TEST_TICK_KEY = "valesports:push:test_tick"
 # A tracked match whose page fails this many cron runs in a row is ended (e.g. VLR blocked our IP).
 PUSH_FETCH_FAILURE_LIMIT = 3
-PUSH_FETCH_FAILURES_KEY = "vlrgg:push:fetch_failures:{}"
+PUSH_FETCH_FAILURES_KEY = "valesports:push:fetch_failures:{}"
 PUSH_FETCH_FAILURES_TTL = 600  # seconds; failures are consecutive per-minute runs
 # The live push cron fetches the VLR listing only while a cached match is live or starts within this lead.
 PUSH_LISTING_LEAD = timedelta(minutes=15)
-VIDEO_SCORE_KEY = "vlrgg:push:video_score"
-VIDEO_ROUNDS_KEY = "vlrgg:push:video_rounds:{}:{}"  # verified round history by match ID and map number
+VIDEO_SCORE_KEY = "valesports:tracker:score"
+VIDEO_ROUNDS_KEY = "valesports:tracker:rounds:{}:{}"  # verified round history by match ID and map number
 VIDEO_ROUNDS_TTL = 86400  # retain completed maps through long series and stream breaks
-VIDEO_DELIVERED_KEY = "vlrgg:push:video_delivered"
-PUSH_REFRESH_KEY = "vlrgg:push:refresh:{}"  # per-match cooldown for unchanged FCM refreshes
+VIDEO_DELIVERED_KEY = "valesports:tracker:delivered"
+PUSH_REFRESH_KEY = "valesports:push:refresh:{}"  # per-match cooldown for unchanged FCM refreshes
 PUSH_REFRESH_SECONDS = 60  # seconds between unchanged-state follower refreshes
-PUSH_DETAILS_KEY = "vlrgg:push:details"  # each tracked match's last fetched details, for video pushes
+PUSH_DETAILS_KEY = "valesports:vlr:details"  # each tracked match's last fetched details, for video pushes
 PUSH_DETAILS_TTL = 3600
 VIDEO_SCORE_TTL = 3600  # keeps the last video score as VLR's floor through breaks between maps
 VIDEO_STALE_SECONDS = 90
