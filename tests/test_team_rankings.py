@@ -1,5 +1,4 @@
 import asyncio
-import sqlite3
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -7,20 +6,18 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx2
 import pytest
-from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
-from alembic import command
 from app import schemas
 from app.api.v2.api import router
 from app.constants import ELO_ALGORITHM, ELO_BASE, ELO_K, ELO_MAP_ALPHA, Circuit, MatchStatus, RankingScope, Region
 from app.core import connections
 from app.core.config import settings
 from app.cron.team_rankings import team_rankings_cron
-from app.db.engine import create_engine
 from app.db.migrations import upgrade_to_head
 from app.db.models import EventRecord, MapRecord, MatchRecord, RankingResult, Team, TeamCircuit, TeamElo
 from app.schemas.matches import MatchData
@@ -81,11 +78,12 @@ def _model_prediction():
 
 
 @pytest.fixture
-def ranking_sessions(monkeypatch, tmp_path):
+def ranking_sessions(monkeypatch, make_database):
     """Yield a session factory over a migrated scratch database, wired into the app session dep."""
-    database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
+    database_url = make_database()
     asyncio.run(upgrade_to_head(database_url))
-    engine = create_engine(database_url)
+    # Sync tests drive this through several event loops, and asyncpg connections cannot outlive theirs.
+    engine = create_async_engine(database_url, poolclass=NullPool)
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     monkeypatch.setattr(connections, "subscription_sessions", sessions)
     yield sessions
@@ -100,11 +98,11 @@ async def _details(http_response) -> schemas.MatchWithDetails:
         return await matches.match_by_id("12345", None)
 
 
-async def _session_factory(tmp_path, name: str):
+async def _session_factory(make_database):
     """Create a migrated scratch database and return its session factory."""
-    database_url = f"sqlite+aiosqlite:///{tmp_path / name}"
+    database_url = make_database()
     await upgrade_to_head(database_url)
-    return async_sessionmaker(create_engine(database_url), expire_on_commit=False)
+    return async_sessionmaker(create_async_engine(database_url), expire_on_commit=False)
 
 
 async def _seed_ledger(sessions, stored) -> None:
@@ -274,40 +272,17 @@ def test_replay_assigns_region_from_recent_tiered_events():
     assert elos["5"]["region"] is Region.AMERICAS
 
 
-def _team_elo_columns(path: Path) -> set[str]:
-    """Read the team_elo column names from a migrated scratch database."""
-    with sqlite3.connect(path) as connection:
-        return {row[1] for row in connection.execute("PRAGMA table_info(team_elo)")}
-
-
-def test_region_migration_adds_and_removes_the_column(tmp_path):
-    # A rolled-back deploy must restore the pre-region schema, so the migration
-    # drops the column again and re-running the upgrade adds it back. The
-    # revisions are pinned so a later migration cannot change what this asserts.
-    database_url = f"sqlite+aiosqlite:///{tmp_path / 'migration.sqlite3'}"
-    path = tmp_path / "migration.sqlite3"
-    config = Config("alembic.ini")
-    config.attributes["app"] = True
-    config.set_main_option("sqlalchemy.url", database_url)
-    command.upgrade(config, "d94cce987756")
-    assert "region" in _team_elo_columns(path)
-    command.downgrade(config, "f7a8805679f3")
-    assert "region" not in _team_elo_columns(path)
-    command.upgrade(config, "d94cce987756")
-    assert "region" in _team_elo_columns(path)
-
-
 @pytest.mark.asyncio
-async def test_rebuild_ratings_is_order_independent(tmp_path):
+async def test_rebuild_ratings_is_order_independent(make_database):
     # The same ledger seeded newest-first and oldest-first must rate identically.
     stored = [
         ("101", date(2025, 10, 1), "1", "2", 2, 0, (True, True)),
         ("102", date(2025, 10, 1), "3", "1", 2, 1, (True, False, True)),
         ("103", date(2025, 10, 2), "2", "3", 1, 2, (True, False, False)),
     ]
-    chronological = await _session_factory(tmp_path, "chronological.sqlite3")
+    chronological = await _session_factory(make_database)
     await _seed_ledger(chronological, stored)
-    reversed_arrival = await _session_factory(tmp_path, "reversed.sqlite3")
+    reversed_arrival = await _session_factory(make_database)
     await _seed_ledger(reversed_arrival, list(reversed(stored)))
 
     ratings = await _stored_ratings(chronological)

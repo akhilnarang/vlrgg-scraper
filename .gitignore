@@ -10,3 +10,4 @@ __pycache__
 !app/locales/*.json
 db.sqlite3*
 backups/
+.s.PGSQL.*

@@ -37,6 +37,10 @@ variations that merely repeat the same contract.
 
 ## Commands
 
+Database tests create and drop a scratch database per test on the server at
+`TEST_DATABASE_URL` (default `postgresql:///postgres`, the local socket as the current
+user), so that role needs `CREATEDB`.
+
 ```bash
 uv run pytest -m "not live_golden and not live_health"
 uv run pytest -m live_health tests/live

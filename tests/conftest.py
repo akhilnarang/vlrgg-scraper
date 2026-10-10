@@ -1,12 +1,57 @@
-from concurrent.futures import Executor, Future
+import asyncio
+import os
+from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from unittest.mock import AsyncMock
+from uuid import uuid4
 
+import asyncpg
 import pytest
+from sqlalchemy.engine import make_url
 
 from app.exceptions import ScrapingError
 from tests.live_upstream import UPSTREAM_NETWORK_ERRORS, is_upstream_outage
 
 LIVE_MARKERS = ("live_golden", "live_health")
+# A server role allowed to create databases; each test gets a scratch database on it.
+TEST_DATABASE_URL = make_url(os.environ.get("TEST_DATABASE_URL", "postgresql:///postgres"))
+
+
+def _run_admin_sql(statement: str) -> None:
+    """Run one statement on the test server's maintenance database.
+
+    :param statement: SQL that cannot run inside a transaction, such as CREATE DATABASE.
+    :return: None.
+    """
+
+    async def run() -> None:
+        connection = await asyncpg.connect(TEST_DATABASE_URL.render_as_string(hide_password=False))
+        try:
+            await connection.execute(statement)
+        finally:
+            await connection.close()
+
+    # A thread of its own, because async tests call this from inside their event loop.
+    with ThreadPoolExecutor(1) as pool:
+        pool.submit(asyncio.run, run()).result()
+
+
+@pytest.fixture
+def make_database():
+    """Create empty scratch PostgreSQL databases, dropped after the test."""
+    names = []
+
+    def create() -> str:
+        name = f"vlrgg_test_{uuid4().hex}"
+        # template0, because template1 carries whatever the server's admin put in it.
+        _run_admin_sql(f'CREATE DATABASE "{name}" TEMPLATE template0')
+        names.append(name)
+        return TEST_DATABASE_URL.set(drivername="postgresql+asyncpg", database=name).render_as_string(
+            hide_password=False
+        )
+
+    yield create
+    for name in names:
+        _run_admin_sql(f'DROP DATABASE "{name}" WITH (FORCE)')
 
 
 @pytest.fixture

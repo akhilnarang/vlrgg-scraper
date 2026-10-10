@@ -31,7 +31,7 @@ consecutive failed fetches that end an unlisted match) are markers with side eff
 payload caches, so a purge leaves them alone.
 
 `valesports:vlr:details` has a durable fallback: the live push cron mirrors each tracked match's
-details into SQLite's `live_matches` table, so the video push still resolves a match after a
+details into the database's `live_matches` table, so the video push still resolves a match after a
 restart or an expired key. See
 [Database: Live-match fallback](database.md#live-match-fallback-live_matches).
 

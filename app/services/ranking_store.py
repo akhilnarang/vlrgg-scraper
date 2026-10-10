@@ -7,7 +7,7 @@ from datetime import date
 from typing import cast
 
 from sqlalchemy import and_, case, delete, func, or_, select
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.constants import Circuit, RankingScope
