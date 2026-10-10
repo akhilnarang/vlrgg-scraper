@@ -201,6 +201,10 @@ async def test_gaps_and_untrusted_reads_do_not_invent_round_winners():
     await ingest(source)
     assert (await projection(client, source)).map_round_winners[0].winners == [0, None, None, None, 1]
 
+    # A misread can look map-ending too: an error read far past the verified 3-2 credits nobody.
+    await ingest(video((13, 2), now + 4, status="error"))
+    assert (await projection(client, source)).map_round_winners[0].winners == [0, None, None, None, 1]
+
     # The tracker stops reading on the map-ending score, so that score only ever arrives with the
     # error status; its round must still be recorded, or the bars show one round fewer than 13-2.
     await ingest(video((12, 2), now + 4))

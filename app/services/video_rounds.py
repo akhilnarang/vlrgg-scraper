@@ -1,6 +1,7 @@
 """Persist round winners from consecutive verified broadcast scores."""
 
 import logging
+import time
 
 from pydantic import BaseModel, Field, ValidationError
 from redis.asyncio import Redis
@@ -103,6 +104,26 @@ def _advance(history: VideoRounds | None, video: VideoScore, detail: MatchWithDe
     return VideoRounds(observed_at=video.observed_at, scores=scores, winners=winners)
 
 
+def _closes_map(history: VideoRounds | None, video: VideoScore) -> bool:
+    """Check whether an untrusted read is the tracker's map-ending score, a few rounds past the verified history.
+
+    The tracker stops reading a map on its final score, so that score arrives with the ``error`` status.
+    A misread can look map-ending too, so only a fresh read close to the last verified score counts.
+
+    :param history: Verified round history for the map, if any.
+    :param video: Incoming tracker observation.
+    :return: True when the read may advance the history although it is not healthy.
+    """
+    return (
+        video.ends_map
+        and history is not None
+        and 0 <= time.time() - video.observed_at <= constants.VIDEO_STALE_SECONDS
+        and 0
+        < sum(team.score for team in video.teams) - sum(history.scores.values())
+        <= constants.VIDEO_MAX_LEAD_ROUNDS
+    )
+
+
 async def store_score(
     client: Redis,
     video: VideoScore,
@@ -130,14 +151,13 @@ async def store_score(
                     return previous, False
                 history = None
                 old_history = None
-                # The map-ending score is the tracker's last write for a map and carries the error
-                # status, since the tracker stops reading there; its final round still counts.
                 if key is not None and resolved is not None and (video.healthy or video.ends_map):
                     old_history = _read(await pipe.get(key))
-                    history = _advance(old_history, video, resolved[1])
-                    if history is None:
-                        await pipe.unwatch()
-                        return previous, False
+                    if video.healthy or _closes_map(old_history, video):
+                        history = _advance(old_history, video, resolved[1])
+                        if history is None:
+                            await pipe.unwatch()
+                            return previous, False
                 changed = previous is None or not previous.same_score(video)
                 if history is not None:
                     changed = changed or old_history is None or history.winners != old_history.winners

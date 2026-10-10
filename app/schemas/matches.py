@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field, HttpUrl, ValidationError, computed_field,
 from app import i18n
 from app.constants import (
     LIVE_STATUSES,
-    MAP_WIN_ROUNDS,
     MAX_FAVORITES_PER_GROUP,
     MAX_TOKEN_LENGTH,
     VIDEO_STALE_SECONDS,
@@ -19,6 +18,7 @@ from app.constants import (
     VideoPauseKind,
     VideoStatus,
 )
+from app.utils import map_won
 
 
 class Team(BaseModel):
@@ -357,8 +357,7 @@ class VideoScore(BaseModel):
 
         :return: True when a team has won the map.
         """
-        first, second = (team.score for team in self.teams)
-        return max(first, second) >= MAP_WIN_ROUNDS and abs(first - second) >= 2
+        return map_won(*(team.score for team in self.teams))
 
 
 class VideoDelivery(BaseModel):
