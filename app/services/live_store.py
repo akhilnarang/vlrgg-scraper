@@ -1,9 +1,9 @@
-"""SQLite store for a live match's VLR details and tracker score. Never commits; the caller owns the transaction."""
+"""Store for a live match's VLR details and tracker score. Never commits; the caller owns the transaction."""
 
 import time
 
 from sqlalchemy import delete, select, update
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import LiveMatchRecord

@@ -1,7 +1,7 @@
-"""Minimal SQLite store for push tokens, favorites, and match channels."""
+"""Minimal store for push tokens, favorites, and match channels."""
 
 from sqlalchemy import delete, exists, or_, select, tuple_
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import constants

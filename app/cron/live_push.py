@@ -179,7 +179,7 @@ async def _deliver_video_match(
 ) -> None:
     """Deliver the match the tracker resolves to, immediately or as a rate-limited refresh.
 
-    The match's details come from the Redis cache, or from their SQLite copy when the cache is cold or no
+    The match's details come from the Redis cache, or from their database copy when the cache is cold or no
     longer holds the match, so a restart or expiry doesn't silence the video.
 
     :param sessions: Database session factory.
@@ -195,7 +195,7 @@ async def _deliver_video_match(
         async with sessions.begin() as session:
             await live_store.upsert_live_video(session, match_id, video.model_dump(mode="json"), int(time.time()))
     except SQLAlchemyError:
-        # The SQLite copy is only the video push's fallback; losing it must not block this delivery.
+        # The database copy is only the video push's fallback; losing it must not block this delivery.
         logger.warning("could not store video score for match %s", match_id, exc_info=True)
     if refresh:
         # Rate-limit unchanged re-sends to at most once per refresh window.
@@ -244,7 +244,7 @@ async def _cache_details(
 
     A failed fetch keeps the previous details, so a VLR outage doesn't silence the video. Finished matches and
     matches this run no longer tracks are dropped from Redis, so the video can't be matched to them; their
-    SQLite copies outlive the Redis cache so the video push can still end a just-finished match.
+    Database copies outlive the Redis cache so the video push can still end a just-finished match.
 
     :param client: Redis client.
     :param sessions: Database session factory.
@@ -277,7 +277,7 @@ async def _cache_details(
             for match_id, payload in fetched:
                 await live_store.upsert_live_detail(session, match_id, payload, int(time.time()))
     except SQLAlchemyError:
-        # The SQLite copy is the video push's fallback; losing it must not fail the cron after its Redis write.
+        # The database copy is the video push's fallback; losing it must not fail the cron after its Redis write.
         logger.warning("could not store live match details", exc_info=True)
 
 
@@ -416,7 +416,7 @@ async def _push_match(
     if row is None and listed_live:
         # Keep a row so the match gets a final pass after it leaves the live listing.
         await store.save_match(match_id, None, None)
-        await session.commit()  # release the SQLite write lock before any provider call
+        await session.commit()  # end the transaction before any provider call
     routing = push.routing_ids(match_id, detail)
     tokens = await store.live_android_tokens(routing) if fcm_app is not None else []
     await session.commit()  # finish the token read before the provider send
@@ -446,7 +446,7 @@ async def _push_match(
 
 
 async def _delete_live_copy(session: AsyncSession, match_id: str) -> None:
-    """Retire, then delete, a match's optional SQLite live copy, each in a transaction of its own.
+    """Retire, then delete, a match's optional database live copy, each in a transaction of its own.
 
     Retirement is committed first, so a failed deletion cannot leave the match's still-live details
     for the video push's fallback to resolve and resurrect it.
@@ -517,7 +517,7 @@ async def _end_unavailable_match(
             logger.warning("dropping match %s without a final push: its last state has no play", match_id)
             channel_id = row.channel_id
             await store.delete_match(match_id)
-            await session.commit()  # release the SQLite write lock before the APNs call
+            await session.commit()  # end the transaction before the APNs call
             await _delete_live_copy(session, match_id)
             if channel_id:
                 # End the activity now, so the scoreless pre-match card does not linger on the screen.
@@ -621,7 +621,7 @@ async def _push_apns(
         # The start payload carries the current state, so it counts as sent.
         last_state = state.semantic()
         await store.save_match(state.match_id, channel_id, last_state)
-        await session.commit()  # release the SQLite write lock before the provider calls
+        await session.commit()  # end the transaction before the provider calls
     if channel_id is None:
         return True
 
@@ -669,5 +669,5 @@ async def _start_activity(
     except APNsError as exc:
         if exc.reason in _DEAD_TOKEN_REASONS:
             await store.clear_token(token)
-            await session.commit()  # release the write lock before the next provider call
+            await session.commit()  # end the transaction before the next provider call
         logger.warning("APNs start failed for match %s: %s", state.match_id, exc.reason)

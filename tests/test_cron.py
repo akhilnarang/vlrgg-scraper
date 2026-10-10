@@ -1,9 +1,7 @@
 import asyncio
 import json
 import logging
-import sqlite3
 import time
-from contextlib import closing
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import DEFAULT, AsyncMock, patch
@@ -17,7 +15,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from app import constants
 from app.constants import TEST_MATCH_ID, MatchStatus, Platform
 from app.cron import legacy_fcm, live_push, worker
-from app.db.models import LiveActivityStart
+from app.db.models import LiveActivityStart, MatchPushState
 from app.exceptions import ScrapingError
 from app.schemas.matches import Favorites
 
@@ -277,17 +275,18 @@ async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_final_video_owned_match_gets_terminal_push_and_cleanup(monkeypatch, tmp_path):
+async def test_final_video_owned_match_gets_terminal_push_and_cleanup(monkeypatch, make_database):
     """A video-owned match VLR marks final still gets the cron's terminal push and state cleanup."""
+    from sqlalchemy.ext.asyncio import create_async_engine
+
     from app.core import connections
-    from app.db.engine import create_engine
     from app.db.migrations import upgrade_to_head
     from app.services import live_store, push
     from app.services.subscription_store import SubscriptionStore
 
-    database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
+    database_url = make_database()
     await upgrade_to_head(database_url)
-    engine = create_engine(database_url)
+    engine = create_async_engine(database_url)
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     android_id = "22222222-2222-4222-8222-222222222222"
     stale = _live_detail("live", (1, 0))
@@ -345,18 +344,19 @@ async def test_final_video_owned_match_gets_terminal_push_and_cleanup(monkeypatc
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("page_gone", [False, True], ids=["terminal-fetch", "page-gone"])
-async def test_failed_live_copy_cleanup_keeps_push_state_deleted(monkeypatch, tmp_path, page_gone):
+async def test_failed_live_copy_cleanup_keeps_push_state_deleted(monkeypatch, make_database, page_gone):
     """An aborted live-copy cleanup must keep the push-state deletion committed and the match unresolvable."""
+    from sqlalchemy.ext.asyncio import create_async_engine
+
     from app.core import connections
-    from app.db.engine import create_engine
     from app.db.migrations import upgrade_to_head
     from app.schemas.matches import CompactState, PushTeam, VideoScore
     from app.services import live_store, push
     from app.services.subscription_store import SubscriptionStore
 
-    database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
+    database_url = make_database()
     await upgrade_to_head(database_url)
-    engine = create_engine(database_url)
+    engine = create_async_engine(database_url)
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     android_id = "22222222-2222-4222-8222-222222222222"
     final = _live_detail("completed", (1, 0))
@@ -420,8 +420,8 @@ async def test_failed_live_copy_cleanup_keeps_push_state_deleted(monkeypatch, tm
 
         assert [state.terminal for state in sent] == [True]
         # The committed deletion is durable even though the live copy's cleanup was rolled back.
-        with closing(sqlite3.connect(tmp_path / "db.sqlite3")) as db:
-            assert db.execute("SELECT match_id FROM match_push_states").fetchall() == []
+        async with sessions() as session:
+            assert (await session.scalars(select(MatchPushState.match_id))).all() == []
         async with sessions() as session:
             surviving = await live_store.get_live_match(session, "123")
         # The failed deletion left the row, but its details were retired first, so nothing can resolve it.
@@ -808,20 +808,20 @@ async def test_direct_delivery_failures_propagate_to_the_delivered_guard(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_path, caplog):
+async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_path, caplog, make_database):
     import httpx2
     from firebase_admin import messaging
+    from sqlalchemy.ext.asyncio import create_async_engine
 
     from app.core import connections
-    from app.db.engine import create_engine
     from app.db.migrations import upgrade_to_head
     from app.services import apns as apns_service
     from app.services import live_store
     from app.services.subscription_store import SubscriptionStore
 
-    database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
+    database_url = make_database()
     await upgrade_to_head(database_url)
-    engine = create_engine(database_url)
+    engine = create_async_engine(database_url)
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     client_id = "11111111-1111-4111-8111-111111111111"
     async with sessions.begin() as session:
@@ -883,25 +883,12 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
 
     requests = []
     started_before_send = []
-    blocked_during_channel_create = []
-    blocked_during_end = []
     in_transaction_during_apns = []
-
-    def write_lock_held() -> bool:
-        """Whether another connection holds the database's write lock right now."""
-        try:
-            with closing(sqlite3.connect(tmp_path / "db.sqlite3", timeout=0.1, isolation_level=None)) as db:
-                db.execute("BEGIN IMMEDIATE")
-                db.rollback()
-            return False
-        except sqlite3.OperationalError:
-            return True
 
     async def handler(request):
         requests.append(request)
         in_transaction_during_apns.append(session_in_transaction())
         if request.method == "POST" and request.url.path.endswith("/channels"):
-            blocked_during_channel_create.append(write_lock_held())
             return httpx2.Response(201, headers={"apns-channel-id": "channel-123"})
         if "/3/device/" in request.url.path:
             match_id = json.loads(request.content)["aps"]["attributes"]["match_id"]
@@ -913,8 +900,6 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
                     )
                 )
             started_before_send.append(started is not None)
-        elif request.method == "DELETE" or "/broadcasts/" in request.url.path:
-            blocked_during_end.append(write_lock_held())
         return httpx2.Response(200)
 
     credentials = apns_service.APNsCredentials(
@@ -1070,8 +1055,6 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert any(request.method == "DELETE" for request in requests)
         assert len(fcm_calls) == 6
         assert json.loads(fcm_calls[5][0].data["state"])["terminal"] is True
-        # The APNs end broadcast and channel deletion must not run while the cron holds the write lock.
-        assert blocked_during_end and not any(blocked_during_end)
         # No APNs request may start while the app still has a database transaction open.
         assert in_transaction_during_apns and not any(in_transaction_during_apns)
 
@@ -1105,7 +1088,6 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         assert all(r.url.path.endswith("/aabb") for r in requests if "/3/device/" in r.url.path)
         assert started_before_send == [True, True]
         assert all(message.token == "fcm-token:APA91b" for call in fcm_calls for message in call)
-        assert blocked_during_channel_create == [False, False]
         starts = [r for r in requests if "/3/device/" in r.url.path]
         assert starts and all(int(r.headers["apns-expiration"]) > time.time() + 300 for r in starts)
         channels = [r for r in requests if r.method == "POST" and r.url.path.endswith("/channels")]

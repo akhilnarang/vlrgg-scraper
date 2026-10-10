@@ -5,7 +5,6 @@ import asyncio
 from alembic.config import Config
 
 from alembic import command
-from app.db.engine import ensure_database_directory
 
 
 async def upgrade_to_head(database_url: str) -> None:
@@ -14,7 +13,6 @@ async def upgrade_to_head(database_url: str) -> None:
     :param database_url: SQLAlchemy database URL.
     :return: None.
     """
-    ensure_database_directory(database_url)
 
     def upgrade() -> None:
         """Run synchronous Alembic migration in the worker thread.
