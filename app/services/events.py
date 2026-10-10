@@ -322,7 +322,22 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
         case _:
             event["status"] = constants.EventStatus.UNKNOWN
 
-    event["standings"] = parse_event_standings(soup.find("div", class_="event-container"))
+    # The overview shows only the active stage, which for a finished event is the
+    # playoffs bracket. Group and Swiss tables live on the other stage pages.
+    active_stage = soup.select_one("a.wf-subnav-item.mod-active div.wf-subnav-item-title")
+    standings = parse_event_standings(
+        soup.find("div", class_="event-container"),
+        clean_string(active_stage.get_text()) if active_stage else None,
+    )
+    if stage_pages := parse_stage_pages(soup, id):
+        async with get_http_client() as client:
+            responses = await asyncio.gather(*(client.get(url) for _, url in stage_pages))
+        for (stage, _), stage_response in zip(stage_pages, responses, strict=True):
+            if stage_response.status_code != http.HTTPStatus.OK:
+                raise ScrapingError(url=str(stage_response.url), upstream_status=stage_response.status_code)
+            stage_soup = BeautifulSoup(stage_response.content, "lxml")
+            standings.extend(parse_event_standings(stage_soup.find("div", class_="event-container"), stage))
+    event["standings"] = standings
 
     # Populate cache if enabled and client provided
     if settings.ENABLE_ID_MAPPING and cache_client:
@@ -531,7 +546,32 @@ def parse_team_data(team_data: Tag) -> list[dict[str, str]]:
     return participants
 
 
-def parse_event_standings(data: Tag | None) -> list[dict[str, str | int]]:
+def parse_stage_pages(soup: BeautifulSoup, event_id: str) -> list[tuple[str, str]]:
+    """
+    Find the event's stage pages that the overview does not show
+
+    :param soup: The parsed event overview page
+    :param event_id: The ID of the event
+    :return: ``(stage title, URL)`` for each inactive stage
+    """
+    stages = []
+    for link in soup.select("a.wf-subnav-item"):
+        href = get_href(link.get("href") or "")
+        title = link.find("div", class_="wf-subnav-item-title")
+        if "mod-active" not in (link.get("class") or []) and title and href.startswith(f"/event/{event_id}/"):
+            stages.append((clean_string(title.get_text()), f"{constants.PREFIX}{href}"))
+    return stages
+
+
+def parse_event_standings(data: Tag | None, stage: str | None = None) -> list[dict[str, str | int]]:
+    """
+    Parse the group or Swiss tables of one event stage page
+
+    :param data: The page's ``event-container``
+    :param stage: The stage title, used as the group name for unnamed tables
+    :return: One standing per team row
+    """
+
     def get_team_and_country(columns: list[Tag]) -> tuple[str, str, int | None]:
         """Extract team, country, and the team column index across layout variants."""
         for index, column in enumerate(columns):
@@ -554,6 +594,13 @@ def parse_event_standings(data: Tag | None) -> list[dict[str, str | int]]:
             return 0, 0
         return int(numbers[0]), int(numbers[1])
 
+    def parse_difference(value: str) -> int | float:
+        # VLR shows won/lost pairs ("10/2"); older tables showed the signed difference.
+        if "/" in value:
+            won, lost = parse_record(value)
+            return won - lost
+        return clean_number_string(value)
+
     def parse_row(row: Tag, group: str | None = None) -> dict[str, str | int] | None:
         columns = row.find_all("td")
         img_tag = row.find("img")
@@ -571,15 +618,15 @@ def parse_event_standings(data: Tag | None) -> list[dict[str, str | int]]:
         if len(stats) == 4:
             wins, losses = parse_record(clean_string(stats[0].get_text()))
             ties = 0
-            map_difference = clean_number_string(stats[1].get_text())
-            round_difference = clean_number_string(stats[2].get_text())
+            map_difference = parse_difference(clean_string(stats[1].get_text()))
+            round_difference = parse_difference(clean_string(stats[2].get_text()))
             round_delta = clean_number_string(stats[3].get_text())
         elif len(stats) >= 6:
             wins = clean_number_string(stats[0].get_text())
             losses = clean_number_string(stats[1].get_text())
             ties = clean_number_string(stats[2].get_text())
-            map_difference = clean_number_string(stats[3].get_text())
-            round_difference = clean_number_string(stats[4].get_text())
+            map_difference = parse_difference(clean_string(stats[3].get_text()))
+            round_difference = parse_difference(clean_string(stats[4].get_text()))
             round_delta = clean_number_string(stats[5].get_text())
         else:
             logger.warning("Unexpected VLR standings row with %d stat columns; skipping", len(stats))
@@ -612,10 +659,8 @@ def parse_event_standings(data: Tag | None) -> list[dict[str, str | int]]:
         return event_standings
 
     for table in tables:
-        group = None
-        if event_groups:
-            group_header = table.find("thead")
-            group = clean_string(group_header.get_text()) if group_header else ""
+        title = table.find("th", class_="mod-title")
+        group = (clean_string(title.get_text()) if title else "") or stage
         if not (table_body := table.find("tbody")):
             continue
         for row in table_body.find_all("tr"):

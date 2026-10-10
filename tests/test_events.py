@@ -37,14 +37,15 @@ async def test_event_list_does_not_return_partial_results(http_get):
 
 
 @pytest.mark.asyncio
-async def test_event_details_follow_the_current_public_contract(http_response):
-    event_response = http_response(
-        "https://www.vlr.gg/event/2863",
-        (FIXTURE_DIR / "event_2863.html").read_bytes(),
-    )
-    matches_response = http_response("https://www.vlr.gg/event/matches/2863", b"<html><body></body></html>")
+async def test_event_details_follow_the_current_public_contract(http_get):
+    pages = {
+        "https://www.vlr.gg/event/2863": (FIXTURE_DIR / "event_2863.html").read_bytes(),
+        "https://www.vlr.gg/event/2863/vct-2026-emea-stage-1/group-stage": (
+            FIXTURE_DIR / "event_2863_group_stage.html"
+        ).read_bytes(),
+    }
 
-    with patch("httpx2.AsyncClient.get", side_effect=[event_response, matches_response]):
+    with patch("httpx2.AsyncClient.get", side_effect=http_get(pages)):
         result = await events.get_event_by_id("2863")
 
     assert result.id == "2863"
@@ -57,4 +58,13 @@ async def test_event_details_follow_the_current_public_contract(http_response):
     assert first_prize.team is not None
     assert (first_prize.position, first_prize.team.name) == ("1st", "Team Heretics")
     assert (result.teams[0].name, result.teams[0].seed) == ("FUT Esports", "Alpha #1")
-    assert result.standings == []
+    # The overview shows the playoffs bracket; standings come from the group stage page.
+    alpha_leader = result.standings[0]
+    assert (alpha_leader.team, alpha_leader.group, alpha_leader.wins, alpha_leader.losses) == (
+        "FUT Esports",
+        "Group Alpha",
+        4,
+        1,
+    )
+    assert (alpha_leader.map_difference, alpha_leader.round_difference, alpha_leader.round_delta) == (3, 13, 13)
+    assert {standing.group for standing in result.standings} == {"Group Alpha", "Group Omega"}
