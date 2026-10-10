@@ -254,9 +254,9 @@ def resolve_video_match_in(
 async def resolve_video_match_with_fallback(
     client: Redis, video: VideoScore
 ) -> tuple[str, MatchWithDetails, dict[str, int]] | None:
-    """Find the match matching the stored video score, from the cache or its stored SQLite details.
+    """Find the match matching the stored video score, from the cache or its stored database details.
 
-    The SQLite details outlive the Redis cache, so a restart still resolves the match and its round
+    The database details outlive the Redis cache, so a restart still resolves the match and its round
     history advances instead of losing the new winners.
 
     :param client: Redis client.

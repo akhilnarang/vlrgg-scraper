@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str
 
-    DATABASE_URL: str = "sqlite+aiosqlite:///db.sqlite3"
+    DATABASE_URL: str = "postgresql+asyncpg:///vlrgg"
 
     ENABLE_CACHE: bool = False
     ENABLE_ID_MAPPING: bool = False

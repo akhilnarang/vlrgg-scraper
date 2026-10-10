@@ -30,11 +30,10 @@ from pathlib import Path
 import httpx2
 from PIL import Image
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.constants import IdMapKind
 from app.core.config import settings
-from app.db.engine import create_engine
 from app.db.models import IdMapping, Team
 from app.services import scrape_store
 
@@ -131,7 +130,7 @@ async def main() -> None:
     output = Path(sys.argv[1] if len(sys.argv) > 1 else "team-assets")
     cdn_base_url = (sys.argv[2] if len(sys.argv) > 2 else DEFAULT_CDN_BASE_URL).rstrip("/")
     (output / "teams").mkdir(parents=True, exist_ok=True)
-    engine = create_engine(settings.DATABASE_URL)
+    engine = create_async_engine(settings.DATABASE_URL)
     sessions = async_sessionmaker(engine)
     async with sessions() as session:
         tags, names = await vlr_indexes(session)

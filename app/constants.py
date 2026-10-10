@@ -108,7 +108,7 @@ FINAL_STATUSES = frozenset(
 
 
 class FavoriteType(StrEnum):
-    """Favorite entity types stored as plain strings in SQLite."""
+    """Favorite entity types stored as plain strings in the database."""
 
     MATCH = "match"
     EVENT = "event"

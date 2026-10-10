@@ -4,14 +4,13 @@ from unittest.mock import AsyncMock
 import httpx2
 import pytest
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app import schemas
 from app.api import deps
 from app.api.v1.endpoints.favorites import router
 from app.core import connections
 from app.cron import favorite_players
-from app.db.engine import create_engine
 from app.db.migrations import upgrade_to_head
 from app.schemas.matches import Favorites
 from app.schemas.player import PlayerTeam
@@ -35,10 +34,10 @@ def _match(match_id, team1, team2, status="upcoming", hours=0.0, event_id="999")
 
 
 @pytest.mark.asyncio
-async def test_favorite_matches_follow_teams_players_events_and_matches(monkeypatch, tmp_path):
-    database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
+async def test_favorite_matches_follow_teams_players_events_and_matches(monkeypatch, make_database):
+    database_url = make_database()
     await upgrade_to_head(database_url)
-    engine = create_engine(database_url)
+    engine = create_async_engine(database_url)
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     monkeypatch.setattr(connections, "subscription_sessions", sessions)
     async with sessions.begin() as session:

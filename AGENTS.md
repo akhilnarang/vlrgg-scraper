@@ -17,7 +17,7 @@
   provider clients in `app/services/`, cron handlers in `app/cron/`.
 - Transactions belong to the caller: the request's session dependency, or one
   session per match in a cron. Stores never commit. Commit before calling APNs,
-  FCM, or VLR so the SQLite write lock is never held across network I/O.
+  FCM, or VLR so no transaction or row lock is held across network I/O.
 - Log through a module logger (`logger = logging.getLogger(__name__)`). Fix lint
   findings in touched code instead of adding `# noqa`.
 - Inline single-use variables.

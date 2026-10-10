@@ -1,10 +1,10 @@
-"""Translate scraped VLR entities to and from SQLite rows. Never commits; the caller owns the transaction."""
+"""Translate scraped VLR entities to and from database rows. Never commits; the caller owns the transaction."""
 
 import time
 from collections.abc import Iterable
 
 from sqlalchemy import func, select
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import schemas

@@ -3,10 +3,10 @@
 from datetime import date
 
 from sqlalchemy import Enum, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.constants import ELO_BASE, Circuit, Platform, RankingScope, Region
-from app.db.types import JSONB
 
 
 class Base(DeclarativeBase):
@@ -63,9 +63,9 @@ class LiveMatchRecord(Base):
     __tablename__ = "live_matches"
 
     match_id: Mapped[str] = mapped_column(String(10), primary_key=True)
-    detail: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    detail: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
     detail_fetched_at: Mapped[int | None] = mapped_column(nullable=True)
-    video: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    video: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
     video_received_at: Mapped[int | None] = mapped_column(nullable=True)
     updated_at: Mapped[int] = mapped_column()
 
@@ -91,7 +91,7 @@ class Player(Base):
     name: Mapped[str | None] = mapped_column(Text, nullable=True)
     team_id: Mapped[str | None] = mapped_column(String(10), nullable=True)
     country: Mapped[str | None] = mapped_column(Text, nullable=True)
-    payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    payload: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
     first_seen_at: Mapped[int] = mapped_column()
     last_fetched_at: Mapped[int] = mapped_column()
 

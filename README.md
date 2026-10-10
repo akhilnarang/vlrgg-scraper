@@ -30,6 +30,7 @@ The running server documents every endpoint at `/docs` (Swagger UI), `/redoc`, a
 
 - Python 3.14+
 - [uv](https://astral.sh/uv) for dependency management
+- PostgreSQL 16+ (the app, and the tests' scratch databases)
 
 ### Installation
 
@@ -71,13 +72,15 @@ Environment variables (see `app/core/config.py`):
 - `ENABLE_ID_MAPPING`: Resolve team and event IDs in match lists through Redis; requires `ENABLE_CACHE`, and enables the favorites endpoint and players cron (default `false`)
 - `ENABLE_LIVE_PUSH`: Enable the live push cron and client endpoints (default `false`)
 - `APNS_CREDENTIALS_FILE`: Path to the APNs credential JSON file
-- `DATABASE_URL`: SQLite database (default `sqlite+aiosqlite:///db.sqlite3`)
+- `DATABASE_URL`: PostgreSQL database (default `postgresql+asyncpg:///vlrgg`, the local socket as the current user)
 - `INTERNAL_API_KEY`: API key for internal endpoints
 - `TIMEZONE`: Server timezone
 - `GOOGLE_APPLICATION_CREDENTIALS`: Path to Firebase credentials (for notifications)
 
-Startup applies the Alembic migrations automatically. Run
-`uv run scripts/backup.py [backup-path]` for an online SQLite backup.
+Startup applies the Alembic migrations automatically. Back up with
+`pg_dump -Fc vlrgg > backups/vlrgg-$(date -u +%Y%m%dT%H%M%SZ).dump`.
+See [docs/postgres.md](docs/postgres.md) for server setup, the SQLite cutover,
+and read-only access for contributors.
 
 ## Deployment
 

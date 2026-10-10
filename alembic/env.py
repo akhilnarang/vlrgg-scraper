@@ -1,9 +1,9 @@
-"""Alembic environment for the async SQLite subscription store."""
+"""Alembic environment for the async PostgreSQL database."""
 
 import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import pool
+from sqlalchemy import pool, text
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
@@ -36,6 +36,8 @@ def do_run_migrations(connection) -> None:
     """
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
+        # Every web worker migrates at startup; the lock makes the others wait, then find the schema at head.
+        connection.execute(text("SELECT pg_advisory_xact_lock(hashtext('vlrgg-alembic'))"))
         context.run_migrations()
 
 

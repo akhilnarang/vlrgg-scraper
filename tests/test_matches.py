@@ -214,20 +214,21 @@ async def test_completed_matches_do_not_return_partial_results(monkeypatch, http
         await matches.get_completed_matches(AsyncMock(), pages=2)
 
 
-def test_live_update_api_stores_token_and_favorites(monkeypatch, tmp_path):
+def test_live_update_api_stores_token_and_favorites(monkeypatch, make_database):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from sqlalchemy.ext.asyncio import async_sessionmaker
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+    from sqlalchemy.pool import NullPool
 
     from app.api import deps
     from app.api.v1.endpoints.live_updates import router
     from app.core import connections
-    from app.db.engine import create_engine
     from app.db.migrations import upgrade_to_head
 
-    database_url = f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}"
+    database_url = make_database()
     asyncio.run(upgrade_to_head(database_url))
-    engine = create_engine(database_url)
+    # TestClient and asyncio.run each use a fresh event loop, and asyncpg connections cannot outlive theirs.
+    engine = create_async_engine(database_url, poolclass=NullPool)
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     monkeypatch.setattr(connections, "subscription_sessions", sessions)
     monkeypatch.setattr(deps.settings, "ENABLE_LIVE_PUSH", True)
