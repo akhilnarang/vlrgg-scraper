@@ -202,10 +202,25 @@ async def test_gaps_and_untrusted_reads_do_not_invent_round_winners():
     await ingest(source)
     assert (await projection(client, source)).map_round_winners[0].winners == [0, None, None, None, 1]
 
+    # A misread can look map-ending too: an error read far past the verified 3-2 credits nobody.
+    await ingest(video((13, 2), now + 4, status="error"))
+    assert (await projection(client, source)).map_round_winners[0].winners == [0, None, None, None, 1]
+
+    # The tracker stops reading on the map-ending score, so that score only ever arrives with the
+    # error status; its round must still be recorded, or the bars show one round fewer than 13-2.
+    await ingest(video((12, 2), now + 4))
+    source = video((13, 2), now + 5, status="error")
+    _, changed = await ingest(source)
+    assert changed is True
+    state = await projection(client, source)
+    assert state.current_map is not None and state.current_map.scores == [13, 2]
+    assert len(state.map_round_winners[0].winners) == 15 and state.map_round_winners[0].winners[-1] == 0
+
 
 @pytest.mark.asyncio
 async def test_multi_round_jump_keeps_trailing_unknown_rounds():
-    """A leap to 4-1 fills rounds VLR knows and keeps rounds 4 and 5 null, not collapsed.
+    """A leap to 4-1 credits rounds 4 and 5 to the only team that scored, since the score alone decides
+    them; a leap both teams scored in keeps its rounds null, not collapsed, since their order is unknown.
 
     A reading more than a few rounds past VLR's confirmed 2-1 is refused by both the history
     overlay and the score raise, while VLR's 0-0 still lets a normal tracker lead through.
@@ -233,7 +248,7 @@ async def test_multi_round_jump_keeps_trailing_unknown_rounds():
     state = await projection(client, source)
     assert state.current_map is not None
     assert state.current_map.scores == [4, 1]
-    assert state.map_round_winners[0].winners == [0, 1, 0, None, None]
+    assert state.map_round_winners[0].winners == [0, 1, 0, 0, 0]
 
     # A rogue leap far beyond VLR's confirmed rounds never reaches the projection: both
     # apply_history and raise_map_scores refuse it, keeping VLR's score and rounds.
@@ -245,12 +260,15 @@ async def test_multi_round_jump_keeps_trailing_unknown_rounds():
     assert state.current_map.scores == [2, 1]
     assert state.map_round_winners[0].winners == [0, 1, 0]
 
-    # VLR's 0-0 confirms no rounds, so the tracker's normal lead is still applied.
+    # VLR's 0-0 confirms no rounds, so the tracker's normal lead is still applied; both teams scored
+    # since the last reading, so the score cannot say who won which round and they all stay unknown.
     values[constants.PUSH_DETAILS_KEY] = json.dumps({"123": detail().model_dump(mode="json")})
     values.pop(constants.VIDEO_ROUNDS_KEY.format("123", 1))
     opening = video((3, 2), now + 3)
+    await ingest(opening)
 
     state = await projection(client, opening)
+    assert state.map_round_winners[0].winners == [None] * 5
     assert state.current_map is not None
     assert state.current_map.scores == [3, 2]
 

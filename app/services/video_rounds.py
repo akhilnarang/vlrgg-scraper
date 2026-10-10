@@ -1,6 +1,7 @@
 """Persist round winners from consecutive verified broadcast scores."""
 
 import logging
+import time
 
 from pydantic import BaseModel, Field, ValidationError
 from redis.asyncio import Redis
@@ -76,16 +77,18 @@ def _advance(history: VideoRounds | None, video: VideoScore, detail: MatchWithDe
         for number, team_id in rendered.items():
             if number <= len(winners) and (previous := winners[number - 1]) not in (None, team_id):
                 # VLR's rendered winner is authoritative over the tracker's inference: the round's
-                # point moves teams, so the next single-round gain is credited to the right team.
+                # point moves teams, so the next gain is credited to the right team.
                 baseline[previous] -= 1
                 baseline[team_id] += 1
                 winners[number - 1] = team_id
         differences = {team_id: score - baseline[team_id] for team_id, score in scores.items()}
     winners = winners[:count] + [None] * max(0, count - len(winners))
-    if sum(differences.values()) == 1:
-        winner = next((team_id for team_id, change in differences.items() if change == 1), None)
-        if winner is not None:
-            winners[count - 1] = winner
+    gained = [team_id for team_id, change in differences.items() if change > 0]
+    if len(gained) == 1 and min(differences.values()) >= 0:
+        # Only one team scored since the last verified reading, so every added round is theirs however
+        # many the broadcast skipped; rounds both teams added stay unknown, since their order is.
+        added = sum(differences.values())
+        winners[count - added : count] = [gained[0]] * added
     for number, team_id in rendered.items():
         # VLR's rendered winner is authoritative and also fills rounds the tracker never inferred.
         winners[number - 1] = team_id
@@ -99,6 +102,26 @@ def _advance(history: VideoRounds | None, video: VideoScore, detail: MatchWithDe
                 winners[index] = None
                 excess -= 1
     return VideoRounds(observed_at=video.observed_at, scores=scores, winners=winners)
+
+
+def _closes_map(history: VideoRounds | None, video: VideoScore) -> bool:
+    """Check whether an untrusted read is the tracker's map-ending score, a few rounds past the verified history.
+
+    The tracker stops reading a map on its final score, so that score arrives with the ``error`` status.
+    A misread can look map-ending too, so only a fresh read close to the last verified score counts.
+
+    :param history: Verified round history for the map, if any.
+    :param video: Incoming tracker observation.
+    :return: True when the read may advance the history although it is not healthy.
+    """
+    return (
+        video.ends_map
+        and history is not None
+        and 0 <= time.time() - video.observed_at <= constants.VIDEO_STALE_SECONDS
+        and 0
+        < sum(team.score for team in video.teams) - sum(history.scores.values())
+        <= constants.VIDEO_MAX_LEAD_ROUNDS
+    )
 
 
 async def store_score(
@@ -128,12 +151,13 @@ async def store_score(
                     return previous, False
                 history = None
                 old_history = None
-                if key is not None and resolved is not None and video.healthy:
+                if key is not None and resolved is not None and (video.healthy or video.ends_map):
                     old_history = _read(await pipe.get(key))
-                    history = _advance(old_history, video, resolved[1])
-                    if history is None:
-                        await pipe.unwatch()
-                        return previous, False
+                    if video.healthy or _closes_map(old_history, video):
+                        history = _advance(old_history, video, resolved[1])
+                        if history is None:
+                            await pipe.unwatch()
+                            return previous, False
                 changed = previous is None or not previous.same_score(video)
                 if history is not None:
                     changed = changed or old_history is None or history.winners != old_history.winners

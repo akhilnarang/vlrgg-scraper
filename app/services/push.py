@@ -10,7 +10,6 @@ from redis.asyncio import Redis
 
 from app import constants
 from app.constants import (
-    MAP_WIN_ROUNDS,
     NA,
     PUSH_DETAILS_KEY,
     TBD,
@@ -31,7 +30,7 @@ from app.schemas.matches import (
     PushTeam,
     VideoScore,
 )
-from app.utils import is_final, is_live, video_lead_plausible
+from app.utils import is_final, is_live, map_won, video_lead_plausible
 
 logger = logging.getLogger(__name__)
 
@@ -454,8 +453,7 @@ def _map_winners(detail: MatchWithDetails) -> list[str | None]:
         first, second = _aligned_scores(map_data, detail)
         if first is None or second is None:
             continue
-        # A map ends at 13 rounds with a two-round lead, which also covers overtime.
-        if max(first, second) >= MAP_WIN_ROUNDS and abs(first - second) >= 2:
+        if map_won(first, second):
             winners[map_data.number - 1] = detail.teams[0 if first > second else 1].id
     return winners
 

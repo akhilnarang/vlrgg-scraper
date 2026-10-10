@@ -18,6 +18,7 @@ from app.constants import (
     VideoPauseKind,
     VideoStatus,
 )
+from app.utils import map_won
 
 
 class Team(BaseModel):
@@ -350,6 +351,16 @@ class VideoScore(BaseModel):
         :return: True while the video, not VLR, should drive this match's pushes.
         """
         return self.status == VideoStatus.OK and 0 <= time.time() - self.observed_at <= VIDEO_STALE_SECONDS
+
+    @property
+    def ends_map(self) -> bool:
+        """Whether the score ends its map: 13 or more rounds with a two-round lead, which also covers overtime.
+
+        The tracker stops reading a map on this score, so it is always written with the ``error`` status.
+
+        :return: True when a team has won the map.
+        """
+        return map_won(*(team.score for team in self.teams))
 
 
 class VideoDelivery(BaseModel):
