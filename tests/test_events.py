@@ -68,3 +68,10 @@ async def test_event_details_follow_the_current_public_contract(http_get):
     )
     assert (alpha_leader.map_difference, alpha_leader.round_difference, alpha_leader.round_delta) == (3, 13, 13)
     assert {standing.group for standing in result.standings} == {"Group Alpha", "Group Omega"}
+
+    # A dead stage link loses that stage's standings, not the event.
+    stage_url = "https://www.vlr.gg/event/2863/vct-2026-emea-stage-1/group-stage"
+    with patch("httpx2.AsyncClient.get", side_effect=http_get(pages, failures={stage_url: 404})):
+        degraded = await events.get_event_by_id("2863")
+
+    assert (degraded.title, degraded.teams, degraded.standings) == (result.title, result.teams, [])

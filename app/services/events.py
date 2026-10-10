@@ -331,10 +331,13 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
     )
     if stage_pages := parse_stage_pages(soup, id):
         async with get_http_client() as client:
-            responses = await asyncio.gather(*(client.get(url) for _, url in stage_pages))
-        for (stage, _), stage_response in zip(stage_pages, responses, strict=True):
-            if stage_response.status_code != http.HTTPStatus.OK:
-                raise ScrapingError(url=str(stage_response.url), upstream_status=stage_response.status_code)
+            # Every request settles before the client closes, so one failure cannot strand the others.
+            responses = await asyncio.gather(*(client.get(url) for _, url in stage_pages), return_exceptions=True)
+        for (stage, url), stage_response in zip(stage_pages, responses, strict=True):
+            # A dead stage link loses only that stage's standings, not the whole event.
+            if isinstance(stage_response, Exception) or stage_response.status_code != http.HTTPStatus.OK:
+                logger.warning("Skipping standings of event stage %s: %r", url, stage_response)
+                continue
             stage_soup = BeautifulSoup(stage_response.content, "lxml")
             standings.extend(parse_event_standings(stage_soup.find("div", class_="event-container"), stage))
     event["standings"] = standings
