@@ -29,6 +29,16 @@ def is_final(status: str | None) -> bool:
     return (status or "").strip().casefold() in constants.FINAL_STATUSES
 
 
+def map_won(first: int, second: int) -> bool:
+    """Check whether a map score ends the map: 13 or more rounds with a two-round lead, which also covers overtime.
+
+    :param first: One team's rounds.
+    :param second: The other team's rounds.
+    :return: True when a team has won the map.
+    """
+    return max(first, second) >= constants.MAP_WIN_ROUNDS and abs(first - second) >= 2
+
+
 def video_lead_plausible(vlr_scores: Iterable[int | None], video_scores: Iterable[int]) -> bool:
     """Check whether a tracker score leads VLR's confirmed rounds on a map by at most a few rounds.
 

@@ -946,7 +946,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
     videos = {}
 
     def set_tick(key, value, nx=False, ex=None, get=False):
-        if key.startswith(("vlrgg:push:video", constants.PUSH_DETAILS_KEY)):
+        if key.startswith(("valesports:tracker:", constants.PUSH_DETAILS_KEY)):
             previous, videos[key] = videos.get(key), value
             return previous
         if nx and key in ticks:
@@ -1043,16 +1043,16 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
         for failures in (1, None, 1):
             await live_push.live_push_cron({"redis": redis})
             assert await stored_match_ids() == ["123"]
-            assert ticks.get("vlrgg:push:fetch_failures:123") == failures
+            assert ticks.get("valesports:push:fetch_failures:123") == failures
             assert "123" in json.loads(videos[constants.PUSH_DETAILS_KEY])
         await live_push.live_push_cron({"redis": redis})
         assert await stored_match_ids() == ["123"]
-        assert ticks["vlrgg:push:fetch_failures:123"] == 2
+        assert ticks["valesports:push:fetch_failures:123"] == 2
         await live_push.live_push_cron({"redis": redis})
         assert await stored_match_ids() == []
         async with sessions() as session:
             assert await live_store.get_live_match(session, "123") is None
-        assert not [key for key in ticks if key.startswith("vlrgg:push:fetch_failures:")]
+        assert not [key for key in ticks if key.startswith("valesports:push:fetch_failures:")]
         assert match_by_id_mock.await_count == 10
         end_payloads = [
             json.loads(request.content)["aps"]
@@ -1222,7 +1222,8 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
             and json.loads(request.content)["aps"]["content-state"]["match_id"] == "789"
         ][-1]
         assert apns_state["current_map"]["scores"] == [16, 9]
-        assert apns_state["map_round_winners"][0]["winners"] == [None] * 24 + [0]
+        # Only the first team scored past VLR's 13-9, so the score alone credits it rounds 23 to 25.
+        assert apns_state["map_round_winners"][0]["winners"] == [None] * 22 + [0, 0, 0]
         changed_state = json.loads(fcm_calls[pushed][0].data["state"])
         assert changed_state["map_round_winners"] == apns_state["map_round_winners"]
         ticks.pop(constants.PUSH_REFRESH_KEY.format("789"))

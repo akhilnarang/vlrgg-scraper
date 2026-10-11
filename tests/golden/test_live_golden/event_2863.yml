@@ -649,7 +649,127 @@ prizes:
     id: '474'
     img: https://owcdn.net/img/640c381f0603f.png
     name: Team Liquid
-standings: []
+standings:
+- country: Türkiye
+  group: Group Alpha
+  logo: https://owcdn.net/img/632be9976b8fe.png
+  losses: 1
+  map_difference: 3
+  round_delta: 13
+  round_difference: 13
+  team: FUT Esports
+  ties: 0
+  wins: 4
+- country: Europe
+  group: Group Alpha
+  logo: https://owcdn.net/img/640c381f0603f.png
+  losses: 1
+  map_difference: 5
+  round_delta: 26
+  round_difference: 26
+  team: Team Liquid
+  ties: 0
+  wins: 4
+- country: Europe
+  group: Group Alpha
+  logo: https://owcdn.net/img/637b755224c12.png
+  losses: 2
+  map_difference: 2
+  round_delta: 23
+  round_difference: 23
+  team: Team Heretics
+  ties: 0
+  wins: 3
+- country: Europe
+  group: Group Alpha
+  logo: https://owcdn.net/img/6670153fa9120.png
+  losses: 3
+  map_difference: -2
+  round_delta: -18
+  round_difference: -18
+  team: Gentle Mates
+  ties: 0
+  wins: 2
+- country: Europe
+  group: Group Alpha
+  logo: https://owcdn.net/img/62a4109ddbd7f.png
+  losses: 3
+  map_difference: -1
+  round_delta: -9
+  round_difference: -9
+  team: Natus Vincere
+  ties: 0
+  wins: 2
+- country: Europe
+  group: Group Alpha
+  logo: https://owcdn.net/img/627403a0d9e48.png
+  losses: 5
+  map_difference: -7
+  round_delta: -35
+  round_difference: -35
+  team: Karmine Corp
+  ties: 0
+  wins: 0
+- country: Europe
+  group: Group Omega
+  logo: https://owcdn.net/img/62a40cc2b5e29.png
+  losses: 0
+  map_difference: 8
+  round_delta: 45
+  round_difference: 45
+  team: FNATIC
+  ties: 0
+  wins: 5
+- country: Türkiye
+  group: Group Omega
+  logo: https://owcdn.net/img/6628980dcdaea.png
+  losses: 1
+  map_difference: 6
+  round_delta: 13
+  round_difference: 13
+  team: Eternal Fire
+  ties: 0
+  wins: 4
+- country: Türkiye
+  group: Group Omega
+  logo: https://owcdn.net/img/65b8ccef5e273.png
+  losses: 3
+  map_difference: -2
+  round_delta: -15
+  round_difference: -15
+  team: BBL Esports
+  ties: 0
+  wins: 2
+- country: Europe
+  group: Group Omega
+  logo: https://owcdn.net/img/6466d79e1ed40.png
+  losses: 3
+  map_difference: -1
+  round_delta: 12
+  round_difference: 12
+  team: Team Vitality
+  ties: 0
+  wins: 2
+- country: Europe
+  group: Group Omega
+  logo: https://owcdn.net/img/657b2f3fcd199.png
+  losses: 3
+  map_difference: -3
+  round_delta: -14
+  round_difference: -14
+  team: GIANTX
+  ties: 0
+  wins: 2
+- country: Türkiye
+  group: Group Omega
+  logo: https://owcdn.net/img/656e2ae2b8a48.png
+  losses: 5
+  map_difference: -8
+  round_delta: -41
+  round_difference: -41
+  team: PCIFIC Esports
+  ties: 0
+  wins: 0
 status: completed
 status_label: Completed
 subtitle: Part of the Valorant Champions Tour, Riot's official 2026 tournament circuit.

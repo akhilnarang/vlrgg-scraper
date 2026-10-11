@@ -20,16 +20,30 @@ The application uses arq for background job scheduling to periodically update ca
 | Standings | `standings_cron` | Daily 00:00 | Update current year standings |
 | Team Rankings | `team_rankings_cron` | Every 15 min | Upsert newly completed matches and rebuild the Elo ledger (`app/cron/team_rankings.py`) |
 | FCM Notifications | `fcm_notification_cron` | Every 15 min | Legacy "match starting soon" alert on the `match-`/`event-`/`team-` topics (`app/cron/legacy_fcm.py`) |
-| Live Matches | `live_push_cron` | Every minute | Send APNs/FCM scores for matches listed as live; at most one run at a time (fixed arq `job_id`) |
+| Live Matches | `live_push_cron` | Every minute | Send APNs/FCM scores for tracked matches (listed live, or already pushed); at most one run at a time (fixed arq `job_id`) |
 
 The team rankings job upserts every completed match that is missing from the ledger,
 stored without both teams, a decisive score, or every played map, or contradicted by
 the listing's teams and scores. It then replays the whole ledger into the series Elo
 (`k48-hnone-m0.3-r0`, no decay), the per-map Elo, and the circuit counts. The replay
 is deterministic, so a fetch or write failure only leaves that match for the next
-run and can never move a rating out of order. Historical database seeding and
+run and can never move a rating out of order. Each upserted match keeps VLR's event
+patch, which `/api/v2/rankings/predict` forwards to the external prediction service
+as the model's history scope. Historical database seeding and
 catch-up are manual deployment steps; import scripts are not included in this
 change. Complete them before enabling ongoing ingestion.
+
+The live push cron runs at most once at a time. It fetches every match the listing
+shows as live plus every match with stored push state. A tracked match is ended only
+by VLR fetch failures while VLR no longer lists it as live: a 404, or a 5xx on three
+consecutive runs (`valesports:push:fetch_failures:<match>`, 600-second TTL), using the
+last score sent. Parser errors and unreachable-VLR errors are logged without
+counting toward the streak. While the broadcast tracker reports a healthy read and
+its latest score was delivered, the tracker drives that match's pushes and the cron
+only refreshes its metadata; the cron resumes pushing when the tracker errors, goes
+quiet, or a delivery fails. The tracker's score endpoint schedules the same push and
+refresh work as in-process FastAPI background tasks, so those two paths are not arq
+jobs and do not appear in the schedule above.
 
 ## Implementation
 

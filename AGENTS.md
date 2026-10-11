@@ -39,10 +39,15 @@
   not local:
 
   ```sh
-  for p in rankings matches events news 'standings_*' 'match:*' 'team:*' 'player:*' vlrgg:push:details vlrgg:push:video_score; do redis-cli --scan --pattern "$p" | xargs -r redis-cli del; done
+  for p in rankings matches events news 'standings_*' 'match:*' 'team:*' 'player:*' valesports:vlr:details valesports:tracker:score 'valesports:tracker:rounds:*'; do redis-cli --scan --pattern "$p" | xargs -r redis-cli del; done
   ```
 
-- `vlrgg:push:video_delivered` (the delivery marker) and `vlrgg:push:refresh:*` (the
+- `valesports:tracker:rounds:*` is not validated strictly: a stale entry is ignored and
+  rebuilt from the next verified tracker score, so a schema change degrades round
+  coverage instead of 5xxing. It stays in the purge above so a winner-semantics change
+  cannot survive in old entries until their TTL.
+
+- `valesports:tracker:delivered` (the delivery marker) and `valesports:push:refresh:*` (the
   unchanged-refresh cooldown) are deliberately not purged; losing either can duplicate
   a push.
 
