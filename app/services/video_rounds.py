@@ -9,7 +9,7 @@ from redis.exceptions import WatchError
 
 from app import constants
 from app.schemas.matches import MatchWithDetails, Round, VideoScore
-from app.utils import is_final, video_lead_plausible
+from app.utils import is_final, map_won, video_lead_plausible
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,7 @@ def _closes_map(history: VideoRounds | None, video: VideoScore) -> bool:
     :return: True when the read may advance the history although it is not healthy.
     """
     return (
-        video.ends_map
+        map_won(*(team.score for team in video.teams))
         and history is not None
         and 0 <= time.time() - video.observed_at <= constants.VIDEO_STALE_SECONDS
         and 0
@@ -151,7 +151,7 @@ async def store_score(
                     return previous, False
                 history = None
                 old_history = None
-                if key is not None and resolved is not None and (video.healthy or video.ends_map):
+                if key is not None and resolved is not None:
                     old_history = _read(await pipe.get(key))
                     if video.healthy or _closes_map(old_history, video):
                         history = _advance(old_history, video, resolved[1])
