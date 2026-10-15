@@ -1,3 +1,4 @@
+import re
 import string
 import time
 from datetime import datetime
@@ -7,6 +8,7 @@ from pydantic import BaseModel, Field, HttpUrl, ValidationError, computed_field,
 
 from app import i18n
 from app.constants import (
+    ID_REGEX,
     LIVE_STATUSES,
     MAX_FAVORITES_PER_GROUP,
     MAX_TOKEN_LENGTH,
@@ -409,6 +411,6 @@ class Favorites(BaseModel):
         :return: Validated IDs.
         :raises ValueError: If an ID is not a positive ASCII integer.
         """
-        if any(not value.isascii() or not value.isdigit() or not 1 <= int(value) <= 9_999_999_999 for value in values):
+        if any(not re.fullmatch(ID_REGEX, value) for value in values):
             raise ValueError("favorite IDs must be positive ASCII digits")
         return values

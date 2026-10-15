@@ -1,0 +1,17 @@
+[Unit]
+Description=PostgreSQL 18 (vlrgg)
+# Run from the apt binaries but outside the apt service, so package upgrades never restart it.
+# Restart on demand after an upgrade: systemctl --user restart postgres
+
+[Service]
+Type=notify
+ExecStart=/usr/lib/postgresql/18/bin/postgres -D %h/pgdata
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=mixed
+KillSignal=SIGINT
+TimeoutStopSec=120
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=default.target

@@ -2,6 +2,8 @@
 Description=VLR.gg Scraper
 StartLimitIntervalSec=60s
 StartLimitBurst=5
+Wants=postgres.service
+After=postgres.service
 
 [Service]
 Type=simple

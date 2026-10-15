@@ -1,35 +1,29 @@
 # Database
 
-The application keeps durable state in SQLite through SQLAlchemy's async API
-(`sqlite+aiosqlite`). Redis remains the L1 cache for scraped API payloads (see
-[caching.md](caching.md)); SQLite holds the state that must survive restarts:
+The application keeps durable state in PostgreSQL through SQLAlchemy's async API
+(`postgresql+asyncpg`). Redis remains the L1 cache for scraped API payloads (see
+[caching.md](caching.md)); PostgreSQL holds the state that must survive restarts:
 live-update subscriptions, the team-ranking ledger, and the live-match details
 the video push falls back to when Redis is cold.
 
 ## Engine and lifecycle
 
-- `DATABASE_URL` (default `sqlite+aiosqlite:///db.sqlite3`) names the database
-  file; its parent directory is created at startup.
-- `app/db/engine.py` applies four pragmas to every connection:
-  `journal_mode=WAL`, `busy_timeout=5000`, `synchronous=NORMAL`, and
-  `foreign_keys=ON`. WAL lets API reads run while a cron writes; the busy
-  timeout waits for a held write lock instead of failing at once; foreign keys
-  enforce the `ON DELETE CASCADE` rules.
+- `DATABASE_URL` (default `postgresql+asyncpg:///vlrgg`) names the database.
+  Server setup, the SQLite cutover, backups, and contributor access are in
+  [postgres.md](postgres.md).
 - `app/db/lifecycle.py` runs the Alembic migrations to head on startup, then
-  opens the shared session factory (`subscription_sessions`). Migrations live in
-  `alembic/versions/`; every schema change needs one.
-- JSON payloads use `app/db/types.py:JSONB`, which binds through SQLite's
-  `jsonb()` and reads back through `json()` so the column round-trips as a dict.
-- Back up the live database with `uv run scripts/backup.py [backup-path]`. The
-  copy includes committed WAL changes and is verified with
-  `PRAGMA integrity_check` before it replaces the destination.
+  opens the shared session factory (`subscription_sessions`). Migrations take an
+  advisory lock, so workers that start together wait for each other. They live
+  in `alembic/versions/`; every schema change needs one.
+- JSON payloads use PostgreSQL `JSONB` with `none_as_null=True`, so a cleared
+  column is SQL `NULL`, not JSON `null`.
 
 ## Conventions
 
 - Stores never commit. The caller owns the transaction: a request dependency
   commits on success and rolls back on error, or a cron opens one transaction
   (for push state, one per match) and commits before any provider call.
-- Never hold the SQLite write lock across network I/O. Read tokens or state,
+- Never hold a transaction or row lock across network I/O. Read tokens or state,
   commit, then call APNs, FCM, or VLR; commit rows before sending anything.
 - Engine setup belongs in `app/db/`, stores in `app/services/`, cron handlers in
   `app/cron/`.
@@ -65,7 +59,7 @@ the video push falls back to when Redis is cold.
 
 The video push normally resolves the tracked match from the
 `valesports:vlr:details` Redis payload. When that cache is cold (a restart, TTL
-expiry, or a match the last cron run dropped), it falls back to the SQLite copy,
+expiry, or a match the last cron run dropped), it falls back to the database copy,
 so the tracker's score still advances and ends the right match.
 
 | Column | Meaning |
@@ -85,7 +79,7 @@ How it behaves:
   (`upsert_live_video`). Each upsert updates only its own columns, so details
   and score never overwrite each other. The synthetic test match is never
   stored.
-- `resolve_video_match_with_fallback` tries Redis first, then reads the SQLite
+- `resolve_video_match_with_fallback` tries Redis first, then reads the database
   rows. Rows whose event status is final are excluded even if a failed cleanup
   left them behind, so the fallback can never resolve a finished match,
   re-announce a final, or resurrect one.
@@ -94,7 +88,7 @@ How it behaves:
   and then deletes the row in another. The retirement alone makes the match
   unresolvable, so a failed delete cannot leave live details for the video push
   to pick up.
-- A failed write to `live_matches` is logged and skipped; the SQLite copy is
+- A failed write to `live_matches` is logged and skipped; the database copy is
   only the fallback, so it must never block a push.
 
 ## Schema changes
@@ -102,6 +96,6 @@ How it behaves:
 A deploy that changes the schema of a Redis-cached model must purge the
 application cache by hand, because cached payloads are validated strictly on
 read (see [caching.md](caching.md#cache-invalidation) and
-[AGENTS.md: Caching](../AGENTS.md#caching)). SQLite is migrated automatically at
+[AGENTS.md: Caching](../AGENTS.md#caching)). The database is migrated automatically at
 startup, so a migration must keep an existing database upgradable: add columns
 nullable or with a server default.
