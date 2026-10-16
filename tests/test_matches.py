@@ -186,6 +186,138 @@ async def test_match_list_keeps_each_upcoming_date_group(monkeypatch, http_respo
     assert names["684610"] == ("Team Vitality", "Dragon Ranger Gaming")
 
 
+def test_match_list_shows_the_broadcast_map_on_its_live_match(monkeypatch):
+    import time
+
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from redis.exceptions import ConnectionError as RedisConnectionError
+
+    from app import schemas
+    from app.api import deps
+    from app.api.v1.endpoints.matches import router
+    from app.schemas.matches import Event, MatchData, MatchVideos, MatchWithDetails, Team, TeamWithImage, VideoScore
+
+    detail = MatchWithDetails(
+        teams=[
+            TeamWithImage(id="1", name="Alpha", tag="ALP", score=0, img="https://cdn.vlr.gg/a.png"),
+            TeamWithImage(id="2", name="Beta", tag="BET", score=1, img="https://cdn.vlr.gg/b.png"),
+        ],
+        bans=[],
+        event=Event(id="99", img="https://cdn.vlr.gg/e.png", series="Series", stage="Playoffs", status="live"),
+        videos=MatchVideos(streams=[], vods=[]),
+        map_count=2,
+        total_maps=3,
+        data=[
+            MatchData(
+                number=1,
+                map="Ascent",
+                teams=[Team(name="Beta", score=13), Team(name="Alpha", score=9)],
+                members=[],
+                rounds=[],
+                winner="Beta",
+            ),
+            MatchData(
+                number=2,
+                map="Bind",
+                teams=[Team(name="Alpha", score=3), Team(name="Beta", score=4)],
+                members=[],
+                rounds=[],
+                live=True,
+            ),
+        ],
+        previous_encounters=[],
+    )
+    listed = [
+        # VLR lists Beta first here, so the map score must follow the listing's team order, not the details'.
+        schemas.Match(
+            id="123",
+            team1=schemas.MatchTeam(name="Beta", id="2", score=1),
+            team2=schemas.MatchTeam(name="Alpha", id="1", score=0),
+            status="live",
+            time="2026-10-16T10:00:00Z",
+            event="Event",
+            series="Series",
+            event_id="99",
+        ),
+        schemas.Match(
+            id="456",
+            team1=schemas.MatchTeam(name="Alpha", id="1"),
+            team2=schemas.MatchTeam(name="Gamma", id="3"),
+            status="upcoming",
+            time="2026-10-17T10:00:00Z",
+            event="Event",
+            series="Series",
+            event_id="99",
+        ),
+    ]
+
+    def video(status, observed_at):
+        return VideoScore.model_validate(
+            {
+                "status": status,
+                "observed_at": observed_at,
+                "map_number": 2,
+                "teams": [{"code": "ALP", "name": "Alpha", "score": 5}, {"code": "BET", "name": "Beta", "score": 7}],
+            }
+        ).model_dump_json()
+
+    stored = {
+        "matches": schemas.MatchListAdapter.dump_json(listed),
+        constants.PUSH_DETAILS_KEY: json.dumps({"123": detail.model_dump(mode="json")}),
+        constants.VIDEO_SCORE_KEY: video("ok", int(time.time())),
+    }
+    # store_score writes a map's round history once a read of that map is verified for the match.
+    verified = {constants.VIDEO_ROUNDS_KEY.format("123", 2)}
+    redis_down = False
+
+    def exists(key):
+        if redis_down:
+            raise RedisConnectionError("Redis is down")
+        return int(key in verified)
+
+    redis = AsyncMock()
+    redis.get.side_effect = stored.get
+    redis.exists.side_effect = exists
+    monkeypatch.setattr("app.cache.cache.settings.ENABLE_CACHE", True)
+    monkeypatch.setattr(matches.settings, "ENABLE_LIVE_PUSH", True)
+    app = FastAPI()
+    app.include_router(router, prefix="/api/v1/matches")
+    app.dependency_overrides[deps.get_redis_client] = lambda: redis
+
+    with TestClient(app) as client:
+        fresh = client.get("/api/v1/matches/").json()
+        # During a pause or a break the tracker re-sends the last score it read with an error status.
+        stored[constants.VIDEO_SCORE_KEY] = video("error", int(time.time()) - constants.VIDEO_STALE_SECONDS - 1)
+        paused = client.get("/api/v1/matches/").json()
+        # Another live match keeps the lookup running, so only the ended match's own status hides its map.
+        stored["matches"] = schemas.MatchListAdapter.dump_json(
+            [
+                listed[0].model_copy(update={"status": constants.MatchStatus.COMPLETED}),
+                listed[1].model_copy(update={"status": constants.MatchStatus.LIVE}),
+            ]
+        )
+        ended = client.get("/api/v1/matches/").json()
+        # The same teams' earlier series left its last score, but no read was verified for this match.
+        stored["matches"] = schemas.MatchListAdapter.dump_json(listed)
+        rounds_key = verified.pop()
+        rematch = client.get("/api/v1/matches/").json()
+        verified.add(rounds_key)
+        redis_down = True
+        during_outage = client.get("/api/v1/matches/")
+
+    bind = {"name": "Bind", "number": 2, "scores": [7, 5]}
+    assert [match["current_map"] for match in fresh] == [bind, None]
+    assert [match["team1"]["score"] for match in fresh] == [1, None]
+    # The last known score stays while the match is live, however long the tracker has not read.
+    assert [match["current_map"] for match in paused] == [bind, None]
+    assert [match["current_map"] for match in ended] == [None, None]
+    assert [match["current_map"] for match in rematch] == [None, None]
+    # The map score is an extra: a Redis outage drops it instead of failing the list.
+    assert during_outage.status_code == 200
+    assert [match["current_map"] for match in during_outage.json()] == [None, None]
+
+
 @pytest.mark.asyncio
 async def test_completed_matches_clamp_pages_and_keep_results_in_order(monkeypatch, http_get):
     monkeypatch.setattr(matches.settings, "ENABLE_ID_MAPPING", False)

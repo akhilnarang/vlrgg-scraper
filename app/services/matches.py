@@ -1,5 +1,6 @@
 import asyncio
 import http
+import logging
 import re
 from asyncio import gather
 from datetime import datetime
@@ -8,12 +9,16 @@ from itertools import chain
 import dateutil.parser
 from bs4 import BeautifulSoup, Tag
 from bs4.element import ResultSet
+from pydantic import ValidationError
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 
 from app import cache, constants, schemas
 from app.core.config import settings
 from app.core.connections import get_http_client
 from app.exceptions import ScrapingError
+from app.schemas.matches import PushCurrentMap, VideoScore
+from app.services import push
 from app.utils import (
     clean_number_string,
     clean_string,
@@ -21,8 +26,11 @@ from app.utils import (
     fix_datetime_tz,
     get_href,
     get_image_url,
+    is_live,
     simplify_name,
 )
+
+logger = logging.getLogger(__name__)
 
 # Max concurrent fallback HTTP requests to avoid rate-limiting vlr.gg
 _MAX_CONCURRENT_FALLBACKS = 10
@@ -483,6 +491,75 @@ async def match_list(redis_client: Redis) -> list[schemas.Match]:
                 )
             )
         )
+    )
+
+
+async def with_broadcast_map(listed: list[schemas.Match], redis_client: Redis) -> list[schemas.ListedMatch]:
+    """Attach the broadcast tracker's last known map score to the live match it follows.
+
+    The tracker reads one broadcast, so at most one match gets a map. Its score is kept through pauses and
+    breaks between maps, when the tracker reports the last score it read with an ``error`` status. Every match
+    keeps ``current_map`` empty while live push is off, it is not live, or no stored score fits it.
+
+    :param listed: Matches from the cached or freshly scraped list.
+    :param redis_client: Redis client holding the tracker score, its round histories, and the live match details
+        it resolves against.
+    :return: The matches in the same order.
+    """
+    video = resolved = None
+    if settings.ENABLE_LIVE_PUSH and any(is_live(match.status) for match in listed):
+        try:
+            video = await push.video_score(redis_client)
+            if video is not None:
+                resolved = await push.resolve_video_match(redis_client, video)
+                # A score counts for a match only once a read of that map was verified for it, so the last score
+                # of a finished series never shows on a rematch between the same two teams.
+                if resolved is not None and not await redis_client.exists(
+                    constants.VIDEO_ROUNDS_KEY.format(resolved[0], video.map_number)
+                ):
+                    resolved = None
+        except RedisError, ValidationError:
+            # The map score is an extra: a Redis outage or old-schema live details must not fail the match list.
+            resolved = None
+            logger.warning("could not read the broadcast score", exc_info=True)
+    return [schemas.ListedMatch(**dict(match), current_map=_broadcast_map(match, video, resolved)) for match in listed]
+
+
+def _broadcast_map(
+    match: schemas.Match,
+    video: VideoScore | None,
+    resolved: tuple[str, schemas.MatchWithDetails, dict[str, int]] | None,
+) -> PushCurrentMap | None:
+    """Build the broadcast's map for one listed match, with scores in its team1, team2 order.
+
+    :param match: Listed match.
+    :param video: Tracker score.
+    :param resolved: Match ID, cached details, and tracker score per casefolded VLR team name the score resolved to.
+    :return: The map, or None when this is not the resolved live match or its teams can't be paired one-to-one.
+    """
+    if video is None or resolved is None:
+        return None
+    match_id, detail, scores = resolved
+    if match.id != match_id or not is_live(match.status):
+        return None
+    names = []
+    for team in (match.team1, match.team2):
+        owners = [
+            candidate.name.strip().casefold()
+            for candidate in detail.teams
+            if (team.id is not None and candidate.id == team.id)
+            or candidate.name.strip().casefold() == team.name.strip().casefold()
+        ]
+        if len(owners) != 1:
+            return None
+        names.append(owners[0])
+    if names[0] == names[1]:
+        return None
+    return PushCurrentMap(
+        # resolve_video_match only matches a score whose map number VLR rendered.
+        name=next(item.map for item in detail.data if item.number == video.map_number),
+        number=video.map_number,
+        scores=[scores[name] for name in names],
     )
 
 

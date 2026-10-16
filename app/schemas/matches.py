@@ -172,7 +172,6 @@ class MatchTeam(BaseModel):
     score: int | None = None
 
 
-# Response for `GET /api/v1/matches`
 class Match(BaseModel):
     id: str
     team1: MatchTeam
@@ -187,6 +186,16 @@ class Match(BaseModel):
     @property
     def status_label(self) -> str:
         return i18n.label("match_status", self.status)
+
+
+# Response for `GET /api/v1/matches`
+class ListedMatch(Match):
+    """A listed match with the broadcast's current map; the cached list stores plain ``Match`` entries."""
+
+    current_map: PushCurrentMap | None = Field(
+        default=None,
+        description="Broadcast tracker's last known map, scores in team1, team2 order; only for its live match",
+    )
 
 
 class PushTeam(BaseModel):
