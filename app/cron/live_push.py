@@ -51,6 +51,7 @@ async def live_push_cron(ctx: dict) -> None:
     client = ctx["redis"]
     video = await push.video_score(client)
     left_to_video = await _match_left_to_video(client, video)
+    await _report_video_gap(client, left_to_video)
     live_ids = await _listed_live_ids(client)
     async with sessions() as session:
         stored = set(await SubscriptionStore(session).list_match_ids())
@@ -338,6 +339,37 @@ async def _match_left_to_video(client: Redis, video: VideoScore | None) -> str |
     except ValidationError:
         return None
     return delivered.match_id if delivered.video.same_score(video) else None
+
+
+async def _report_video_gap(client: Redis, left_to_video: str | None) -> None:
+    """Log an error when the tracker is running for a live match that VLR has pushed for too long.
+
+    :param client: Redis client.
+    :param left_to_video: The match the video currently pushes, or None.
+    :return: None.
+    """
+    if not (data := await client.get(constants.VIDEO_CONTEXT_KEY)):
+        return
+    match_id = data.decode()
+    key = constants.VIDEO_FALLBACK_KEY.format(match_id)
+    if match_id == left_to_video:
+        await client.delete(key)
+        return
+    now = int(time.time())
+    await client.set(key, now, nx=True, ex=constants.VIDEO_FALLBACK_TTL)
+    await client.expire(key, constants.VIDEO_FALLBACK_TTL)
+    since = int(await client.get(key) or now)
+    if now - since >= constants.VIDEO_FALLBACK_ALERT_SECONDS and await client.set(
+        constants.VIDEO_FALLBACK_ALERTED_KEY.format(match_id),
+        1,
+        nx=True,
+        ex=constants.VIDEO_FALLBACK_ALERT_INTERVAL,
+    ):
+        logger.error(
+            "video tracker is running but has not covered live match %s for %d minutes; VLR is pushing it",
+            match_id,
+            (now - since) // 60,
+        )
 
 
 async def _listed_live_ids(client: Redis) -> set[str] | None:

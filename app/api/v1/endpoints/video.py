@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, BackgroundTasks
 
+from app import constants
 from app.api.deps import RedisDep
 from app.cron import live_push
 from app.exceptions import NotFoundError
@@ -33,6 +34,7 @@ async def video_context(client: RedisDep, codes: VideoContextCodes = "") -> Vide
         if resolved is None:
             raise NotFoundError("No unambiguous match fits the given team codes")
         match_id, detail = resolved
+        await client.set(constants.VIDEO_CONTEXT_KEY, match_id, ex=constants.VIDEO_CONTEXT_TTL)
         return VideoContext(
             match_id=match_id,
             map_order=push.ordered_map_names(detail),

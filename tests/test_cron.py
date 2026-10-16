@@ -183,7 +183,7 @@ def test_finished_maps_floor_the_series_score_and_drop_unplayed_rounds():
 
 
 @pytest.mark.asyncio
-async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeypatch):
+async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeypatch, caplog):
     from app.core import connections
     from app.schemas.matches import VideoScore
     from app.services import push
@@ -256,8 +256,16 @@ async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeyp
     mark_delivered = AsyncMock()
     monkeypatch.setattr(live_push, "_mark_delivered", mark_delivered)
     monkeypatch.setattr(live_push, "_store_teams", AsyncMock())
+    started = int(time.time()) - 1600
     redis = AsyncMock()
-    redis.get.return_value = None
+    redis.get.side_effect = lambda key: (
+        b"456"
+        if key == constants.VIDEO_CONTEXT_KEY
+        else str(started).encode()
+        if key == constants.VIDEO_FALLBACK_KEY.format("456")
+        else None
+    )
+    caplog.set_level(logging.ERROR)
 
     await live_push.live_push_cron({"redis": redis})
 
@@ -268,10 +276,18 @@ async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeyp
     assert sent[0].pause is not None and (sent[0].pause.kind, sent[0].pause.reason) == ("tech_pause", "GEAR")
     assert sent[1].pause is None
     mark_delivered.assert_awaited_once_with(redis, "123", video)
+    # The tracker asked context for 456 but VLR has pushed it longer than a break between maps.
+    errors = [record for record in caplog.records if record.levelno == logging.ERROR and "456" in record.getMessage()]
+    assert len(errors) == 1
 
+    # Once the tracker covers the match again, the gap clears without another alert.
     video.map_number = 2
+    monkeypatch.setattr(live_push, "_match_left_to_video", AsyncMock(return_value="456"))
+    caplog.clear()
     await live_push.live_push_cron({"redis": redis})
     assert mark_delivered.await_count == 1
+    redis.delete.assert_any_await(constants.VIDEO_FALLBACK_KEY.format("456"))
+    assert [record for record in caplog.records if record.levelno == logging.ERROR] == []
 
 
 @pytest.mark.asyncio
@@ -1406,6 +1422,7 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
         "map_order": ["Ascent", "", "", "Lotus"],
         "teams": ["ALP", "BET"],
     }
+    redis.set.assert_awaited_with(constants.VIDEO_CONTEXT_KEY, "123", ex=constants.VIDEO_CONTEXT_TTL)
     assert (await get_context("ALP,Alpha")).status_code == 404
     videos[constants.PUSH_DETAILS_KEY] = json.dumps(
         {
