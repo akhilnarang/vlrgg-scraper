@@ -10,6 +10,7 @@ import httpx2
 from firebase_admin import App
 from pydantic import ValidationError
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 from sentry_sdk import get_current_scope
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -51,7 +52,11 @@ async def live_push_cron(ctx: dict) -> None:
     client = ctx["redis"]
     video = await push.video_score(client)
     left_to_video = await _match_left_to_video(client, video)
-    await _report_video_gap(client, left_to_video)
+    try:
+        await _report_video_gap(client, left_to_video)
+    except RedisError:
+        # The gap check is diagnostic; a Redis error must not stop the fallback pushes below.
+        logger.warning("could not check the video tracker gap", exc_info=True)
     live_ids = await _listed_live_ids(client)
     async with sessions() as session:
         stored = set(await SubscriptionStore(session).list_match_ids())

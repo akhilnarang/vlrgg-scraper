@@ -184,6 +184,8 @@ def test_finished_maps_floor_the_series_score_and_drop_unplayed_rounds():
 
 @pytest.mark.asyncio
 async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeypatch, caplog):
+    from redis.exceptions import RedisError
+
     from app.core import connections
     from app.schemas.matches import VideoScore
     from app.services import push
@@ -256,18 +258,60 @@ async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeyp
     mark_delivered = AsyncMock()
     monkeypatch.setattr(live_push, "_mark_delivered", mark_delivered)
     monkeypatch.setattr(live_push, "_store_teams", AsyncMock())
-    started = int(time.time()) - 1600
-    redis = AsyncMock()
-    redis.get.side_effect = lambda key: (
-        b"456"
-        if key == constants.VIDEO_CONTEXT_KEY
-        else str(started).encode()
-        if key == constants.VIDEO_FALLBACK_KEY.format("456")
-        else None
-    )
-    caplog.set_level(logging.ERROR)
 
-    await live_push.live_push_cron({"redis": redis})
+    clock = [int(time.time())]
+    monkeypatch.setattr(time, "time", lambda: clock[0])
+
+    class FakeRedis:
+        """Redis stand-in whose NX writes expire against the test's clock."""
+
+        def __init__(self):
+            self.values = {
+                constants.VIDEO_CONTEXT_KEY: b"456",
+                constants.VIDEO_FALLBACK_KEY.format("456"): str(clock[0] - 1600).encode(),
+            }
+            self.expires = {}
+
+        async def get(self, key):
+            self.expire_due()
+            return self.values.get(key)
+
+        async def set(self, key, value, *, nx=False, ex=None):
+            self.expire_due()
+            if nx and key in self.values:
+                return None
+            self.values[key] = value if isinstance(value, bytes) else str(value).encode()
+            if ex is not None:
+                self.expires[key] = clock[0] + ex
+            return True
+
+        async def expire(self, key, ttl):
+            self.expires[key] = clock[0] + ttl
+            return True
+
+        async def delete(self, *keys):
+            for key in keys:
+                self.values.pop(key, None)
+                self.expires.pop(key, None)
+            return True
+
+        def expire_due(self):
+            for key, deadline in list(self.expires.items()):
+                if deadline <= clock[0]:
+                    self.values.pop(key, None)
+                    self.expires.pop(key, None)
+
+    redis = FakeRedis()
+    caplog.set_level(logging.WARNING)
+
+    def alerts():
+        return [record.getMessage() for record in caplog.records if record.levelno == logging.ERROR]
+
+    async def run_cron(seconds=0):
+        clock[0] += seconds
+        await live_push.live_push_cron({"redis": redis})
+
+    await run_cron()
 
     assert [(state.match_id, state.current_map.scores if state.current_map else None) for state in sent] == [
         ("123", [8, 4]),
@@ -277,17 +321,56 @@ async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeyp
     assert sent[1].pause is None
     mark_delivered.assert_awaited_once_with(redis, "123", video)
     # The tracker asked context for 456 but VLR has pushed it longer than a break between maps.
-    errors = [record for record in caplog.records if record.levelno == logging.ERROR and "456" in record.getMessage()]
-    assert len(errors) == 1
+    assert len(alerts()) == 1 and "456" in alerts()[0]
+
+    # Further stalled runs inside the alert's hour stay throttled by the NX alert key.
+    await run_cron(60)
+    await run_cron(60)
+    assert len(alerts()) == 1
 
     # Once the tracker covers the match again, the gap clears without another alert.
     video.map_number = 2
     monkeypatch.setattr(live_push, "_match_left_to_video", AsyncMock(return_value="456"))
     caplog.clear()
-    await live_push.live_push_cron({"redis": redis})
-    assert mark_delivered.await_count == 1
-    redis.delete.assert_any_await(constants.VIDEO_FALLBACK_KEY.format("456"))
-    assert [record for record in caplog.records if record.levelno == logging.ERROR] == []
+    marked = mark_delivered.await_count
+    await run_cron(60)
+    assert constants.VIDEO_FALLBACK_KEY.format("456") not in redis.values
+    assert mark_delivered.await_count == marked
+    assert alerts() == []
+
+    # A stall that has only just begun is below the alert threshold, so no run alerts.
+    redis.values[constants.VIDEO_CONTEXT_KEY] = b"789"
+    monkeypatch.setattr(live_push, "_match_left_to_video", AsyncMock(return_value=None))
+    caplog.clear()
+    for _ in range(3):
+        await run_cron(240)
+    assert alerts() == []
+
+    # The same stall crosses the threshold once, holds for its hour, and re-arms after it.
+    for _ in range(5):
+        await run_cron(240)
+    assert len(alerts()) == 1 and "789" in alerts()[0]
+    for _ in range(12):
+        await run_cron(240)
+    assert len(alerts()) == 1
+    for _ in range(4):
+        await run_cron(240)
+    assert len(alerts()) == 2 and "789" in alerts()[1]
+
+    # A Redis error while checking the gap must not stop the run's pushes.
+    caplog.clear()
+    pushed = len(sent)
+    read = redis.get
+
+    async def broken_get(key):
+        if key == constants.VIDEO_CONTEXT_KEY:
+            raise RedisError("redis unavailable")
+        return await read(key)
+
+    monkeypatch.setattr(redis, "get", broken_get)
+    await run_cron(240)
+    assert [state.match_id for state in sent[pushed:]] == ["123", "456"]
+    assert "could not check the video tracker gap" in [record.message for record in caplog.records]
 
 
 @pytest.mark.asyncio
@@ -1349,6 +1432,7 @@ async def test_live_push_cron_starts_updates_and_ends_match(monkeypatch, tmp_pat
 async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
     import httpx2
     from fastapi import Depends, FastAPI
+    from redis.exceptions import RedisError
 
     from app.api import deps
     from app.api.v1.endpoints.video import router as video_router
@@ -1423,6 +1507,11 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
         "teams": ["ALP", "BET"],
     }
     redis.set.assert_awaited_with(constants.VIDEO_CONTEXT_KEY, "123", ex=constants.VIDEO_CONTEXT_TTL)
+    # Recording the context is best-effort: a failed write must not deny the tracker its answer.
+    redis.set.side_effect = RedisError("redis unavailable")
+    response = await get_context("ALP,BET")
+    assert response.status_code == 200
+    assert response.json()["match_id"] == "123"
     assert (await get_context("ALP,Alpha")).status_code == 404
     videos[constants.PUSH_DETAILS_KEY] = json.dumps(
         {
