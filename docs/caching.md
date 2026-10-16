@@ -30,6 +30,12 @@ The application uses Redis for caching to improve performance and reduce load on
 consecutive failed fetches that end an unlisted match) are markers with side effects, not
 payload caches, so a purge leaves them alone.
 
+`valesports:tracker:codes` (the team codes of the tracker's last context request, 180 seconds),
+`valesports:tracker:unresolved` (the codes no VLR match fits, and since when, 300 seconds) and
+the `valesports:tracker:fallback_alerted:*`/`valesports:tracker:unresolved_alerted` throttles are
+diagnostics for the tracker alerts; each expires on its own, so purging them only restarts an
+alert clock. See [Broadcast tracker alerts](live-alerts.md).
+
 `valesports:vlr:details` has a durable fallback: the live push cron mirrors each tracked match's
 details into the database's `live_matches` table, so the video push still resolves a match after a
 restart or an expired key. See

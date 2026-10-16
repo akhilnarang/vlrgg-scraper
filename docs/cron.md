@@ -45,6 +45,11 @@ quiet, or a delivery fails. The tracker's score endpoint schedules the same push
 refresh work as in-process FastAPI background tasks, so those two paths are not arq
 jobs and do not appear in the schedule above.
 
+When the tracker is up but VLR cannot serve it — its score stalls over a match VLR keeps
+pushing, or its team codes match no VLR match for 30 minutes — the cron logs an ERROR,
+which Sentry turns into an event. See
+[Broadcast tracker alerts](live-alerts.md) for both alert paths and the rule runbook.
+
 ## Implementation
 
 ### Job Functions (`app/cron/jobs.py`, `app/cron/legacy_fcm.py`, `app/cron/live_push.py`, and `app/cron/team_rankings.py`)

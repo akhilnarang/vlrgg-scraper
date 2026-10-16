@@ -54,8 +54,9 @@ async def live_push_cron(ctx: dict) -> None:
     left_to_video = await _match_left_to_video(client, video)
     try:
         await _report_video_gap(client, left_to_video)
+        await _report_video_unresolved(client)
     except RedisError:
-        # The gap check is diagnostic; a Redis error must not stop the fallback pushes below.
+        # The gap checks are diagnostic; a Redis error must not stop the fallback pushes below.
         logger.warning("could not check the video tracker gap", exc_info=True)
     live_ids = await _listed_live_ids(client)
     async with sessions() as session:
@@ -344,6 +345,71 @@ async def _match_left_to_video(client: Redis, video: VideoScore | None) -> str |
     except ValidationError:
         return None
     return delivered.match_id if delivered.video.same_score(video) else None
+
+
+async def record_video_codes(client: Redis, codes: str, match_id: str | None) -> None:
+    """Record the tracker's codes request and whether its codes resolved to a VLR match.
+
+    The liveness key proves the tracker is still asking; the unresolved mark tells the cron how long
+    its codes have stayed unanswered.
+
+    :param client: Redis client.
+    :param codes: Team codes exactly as the tracker sent them.
+    :param match_id: The match the codes resolved to, or None when no match fits.
+    :return: None.
+    """
+    await client.set(constants.VIDEO_CODES_KEY, codes, ex=constants.VIDEO_CODES_TTL)
+    if match_id is not None:
+        await client.delete(constants.VIDEO_UNRESOLVED_KEY)
+        return
+    now = int(time.time())
+    since = now
+    if data := await client.get(constants.VIDEO_UNRESOLVED_KEY):
+        try:
+            current = json.loads(data)
+            if current["codes"] == codes:
+                since = int(current["since"])
+        except KeyError, TypeError, ValueError:
+            # A corrupt mark must not hide a fresh failure; restart the streak at this request.
+            pass
+    await client.set(
+        constants.VIDEO_UNRESOLVED_KEY,
+        json.dumps({"codes": codes, "since": since}),
+        ex=constants.VIDEO_UNRESOLVED_TTL,
+    )
+
+
+async def _report_video_unresolved(client: Redis) -> None:
+    """Log an error when the tracker keeps asking for a live match the scraper cannot resolve to VLR.
+
+    A tracker that stopped asking is systemd's to notice; an unresolved mark alone says nothing while
+    no request renews the liveness key.
+
+    :param client: Redis client.
+    :return: None.
+    """
+    if not (data := await client.get(constants.VIDEO_UNRESOLVED_KEY)) or not await client.get(
+        constants.VIDEO_CODES_KEY
+    ):
+        return
+    try:
+        unresolved = json.loads(data)
+        codes, since = str(unresolved["codes"]), int(unresolved["since"])
+    except KeyError, TypeError, ValueError:
+        return
+    now = int(time.time())
+    if now - since >= constants.VIDEO_UNRESOLVED_ALERT_SECONDS and await client.set(
+        constants.VIDEO_UNRESOLVED_ALERTED_KEY,
+        1,
+        nx=True,
+        ex=constants.VIDEO_UNRESOLVED_ALERT_INTERVAL,
+    ):
+        logger.error(
+            "video tracker has asked for context for %d minutes but its codes %s fit no VLR match; "
+            "the broadcast is not being tracked",
+            (now - since) // 60,
+            codes,
+        )
 
 
 async def _report_video_gap(client: Redis, left_to_video: str | None) -> None:

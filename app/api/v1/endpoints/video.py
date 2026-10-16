@@ -35,6 +35,11 @@ async def video_context(client: RedisDep, codes: VideoContextCodes = "") -> Vide
     # Resolve by team codes when provided to support context lookups before scores exist.
     if codes:
         resolved = await push.resolve_video_match_by_codes(client, [code.casefold() for code in codes.split(",")])
+        try:
+            await live_push.record_video_codes(client, codes, resolved[0] if resolved else None)
+        except RedisError:
+            # The record is diagnostic; the tracker still gets its answer or its 404.
+            logger.warning("could not record the video tracker's context request", exc_info=True)
         if resolved is None:
             raise NotFoundError("No unambiguous match fits the given team codes")
         match_id, detail = resolved

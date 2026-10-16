@@ -357,6 +357,26 @@ async def test_live_push_cron_applies_video_score_only_to_resolved_match(monkeyp
         await run_cron(240)
     assert len(alerts()) == 2 and "789" in alerts()[1]
 
+    # A tracker asking for codes no VLR match fits is a fault of its own once the wait is sustained.
+    caplog.clear()
+    redis.values[constants.VIDEO_CODES_KEY] = b"FLY,MIBR"
+    redis.values[constants.VIDEO_UNRESOLVED_KEY] = json.dumps(
+        {"codes": "FLY,MIBR", "since": clock[0] - constants.VIDEO_UNRESOLVED_ALERT_SECONDS - 60}
+    ).encode()
+    await run_cron(60)
+    assert len(alerts()) == 1 and "FLY,MIBR" in alerts()[0]
+
+    # The unresolved alert stays throttled inside its window.
+    await run_cron(60)
+    assert len(alerts()) == 1
+
+    # A tracker that stopped asking is systemd's to notice, so an old mark without liveness does not alert.
+    redis.values.pop(constants.VIDEO_CODES_KEY)
+    redis.values.pop(constants.VIDEO_UNRESOLVED_ALERTED_KEY)
+    caplog.clear()
+    await run_cron(60)
+    assert alerts() == []
+
     # A Redis error while checking the gap must not stop the run's pushes.
     caplog.clear()
     pushed = len(sent)
@@ -1507,6 +1527,18 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
         "teams": ["ALP", "BET"],
     }
     redis.set.assert_awaited_with(constants.VIDEO_CONTEXT_KEY, "123", ex=constants.VIDEO_CONTEXT_TTL)
+    # Every codes request records the tracker's liveness, so the cron can see it is still asking.
+    redis.set.assert_any_await(constants.VIDEO_CODES_KEY, "ALP,BET", ex=constants.VIDEO_CODES_TTL)
+    redis.delete.assert_awaited_with(constants.VIDEO_UNRESOLVED_KEY)
+
+    # Codes that fit no match record when they stopped resolving; resolving them clears the mark.
+    response = await get_context("ALP,Alpha")
+    assert response.status_code == 404
+    unresolved = [call.args[1] for call in redis.set.await_args_list if call.args[0] == constants.VIDEO_UNRESOLVED_KEY]
+    assert unresolved and json.loads(unresolved[-1])["codes"] == "ALP,Alpha"
+    assert (await get_context("ALP,BET")).status_code == 200
+    redis.delete.assert_awaited_with(constants.VIDEO_UNRESOLVED_KEY)
+
     # Recording the context is best-effort: a failed write must not deny the tracker its answer.
     redis.set.side_effect = RedisError("redis unavailable")
     response = await get_context("ALP,BET")
