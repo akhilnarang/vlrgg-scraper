@@ -144,6 +144,35 @@ omitted without shifting a later game's number: entry numbers can skip. No entry
 empty `map` or empty `teams`. `map_count` counts the games VLR shows as played or in
 progress and can differ from the number of entries in `data`.
 
+## Match insights
+
+`GET /matches/{id}` also returns `insights` (or `null`): a model `prediction` of the
+series, shaped like the v2 prediction's `match` plus `team_a_id`, `team_b_id`, and
+`generated_at`, and plain-text `pre_match_summary` and `post_match_summary`, each with
+`text` and `generated_at`. Each is generated once and then never changes:
+
+- The prediction (when `PREDICTION_SERVICE_URL` is set) is generated on the first
+  request within 24 hours before an upcoming match's start. Without the match's patch,
+  it uses the latest stored patch, as `/api/v2/rankings/predict` does.
+- The summaries are written by an LLM only when `ENABLE_MATCH_SUMMARIES` is `true`
+  (default `false`) and `LLM_API_KEY` is set. The pre-match summary is generated in the
+  same window from the two teams' head-to-head series over the last 180 days in the
+  ranking ledger and the prediction; it is skipped when there is neither a head-to-head
+  record nor a prediction.
+- The post-match summary is generated on the first request after the final, once VLR
+  shows every map of the series with its rounds and players, for a match that started
+  within the last 7 days.
+
+Generation needs Redis, which lets one request per match generate while concurrent ones
+serve what is already stored, and is connected whenever the prediction or the summaries
+are enabled, even with the cache off. The request
+spends at most `INSIGHTS_REQUEST_BUDGET_SECONDS` (default 12), counted from its start,
+on insights, including reading the stored ones: once the budget is spent, the details
+are returned with the insights read so far, or `insights` set to `null` if none were read. A slower generation keeps running and its
+result appears on a later request. A failed attempt is retried after five minutes, and
+a summary skipped for lack of useful data after an hour. An insight made for
+teams the match no longer shows is left out.
+
 ## Live match updates
 
 Live updates are disabled by default. When enabled, clients can store one APNs

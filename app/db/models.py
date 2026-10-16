@@ -1,8 +1,8 @@
-"""SQLAlchemy models for live-update subscriptions and the team ranking ledger."""
+"""SQLAlchemy models for live-update subscriptions, the team ranking ledger, and match insights."""
 
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import Enum, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -169,6 +169,23 @@ class MapRecord(Base):
     name: Mapped[str] = mapped_column(Text)
     team_a_score: Mapped[int] = mapped_column()
     team_b_score: Mapped[int] = mapped_column()
+
+
+class MatchInsightRecord(Base):
+    """Write-once prediction and summaries generated for a match, each with the time it was stored.
+
+    Not tied to ``matches``, which holds completed matches only.
+    """
+
+    __tablename__ = "match_insights"
+
+    match_id: Mapped[str] = mapped_column(String(10), primary_key=True)
+    prediction: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    prediction_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    pre_summary: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    pre_summary_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    post_summary: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    post_summary_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class RankingResult(Base):

@@ -1,8 +1,11 @@
+import time
+
 from fastapi import APIRouter
 
 from app import cache, constants, schemas
 from app.api import deps
-from app.services import matches
+from app.core.config import settings
+from app.services import insights, matches
 
 router = APIRouter()
 
@@ -17,10 +20,12 @@ async def get_matches(client: deps.RedisDep) -> list[schemas.ListedMatch]:
 
 
 @router.get("/{id}")
-async def get_match_by_id(id: str, client: deps.RedisDep) -> schemas.MatchWithDetails:
+async def get_match_by_id(id: deps.MatchId, client: deps.RedisDep) -> schemas.MatchDetailsResponse:
+    deadline = time.monotonic() + settings.INSIGHTS_REQUEST_BUDGET_SECONDS
     cache_key = f"match:{id}"
     if data := await cache.get(cache_key, client=client):
-        return schemas.MatchWithDetails.model_validate_json(data)
-    result = await matches.match_by_id(id, client)
-    await cache.set(cache_key, result.model_dump_json(), ttl=constants.CACHE_TTL_MATCH, client=client)
-    return result
+        details = schemas.MatchWithDetails.model_validate_json(data)
+    else:
+        details = await matches.match_by_id(id, client)
+        await cache.set(cache_key, details.model_dump_json(), ttl=constants.CACHE_TTL_MATCH, client=client)
+    return await insights.attach(id, details, deadline)

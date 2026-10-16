@@ -22,6 +22,7 @@ from app.core.live_push import start_live_push, stop_live_push
 from app.core.observability import configure_logging, init_sentry
 from app.cron import arq_worker
 from app.db.lifecycle import start_database, stop_database
+from app.services import insights
 from app.web.media import router as media_router
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
                 password=settings.REDIS_PASSWORD,
                 port=settings.REDIS_PORT,
             )
+        if settings.needs_worker:
             logger.info("Starting arq worker")
             await arq_worker.start(
                 handle_signals=False,
@@ -61,14 +63,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
             )
         yield
     finally:
-        if settings.needs_redis:
-            logger.info("Stopping arq worker")
-            try:
+        try:
+            # Generations outliving their requests use Redis and the database, which close below.
+            await insights.stop_generations()
+            if settings.needs_worker:
+                logger.info("Stopping arq worker")
                 await arq_worker.stop()
-            finally:
+        finally:
+            if connections.redis_pool:
                 logger.info("Closing redis connection pool")
-                if connections.redis_pool:
-                    await connections.redis_pool.aclose()
+                await connections.redis_pool.aclose()
         await stop_live_push()
         await stop_database()
         logger.info("Closing shared HTTP client")
