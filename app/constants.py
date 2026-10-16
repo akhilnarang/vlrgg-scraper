@@ -261,6 +261,40 @@ MATCH_SCOPE_MAP_INDEX = -1
 MATCH_TIMEZONE = "America/New_York"
 
 
+PREDICTION_TIMEOUT_SECONDS = 2.0  # a slower prediction service answer falls back to Elo
+
+
+class InsightKind(StrEnum):
+    """A write-once artifact generated for one match."""
+
+    PREDICTION = "prediction"
+    PRE_SUMMARY = "pre_summary"
+    POST_SUMMARY = "post_summary"
+
+
+# The prediction and pre-match summary are generated only within this lead before the scheduled start.
+INSIGHTS_PRE_MATCH_WINDOW = timedelta(hours=24)
+# The post-match summary is generated only for a match that started within this long.
+INSIGHTS_POST_MATCH_WINDOW = timedelta(days=7)
+# One generation per match at a time. A generation is cut off after its provider calls' own timeouts plus
+# this overhead for its reads and writes, and its claim expires this margin later, so no other starts meanwhile.
+INSIGHTS_CLAIM_KEY = "vlrgg:insights:claim:{}"
+INSIGHTS_GENERATION_OVERHEAD_SECONDS = 10.0
+INSIGHTS_CLAIM_MARGIN_SECONDS = 10.0
+INSIGHTS_CLEANUP_SECONDS = 2.0  # bound on the Redis calls that cool down or release after a generation
+# Shutdown waits this long for running generations before cancelling them.
+INSIGHTS_SHUTDOWN_SECONDS = 10.0
+# A request stops waiting on generation this long before its deadline, to read what was stored meanwhile.
+INSIGHTS_READ_RESERVE_SECONDS = 1.0
+# A failed attempt at one artifact is not retried for this long, or a summary
+# skipped for lack of useful data for the longer time.
+INSIGHTS_COOLDOWN_KEY = "vlrgg:insights:cooldown:{}:{}"
+INSIGHTS_COOLDOWN_SECONDS = 300
+INSIGHTS_NO_DATA_COOLDOWN_SECONDS = 3600
+INSIGHTS_HISTORY_DAYS = 180  # ledger history the pre-match summary draws on
+SUMMARY_MAX_CHARS = 1200  # a longer model answer is rejected, never truncated
+
+
 class NewsVideoProvider(StrEnum):
     """Providers supported by hosted news video players."""
 

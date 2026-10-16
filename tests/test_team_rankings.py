@@ -1,10 +1,14 @@
 import asyncio
+import json
+import time
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx2
+import openai
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -13,6 +17,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app import schemas
+from app.api import deps
+from app.api.v1.endpoints.matches import router as matches_router
 from app.api.v2.api import router
 from app.constants import ELO_ALGORITHM, ELO_BASE, ELO_K, ELO_MAP_ALPHA, Circuit, MatchStatus, RankingScope, Region
 from app.core import connections
@@ -20,9 +26,9 @@ from app.core.config import settings
 from app.cron.team_rankings import team_rankings_cron
 from app.db.migrations import upgrade_to_head
 from app.db.models import EventRecord, MapRecord, MatchRecord, RankingResult, Team, TeamCircuit, TeamElo
-from app.schemas.matches import MatchData
+from app.schemas.matches import Agent, Event, MatchData, MatchVideos, Round, TeamMember, TeamWithImage
 from app.schemas.matches import Team as MapTeam
-from app.services import matches, predictions, ranking_store, team_rankings
+from app.services import history, insights, matches, predictions, ranking_store, team_rankings
 from app.services.ranking_store import StoredMap, StoredMatch
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -162,6 +168,22 @@ def _map_data(number: int, name: str, score_a: int, score_b: int) -> MatchData:
         teams=[MapTeam(name="Team A", score=score_a), MapTeam(name="Team B", score=score_b)],
         members=[],
         rounds=[],
+    )
+
+
+def _member(player_id: str, team: str, agent: str, **stats) -> TeamMember:
+    """Build one scoreboard row; ``team`` is the full team name, or the tag VLR could not resolve."""
+    values = {"rating": 1.0, "acs": 200, "kills": 15, "deaths": 15, "assists": 5, "kast": 70, "adr": 130}
+    return TeamMember(
+        id=player_id,
+        name=f"Player {player_id}",
+        team=team,
+        agents=[Agent(title=agent, img="https://www.vlr.gg/img/agent.png")],
+        headshot_percent=25,
+        first_kills=2,
+        first_deaths=2,
+        first_kills_diff=0,
+        **values | stats,
     )
 
 
@@ -966,3 +988,334 @@ async def test_prediction_provider_uses_a_unix_socket_when_configured(monkeypatc
     assert probability.warnings == []
     transport.assert_called_once_with(uds="/tmp/mock.sock")
     assert post.call_args.args == ("http://localhost/predict",)
+
+
+async def _seed_history(sessions) -> None:
+    """Store Alpha (1) against Beta (2) on patch 10.04, once in reverse team order, plus unscoped and late matches."""
+    async with sessions.begin() as session:
+        session.add(EventRecord(id="10", name="Event", circuit=Circuit.VCT))
+        session.add_all(
+            [
+                Team(id="1", source="test", name="Alpha", first_seen_at=0, last_fetched_at=0),
+                Team(id="2", source="test", name="Beta", first_seen_at=0, last_fetched_at=0),
+                Team(id="3", source="test", first_seen_at=0, last_fetched_at=0),
+            ]
+        )
+        await session.flush()
+        for match_id, played_on, team_a_id, team_b_id, score_a, score_b, patch in [
+            ("100", date(2026, 3, 1), "1", "2", 2, 1, "10.04"),
+            ("101", date(2026, 3, 8), "2", "1", 2, 0, "10.04"),
+            ("102", date(2026, 3, 15), "1", "3", 1, 0, None),
+            ("103", date(2026, 5, 1), "1", "2", 1, 0, "10.04"),
+        ]:
+            session.add(
+                MatchRecord(
+                    id=match_id,
+                    event_id="10",
+                    played_on=played_on,
+                    team_a_id=team_a_id,
+                    team_b_id=team_b_id,
+                    team_a_score=score_a,
+                    team_b_score=score_b,
+                    patch=patch,
+                    source="test",
+                    ingested_at=0,
+                )
+            )
+        await session.flush()
+        for match_id, index, name, score_a, score_b in [
+            ("100", 0, "lotus", 13, 7),
+            ("100", 1, "Bind", 5, 13),
+            ("100", 2, "Lotus", 13, 11),
+            ("101", 0, "Lotus", 13, 9),
+            ("101", 1, "Skirmish", 13, 2),
+            ("102", 0, "Bind", 13, 3),
+            ("103", 0, "Lotus", 13, 0),
+        ]:
+            session.add(
+                MapRecord(
+                    match_id=match_id,
+                    map_index=index,
+                    name=name,
+                    team_a_score=score_a,
+                    team_b_score=score_b,
+                )
+            )
+
+
+@pytest.mark.asyncio
+async def test_head_to_head_counts_series_for_the_team_whichever_side_it_was_stored(ranking_sessions):
+    # Records follow the winner whichever side a team was stored on, group by canonical patch, and leave
+    # out other opponents and matches outside the window.
+    await _seed_history(ranking_sessions)
+    window = history.HistoryFilter(from_date=date(2026, 1, 1), through_date=date(2026, 3, 31))
+
+    async with ranking_sessions() as session:
+        records = await history.head_to_head(session, "1", "2", window)
+
+    assert records == [{"meta_scope": "patch:10.4", "record": {"wins": 1, "losses": 1, "n": 2, "win_rate": 0.5}}]
+
+
+class _FakeRedis:
+    """In-memory Redis for the cache, claim, and cooldown commands; keys never expire on their own."""
+
+    def __init__(self):
+        self.values: dict[str, bytes] = {}
+
+    async def get(self, key):
+        return self.values.get(key)
+
+    async def set(self, key, value, ex=None, nx=False):
+        if nx and key in self.values:
+            return None
+        self.values[key] = value if isinstance(value, bytes) else str(value).encode()
+        return True
+
+    async def exists(self, key):
+        return int(key in self.values)
+
+    def register_script(self, _script):
+        async def compare_and_delete(keys, args):
+            return int(self.values.get(keys[0]) == args[0].encode() and bool(self.values.pop(keys[0])))
+
+        return compare_and_delete
+
+    async def aclose(self):
+        return None
+
+
+@pytest.fixture
+def insight_providers(monkeypatch, ranking_sessions):
+    """Enable insights against a fake Redis, the prediction service's HTTP call, and a scripted OpenAI client.
+
+    Each OpenAI call takes the next scripted answer: text, an exception to raise, or None to never answer.
+    """
+    redis = _FakeRedis()
+    monkeypatch.setattr(connections, "redis_pool", MagicMock())
+    monkeypatch.setattr("app.services.insights.cache.get_client", lambda: redis)
+    monkeypatch.setattr(settings, "PREDICTION_SERVICE_URL", "http://predictions.test")
+    monkeypatch.setattr(settings, "LLM_API_KEY", "test-key")
+    monkeypatch.setattr(settings, "ENABLE_MATCH_SUMMARIES", True)
+    model_response = _model_prediction()
+    post = AsyncMock(return_value=MagicMock(json=lambda: model_response))
+    monkeypatch.setattr(httpx2.AsyncClient, "post", post)
+    llm = SimpleNamespace(answers=[], calls=[], options=[])
+
+    class OpenAI:
+        def __init__(self, **options):
+            llm.options.append(options)
+            self.responses = self
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_exc):
+            return None
+
+        async def create(self, **request):
+            llm.calls.append(request)
+            answer = llm.answers.pop(0)
+            if isinstance(answer, Exception):
+                raise answer
+            if answer is None:
+                await asyncio.Event().wait()
+            return SimpleNamespace(output_text=answer)
+
+    monkeypatch.setattr("app.services.summaries.AsyncOpenAI", OpenAI)
+    return SimpleNamespace(redis=redis, post=post, llm=llm, sessions=ranking_sessions)
+
+
+def _match(status: str, start: datetime, scores=(None, None), data=()) -> schemas.MatchWithDetails:
+    """Build Team A (1) against Team B (2) with the given status, start, series score, and maps."""
+    return schemas.MatchWithDetails(
+        teams=[
+            TeamWithImage(id="1", name="Team A", tag="A", score=scores[0], img="https://www.vlr.gg/img/a.png"),
+            TeamWithImage(id="2", name="Team B", tag="B", score=scores[1], img="https://www.vlr.gg/img/b.png"),
+        ],
+        bans=[],
+        event=Event(
+            id="10", img="https://www.vlr.gg/img/e.png", series="Event", stage="Final", date=start, status=status
+        ),
+        videos=MatchVideos(streams=[], vods=[]),
+        map_count=len(data),
+        total_maps=3,
+        data=list(data),
+        previous_encounters=[],
+    )
+
+
+def _user_data(request: dict) -> dict:
+    """Decode the match data a summary request sent as its user message."""
+    system, user = request["input"]
+    assert system["role"] == "system" and "untrusted DATA" in system["content"]
+    return json.loads(user["content"])
+
+
+def test_match_details_generate_pre_match_insights_once_within_a_day_of_the_start(monkeypatch, insight_providers):
+    # A day before the start the first open waits for the prediction and preview, which later opens, served
+    # from the cached details, reuse; two days out nothing is generated.
+    played_on = datetime.now(UTC).date() - timedelta(days=3)
+    asyncio.run(_seed_ledger(insight_providers.sessions, [("100", played_on, "1", "2", 2, 0, [True])]))
+    insight_providers.llm.answers.append("Team 1 swept Team 2 three days ago; the model favours Team A.")
+    monkeypatch.setattr(settings, "ENABLE_CACHE", True)
+    start = datetime.now(UTC) + timedelta(hours=2)
+    pages = {"500": _match("upcoming", start), "501": _match("upcoming", start + timedelta(days=2))}
+    app = FastAPI()
+    app.include_router(matches_router, prefix="/api/v1/matches")
+    app.dependency_overrides[deps.get_redis_client] = lambda: insight_providers.redis
+
+    with patch("app.services.matches.match_by_id", AsyncMock(side_effect=lambda id, _client: pages[id])) as scrape:
+        client = TestClient(app)
+        first = client.get("/api/v1/matches/500").json()
+        cached = client.get("/api/v1/matches/500").json()
+        distant = client.get("/api/v1/matches/501").json()
+
+    assert scrape.await_count == 2
+    prediction = first["insights"]["prediction"]
+    assert (prediction["team_a_id"], prediction["team_a"], prediction["team_b_id"], prediction["team_b"]) == (
+        "1",
+        0.75,
+        "2",
+        0.25,
+    )
+    assert prediction["source"]["model_version"] == "vlr-prediction-v1-test"
+    assert first["insights"]["pre_match_summary"]["text"].startswith("Team 1 swept Team 2")
+    assert first["insights"]["post_match_summary"] is None
+    assert cached["insights"] == first["insights"] and cached["teams"] == first["teams"]
+    assert distant["insights"] is None
+    assert insight_providers.post.await_count == 1 and len(insight_providers.llm.calls) == 1
+    assert insight_providers.post.call_args.kwargs["json"] == {
+        "task": "match_win",
+        "as_of": start.date().isoformat(),
+        "team_a_id": "1",
+        "team_b_id": "2",
+    }
+    assert insight_providers.llm.options[0]["max_retries"] == 0
+    # Team names reach the model only as data under "teams", never as keys or inside sentences.
+    preview = _user_data(insight_providers.llm.calls[0])
+    assert preview["teams"] == {"team_a": "Team A", "team_b": "Team B"}
+    assert "Team" not in json.dumps({key: value for key, value in preview.items() if key != "teams"})
+    assert preview["prediction"]["win_probability"] == {"team_a": 0.75, "team_b": 0.25}
+    assert [(group["meta_scope"], group["team"], group["record"]["wins"]) for group in preview["head_to_head"]] == [
+        (f"unknown:event:10:{played_on.year}", "team_a", 1)
+    ]
+
+
+@pytest.mark.asyncio
+async def test_concurrent_first_opens_generate_pre_match_insights_once(insight_providers):
+    insight_providers.llm.answers.append("The model makes Team A a 75% favourite.")
+    details = _match("upcoming", datetime.now(UTC) + timedelta(hours=20))
+
+    opened = await asyncio.gather(*(insights.attach("500", details, time.monotonic() + 5) for _ in range(2)))
+
+    # The open that lost the claim serves what was stored when it read, which was nothing.
+    assert insight_providers.post.await_count == 1 and len(insight_providers.llm.calls) == 1
+    shown = [item.model_dump()["insights"] for item in opened]
+    assert shown.count(None) == 1
+    [generated] = [item for item in shown if item is not None]
+    assert (generated["prediction"]["team_a"], generated["pre_match_summary"]["text"]) == (
+        0.75,
+        "The model makes Team A a 75% favourite.",
+    )
+    assert "vlrgg:insights:claim:500" not in insight_providers.redis.values
+
+
+@pytest.mark.asyncio
+async def test_pre_match_summary_is_not_written_once_the_match_has_started(monkeypatch, insight_providers):
+    # The match starts while its history is read, so the preview, no longer due, is neither requested nor stored.
+    start = datetime.now(UTC) + timedelta(seconds=2)
+    read_history = history.head_to_head
+
+    async def slow_history(*args):
+        await asyncio.sleep((start - datetime.now(UTC)).total_seconds() + 0.1)
+        return await read_history(*args)
+
+    monkeypatch.setattr(history, "head_to_head", slow_history)
+
+    opened = await insights.attach("500", _match("upcoming", start), time.monotonic() + 5)
+
+    assert insight_providers.post.await_count == 1 and insight_providers.llm.calls == []
+    assert opened.insights is not None and opened.insights.prediction is not None
+    assert opened.insights.prediction.team_a == 0.75 and opened.insights.pre_match_summary is None
+
+
+@pytest.mark.asyncio
+async def test_final_match_summary_is_stored_once_and_a_failure_cools_down(monkeypatch, insight_providers):
+    # Map 1's panel lists Team B first; its round winners and players must still land on the header teams.
+    rounds = [
+        Round(round_number=n, round_score="", winner="team2" if n % 2 else "team1", side="", win_type="")
+        for n in range(1, 25)
+    ]
+    rounds[1] = rounds[1].model_copy(update={"winner": ""})
+    rounds[22:] = [item.model_copy(update={"winner": ""}) for item in rounds[22:]]
+    star, rival = (
+        _member("10", "Team A", "Jett", kills=25, rating=1.5),
+        _member("20", "B", "Raze", kills=12, rating=0.8),
+    )
+    maps = [
+        MatchData(
+            number=1,
+            map="Lotus",
+            teams=[MapTeam(name="Team B", score=9), MapTeam(name="Team A", score=13)],
+            members=[rival, star],
+            rounds=rounds,
+            winner="Team A",
+        ),
+        MatchData(
+            number=2,
+            map="Bind",
+            teams=[MapTeam(name="Team A", score=13), MapTeam(name="Team B", score=5)],
+            members=[star, rival],
+            rounds=rounds[:18],
+            winner="Team A",
+        ),
+        MatchData(number=3, map="Split", teams=[MapTeam(name="Team A"), MapTeam(name="Team B")], members=[], rounds=[]),
+    ]
+    details = _match("final", datetime.now(UTC) - timedelta(hours=3), scores=(2, 0), data=maps)
+    insight_providers.llm.answers += [
+        openai.APITimeoutError(request=httpx2.Request("POST", "https://llm.test")),
+        None,
+        "Team A won 2-0.",
+    ]
+    # A generation is cut off after half a second.
+    monkeypatch.setattr(settings, "SUMMARY_TIMEOUT_SECONDS", 0.5)
+    monkeypatch.setattr(insights, "PREDICTION_TIMEOUT_SECONDS", 0)
+    monkeypatch.setattr(insights, "INSIGHTS_GENERATION_OVERHEAD_SECONDS", 0)
+
+    # Without ENABLE_MATCH_SUMMARIES no summary is requested.
+    monkeypatch.setattr(settings, "ENABLE_MATCH_SUMMARIES", False)
+    assert (await insights.attach("600", details, time.monotonic() + 5)).insights is None
+    monkeypatch.setattr(settings, "ENABLE_MATCH_SUMMARIES", True)
+    # Nor for a match that started more than a week ago.
+    old = details.model_copy(
+        update={"event": details.event.model_copy(update={"date": datetime.now(UTC) - timedelta(days=8)})}
+    )
+    assert (await insights.attach("601", old, time.monotonic() + 5)).insights is None
+    # An LLM error, and an answer that outlasts the generation's time limit, each cool the summary down.
+    for _ in range(2):
+        failed = await insights.attach("600", details, time.monotonic() + 5)
+        cooling = await insights.attach("600", details, time.monotonic() + 5)
+        assert failed.insights is None and cooling.insights is None
+        del insight_providers.redis.values["vlrgg:insights:cooldown:post_summary:600"]
+    assert len(insight_providers.llm.calls) == 2
+    stored = await insights.attach("600", details, time.monotonic() + 5)
+    again = await insights.attach("600", details, time.monotonic() + 5)
+
+    assert len(insight_providers.llm.calls) == 3
+    assert [item.model_dump()["insights"]["post_match_summary"]["text"] for item in (stored, again)] == [
+        "Team A won 2-0."
+    ] * 2
+    recap = _user_data(insight_providers.llm.calls[2])
+    assert recap["teams"] == {"team_a": "Team A", "team_b": "Team B"}
+    assert recap["result"] == {"score_a": 2, "score_b": 0, "winner": "team_a"}
+    assert [(item["map"], item["score_a"], item["score_b"], item["winner"]) for item in recap["maps"]] == [
+        ("Lotus", 13, 9, "team_a"),
+        ("Bind", 13, 5, "team_a"),
+    ]
+    assert [item["winner"] for item in recap["maps"][0]["rounds"][:4]] == ["team_a", None, "team_a", "team_b"]
+    assert len(recap["maps"][0]["rounds"]) == 22
+    assert [(item["n"], item["winner"]) for item in recap["maps"][1]["rounds"][-1:]] == [(18, "team_a")]
+    assert [(player["name"], player["team"], player["kills"], player["rating"]) for player in recap["players"]] == [
+        ("Player 10", "team_a", 50, 1.5),
+        ("Player 20", "team_b", 24, 0.8),
+    ]

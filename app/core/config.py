@@ -66,6 +66,12 @@ class Settings(BaseSettings):
     LLM_RATE_LIMIT_ENABLED: bool = False
     LLM_RATE_LIMIT: int = 5
     LLM_RATE_LIMIT_WINDOW: int = 60
+    # Match insights: LLM-written pre- and post-match summaries (also need LLM_API_KEY), the time a
+    # match-details request waits for generation (the app times out at 20 s), and each summary call's
+    # own limit, which a generation that outlives the request still honours.
+    ENABLE_MATCH_SUMMARIES: bool = False
+    INSIGHTS_REQUEST_BUDGET_SECONDS: float = 12.0
+    SUMMARY_TIMEOUT_SECONDS: float = 45.0
 
     model_config = SettingsConfigDict(env_file=".env")
 
@@ -108,9 +114,19 @@ class Settings(BaseSettings):
         return self
 
     @property
-    def needs_redis(self) -> bool:
-        """Return whether an enabled feature needs Redis."""
+    def needs_worker(self) -> bool:
+        """Return whether an enabled feature needs the arq worker."""
         return self.ENABLE_CACHE or self.ENABLE_LIVE_PUSH
+
+    @property
+    def needs_redis(self) -> bool:
+        """Return whether an enabled feature needs Redis: the worker's, or match insight generation."""
+        return self.needs_worker or bool(self.PREDICTION_SERVICE_URL) or self.match_summaries_enabled
+
+    @property
+    def match_summaries_enabled(self) -> bool:
+        """Return whether match insights include LLM-written summaries."""
+        return self.ENABLE_MATCH_SUMMARIES and bool(self.LLM_API_KEY)
 
 
 settings = Settings()

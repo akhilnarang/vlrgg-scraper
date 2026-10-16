@@ -9,7 +9,7 @@ from typing import Literal
 import httpx2
 from pydantic import BaseModel, Field, ValidationError
 
-from app.constants import PredictionFallbackReason
+from app.constants import PREDICTION_TIMEOUT_SECONDS, PredictionFallbackReason
 from app.core.config import settings
 from app.schemas.predictions import (
     ModelPredictionSource,
@@ -74,6 +74,15 @@ class _ModelResponse(BaseModel):
         )
 
 
+def is_model_patch(patch: str | None) -> bool:
+    """Check whether the prediction service accepts a patch, which must be major.minor.
+
+    :param patch: Patch as VLR or the ledger spells it.
+    :return: True for a major.minor patch.
+    """
+    return patch is not None and re.fullmatch(r"\d+\.\d+", patch) is not None
+
+
 async def predict_match(
     team_a_id: str, team_b_id: str, as_of: date, patch: str | None = None
 ) -> WinProbabilities | PredictionFallbackReason:
@@ -90,7 +99,7 @@ async def predict_match(
     if not url:
         return PredictionFallbackReason.MODEL_NOT_CONFIGURED
     payload = {"task": "match_win", "as_of": as_of.isoformat(), "team_a_id": team_a_id, "team_b_id": team_b_id}
-    if patch is not None and re.fullmatch(r"\d+\.\d+", patch):
+    if is_model_patch(patch):
         payload["patch"] = patch
     try:
         if url.startswith(("unix://", "/")) or url.endswith(".sock"):
@@ -99,7 +108,7 @@ async def predict_match(
         else:
             transport = None
             target = f"{url.rstrip('/')}/predict"
-        async with httpx2.AsyncClient(transport=transport, timeout=2.0) as client:
+        async with httpx2.AsyncClient(transport=transport, timeout=PREDICTION_TIMEOUT_SECONDS) as client:
             response = await client.post(target, json=payload)
             response.raise_for_status()
         return _ModelResponse.model_validate(response.json()).prediction(team_a_id, team_b_id)

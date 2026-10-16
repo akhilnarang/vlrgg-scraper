@@ -39,6 +39,25 @@ def map_won(first: int, second: int) -> bool:
     return max(first, second) >= constants.MAP_WIN_ROUNDS and abs(first - second) >= 2
 
 
+def header_team_index(label: str, teams: Iterable[tuple[str, str | None]]) -> int | None:
+    """Find the match-header team that a map panel's team label refers to.
+
+    Map panels name a team in full, while scoreboard rows show the full name when
+    VLR resolves the tag and the tag otherwise.
+
+    :param label: Team name or tag from a map panel or scoreboard row.
+    :param teams: Each header team's name and tag, in header order.
+    :return: Index of the only header team with that name or tag, or None.
+    """
+    key = label.strip().casefold()
+    found = [
+        index
+        for index, (name, tag) in enumerate(teams)
+        if key and key in {name.strip().casefold(), (tag or "").strip().casefold()}
+    ]
+    return found[0] if len(found) == 1 else None
+
+
 def video_lead_plausible(vlr_scores: Iterable[int | None], video_scores: Iterable[int]) -> bool:
     """Check whether a tracker score leads VLR's confirmed rounds on a map by at most a few rounds.
 

@@ -20,6 +20,7 @@ from app.constants import (
     VideoPauseKind,
     VideoStatus,
 )
+from app.schemas.predictions import WinProbabilities
 
 
 class Team(BaseModel):
@@ -135,7 +136,7 @@ class PushCurrentMap(BaseModel):
     number: int | None = None
 
 
-# Response for `GET /api/v1/matches/{match_id}`
+# Details for `GET /api/v1/matches/{match_id}`, as cached under `match:{id}`
 class MatchWithDetails(BaseModel):
     teams: list[TeamWithImage]
     bans: list[str]
@@ -164,6 +165,34 @@ class MatchWithDetails(BaseModel):
             number=selected.number,
             scores=[scores.get(team.name.strip().casefold()) for team in self.teams],
         )
+
+
+class InsightPrediction(WinProbabilities):
+    """Model win probabilities stored for a match, with the teams they describe."""
+
+    team_a_id: str
+    team_b_id: str
+    generated_at: datetime
+
+
+class MatchSummary(BaseModel):
+    """Generated plain-text summary of a match."""
+
+    text: str
+    generated_at: datetime
+
+
+class MatchInsights(BaseModel):
+    """Stored prediction and summaries for a match; each appears once generated and never changes."""
+
+    prediction: InsightPrediction | None = None
+    pre_match_summary: MatchSummary | None = None
+    post_match_summary: MatchSummary | None = None
+
+
+# What `GET /api/v1/matches/{match_id}` returns: the cached details plus insights read per request.
+class MatchDetailsResponse(MatchWithDetails):
+    insights: MatchInsights | None = None
 
 
 class MatchTeam(BaseModel):
