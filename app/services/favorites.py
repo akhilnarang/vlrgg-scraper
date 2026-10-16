@@ -9,14 +9,14 @@ from app import cache, constants, schemas
 from app.constants import MatchStatus
 from app.exceptions import ServiceUnavailableError
 from app.schemas.matches import Favorites
-from app.services import scrape_store
+from app.services import matches, scrape_store
 from app.services.subscription_store import SubscriptionStore
 from app.utils import is_live
 
 
 async def favorite_matches(
     session: AsyncSession, client_id: str, redis_client: Redis, include_results: bool = False
-) -> list[schemas.Match]:
+) -> list[schemas.ListedMatch]:
     """Return the next live and upcoming matches of each favorite, live first then by start time.
 
     Never fetches from VLR: matches come from the cron-filled match list cache, and a player counts as their
@@ -51,7 +51,7 @@ async def favorite_matches(
             reverse=True,
         )
         selected += _select(results, favorites, team_ids)
-    return selected
+    return await matches.with_broadcast_map(selected, redis_client)
 
 
 def _select(pool: list[schemas.Match], favorites: Favorites, team_ids: list[str]) -> list[schemas.Match]:

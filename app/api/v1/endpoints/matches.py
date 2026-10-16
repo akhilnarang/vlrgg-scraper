@@ -8,10 +8,12 @@ router = APIRouter()
 
 
 @router.get("/")
-async def get_matches(client: deps.RedisDep) -> list[schemas.Match]:
+async def get_matches(client: deps.RedisDep) -> list[schemas.ListedMatch]:
     if data := await cache.get("matches", client=client):
-        return schemas.MatchListAdapter.validate_json(data)
-    return await matches.match_list(redis_client=client)
+        listed = schemas.MatchListAdapter.validate_json(data)
+    else:
+        listed = await matches.match_list(redis_client=client)
+    return await matches.with_broadcast_map(listed, client)
 
 
 @router.get("/{id}")
