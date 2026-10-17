@@ -1,4 +1,4 @@
-"""SQLAlchemy models for live-update subscriptions, the team ranking ledger, and match insights."""
+"""SQLAlchemy models for live-update subscriptions, the team ranking ledger, match insights, and Riot games."""
 
 from datetime import date, datetime
 
@@ -245,3 +245,21 @@ class TeamCircuit(Base):
     )
     matches: Mapped[int] = mapped_column()
     last_played_on: Mapped[date] = mapped_column()
+
+
+class RiotMatch(Base):
+    """A game from Riot's esports match API linked to the VLR map it was, stored whole.
+
+    Riot lists a game for about 12 hours, so its data is kept here; one Riot game is one VLR map.
+    """
+
+    __tablename__ = "riot_matches"
+    __table_args__ = (UniqueConstraint("vlr_match_id", "map_number"),)
+
+    riot_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    vlr_match_id: Mapped[str] = mapped_column(String(10))
+    map_number: Mapped[int] = mapped_column()
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    linked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    data: Mapped[dict] = mapped_column(JSONB)
+    link: Mapped[dict] = mapped_column(JSONB)

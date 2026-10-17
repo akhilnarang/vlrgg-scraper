@@ -269,6 +269,26 @@ MATCH_TIMEZONE = "America/New_York"
 
 
 PREDICTION_TIMEOUT_SECONDS = 2.0  # a slower prediction service answer falls back to Elo
+RIOT_MATCH_API_URL = "https://esports.api.riotgames.com/val/match/v1/"
+# From Riot's val-content-v1.
+RIOT_MAP_NAMES = {
+    "Ascent": "Ascent",
+    "Bonsai": "Split",
+    "Canyon": "Fracture",
+    "Duality": "Bind",
+    "Foxtrot": "Breeze",
+    "Infinity": "Abyss",
+    "Jam": "Lotus",
+    "Juliett": "Sunset",
+    "Pitt": "Pearl",
+    "Plummet": "Summit",
+    "Port": "Icebox",
+    "Rook": "Corrode",
+    "Triad": "Haven",
+}
+RIOT_LINK_LOOKBACK = timedelta(hours=8)
+RIOT_LINK_LEAD = timedelta(minutes=30)
+RIOT_LINK_MIN_CONFIDENCE = 0.95
 
 
 class InsightKind(StrEnum):
