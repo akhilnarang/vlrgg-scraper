@@ -1552,3 +1552,122 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
         }
     )
     assert (await get_context("ALP,BET")).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(monkeypatch, make_database):
+    """A Riot game is stored only when it alone links to a finished VLR map with a confident verdict."""
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from app import schemas
+    from app.core import connections
+    from app.cron import riot_matches
+    from app.db.migrations import upgrade_to_head
+    from app.db.models import RiotMatch
+    from app.schemas.matches import MatchData, Team, TeamMember
+    from app.schemas.riot import GameLink, VlrTeam
+    from app.services import riot
+
+    database_url = make_database()
+    await upgrade_to_head(database_url)
+    sessions = async_sessionmaker(create_async_engine(database_url), expire_on_commit=False)
+    monkeypatch.setattr(connections, "subscription_sessions", sessions)
+
+    scheduled = datetime(2026, 10, 17, 7, 0, tzinfo=ZoneInfo("UTC"))
+    detail = _live_detail("completed", (2, 0))
+    alpha = [TeamMember.model_construct(name=f"a{i}", team="ALP") for i in range(5)]
+    beta = [TeamMember.model_construct(name=f"b{i}", team="Beta") for i in range(5)]
+    # The Summit panel lists Beta first; Riot's Red side, which won 13, must resolve to Beta.
+    detail.data = [
+        MatchData(
+            number=1,
+            map="Summit",
+            teams=[Team(name="Beta", score=13), Team(name="Alpha", score=5)],
+            members=beta + alpha,
+            rounds=[],
+        ),
+        MatchData(
+            number=2,
+            map="Bind",
+            teams=[Team(name="Alpha", score=13), Team(name="Beta", score=11)],
+            members=alpha + beta,
+            rounds=[],
+        ),
+        MatchData(
+            number=3,
+            map="Lotus",
+            teams=[Team(name="Beta", score=13), Team(name="Alpha", score=9)],
+            members=beta + alpha,
+            rounds=[],
+        ),
+        MatchData(
+            number=4,
+            map="Ascent",
+            teams=[Team(name="Alpha", score=5), Team(name="Beta", score=5)],
+            members=alpha + beta,
+            rounds=[],
+            live=True,
+        ),
+    ]
+    # The match is listed twice; its maps are still each checked, and linked, once.
+    listing = 2 * [
+        schemas.Match(
+            id="123",
+            team1=schemas.MatchTeam(name="Alpha"),
+            team2=schemas.MatchTeam(name="Beta"),
+            status=MatchStatus.COMPLETED,
+            time=scheduled,
+            event="Event",
+            series="Series",
+        )
+    ]
+
+    def game(map_id, red, blue, minutes):
+        return {
+            "matchInfo": {
+                "mapId": f"/Game/Maps/{map_id}/{map_id}",
+                "isCompleted": True,
+                "gameStartMillis": int((scheduled + timedelta(minutes=minutes)).timestamp() * 1000),
+            },
+            "players": [{"gameName": f"BET b{i}", "tagLine": "BET", "teamId": "Red"} for i in range(5)]
+            + [{"gameName": f"ALP a{i}", "tagLine": "ALP", "teamId": "Blue"} for i in range(5)],
+            "teams": [{"teamId": "Red", "roundsWon": red}, {"teamId": "Blue", "roundsWon": blue}],
+        }
+
+    games = {
+        "linked": game("Plummet", 13, 5, 10),
+        "no-vlr-map": game("Plummet", 13, 7, 10),  # no VLR map scored 13-7
+        "unsure": game("Duality", 11, 13, 60),  # fits Bind, but the verdict is below the threshold
+        # A voided game and its replay both fit Lotus; neither is stored.
+        "voided": game("Jam", 13, 9, 100),
+        "replay": game("Jam", 13, 9, 140),
+        "aborted": game("Ascent", 5, 5, 180),  # never a candidate for the live 5-5 Ascent
+    }
+    pages = {"recent-matches/by-queue/tournamentmode": {"matchIds": list(games)}}
+    pages |= {f"matches/{riot_id}": data for riot_id, data in games.items()}
+
+    async def get(url, *_args, **_kwargs):
+        return SimpleNamespace(raise_for_status=lambda: None, json=lambda: pages[url])
+
+    verdicts = {
+        1: GameLink(red_team="team1", blue_team="team2", same_game=True, confidence=0.99, reason="rosters"),
+        2: GameLink(red_team="team2", blue_team="team1", same_game=True, confidence=0.8, reason="unsure"),
+        3: GameLink(red_team="team1", blue_team="team2", same_game=True, confidence=0.99, reason="rosters"),
+    }
+    decide = AsyncMock(side_effect=lambda _game, candidate: verdicts[candidate.map_number])
+    monkeypatch.setattr(riot, "decide", decide)
+    monkeypatch.setattr(riot.matches, "match_by_id", AsyncMock(return_value=detail))
+    redis = AsyncMock()
+    redis.get.return_value = schemas.MatchListAdapter.dump_json(listing)
+
+    with patch("httpx2.AsyncClient.get", side_effect=get):
+        await riot_matches.riot_matches_cron({"redis": redis})
+
+    async with sessions() as session:
+        stored = list((await session.execute(select(RiotMatch))).scalars())
+    assert [(row.riot_id, row.vlr_match_id, row.map_number) for row in stored] == [("linked", "123", 1)]
+    assert stored[0].data == games["linked"] and stored[0].link["confidence"] == 0.99
+    # The model saw each fitting map's teams in panel order with their scoreboard players; 13-7 fit none.
+    asked = [call.args[1] for call in decide.await_args_list]
+    assert [candidate.map_number for candidate in asked] == [1, 2, 3, 3]
+    assert asked[0].team1 == VlrTeam(name="Beta", tag="BET", map_score=13, players=[f"b{i}" for i in range(5)])
