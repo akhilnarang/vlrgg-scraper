@@ -54,6 +54,7 @@ the video push falls back to when Redis is cold.
 | `ranking_results` | One Elo-moving result per series or map, with both teams' ratings before it, team A's delta, and the winner. Unique per `(match_id, scope, map_index)`; a series row uses `map_index` `-1`. |
 | `team_elo` | Current series and map rating, win/loss counters, and first/last played dates per team, plus its primary region. Ratings never decay. |
 | `team_circuits` | Rated match count and last played date per team and circuit. |
+| `riot_matches` | Games from Riot's esports match API, each linked to the VLR map it was (`vlr_match_id`, `map_number`) and stored whole (`data`), with the model verdict that linked it (`link`). Riot lists a game for about 12 hours, so a game not linked meanwhile is never stored. |
 
 ## Live-match fallback (`live_matches`)
 

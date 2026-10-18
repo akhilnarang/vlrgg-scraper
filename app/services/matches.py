@@ -41,6 +41,21 @@ _MAX_CONCURRENT_FALLBACKS = 10
 COMPLETED_PAGE_BATCH_SIZE = 5
 
 
+async def cached_match_by_id(id: str, redis_client: Redis | None) -> schemas.MatchWithDetails:
+    """Read a match's details from the cache, fetching and caching them on a miss.
+
+    :param id: The match ID
+    :param redis_client: Shared Redis client, or ``None`` to let cache helpers manage a client
+    :return: The parsed match
+    """
+    cache_key = f"match:{id}"
+    if data := await cache.get(cache_key, client=redis_client):
+        return schemas.MatchWithDetails.model_validate_json(data)
+    details = await match_by_id(id, redis_client)
+    await cache.set(cache_key, details.model_dump_json(), ttl=constants.CACHE_TTL_MATCH, client=redis_client)
+    return details
+
+
 async def match_by_id(id: str, redis_client: Redis | None) -> schemas.MatchWithDetails:
     """
     Function to fetch a match from VLR, and return the parsed response

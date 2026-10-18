@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     # Optional standalone prediction service; predict falls back to Elo when unset or unreachable.
     PREDICTION_SERVICE_URL: str | None = None
 
+    # Riot esports API key; with LLM_API_KEY, a cron links each Riot tournament game to its VLR map and stores it.
+    RIOT_API_KEY: str | None = None
+
     LLM_API_KEY: str | None = None
     LLM_BASE_URL: str | None = None
     LLM_MODEL: str = "gpt-5.4"
