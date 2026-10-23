@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -248,18 +248,27 @@ class TeamCircuit(Base):
 
 
 class RiotMatch(Base):
-    """A game from Riot's esports match API linked to the VLR map it was, stored whole.
+    """A game from Riot's esports match API, stored whole and linked to the VLR map it was when known.
 
-    Riot lists a game for about 12 hours, so its data is kept here; one Riot game is one VLR map.
+    Riot lists a game for about 12 hours, so its data is kept here; one Riot game is at most one VLR map,
+    and the link columns stay NULL until a map is identified.
     """
 
     __tablename__ = "riot_matches"
-    __table_args__ = (UniqueConstraint("vlr_match_id", "map_number"),)
+    __table_args__ = (
+        Index(
+            "uq_riot_matches_vlr_match_id_map_number",
+            "vlr_match_id",
+            "map_number",
+            unique=True,
+            postgresql_where=text("vlr_match_id IS NOT NULL"),
+        ),
+    )
 
     riot_id: Mapped[str] = mapped_column(Text, primary_key=True)
-    vlr_match_id: Mapped[str] = mapped_column(String(10))
-    map_number: Mapped[int] = mapped_column()
+    vlr_match_id: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    map_number: Mapped[int | None] = mapped_column(nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    linked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    linked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     data: Mapped[dict] = mapped_column(JSONB)
-    link: Mapped[dict] = mapped_column(JSONB)
+    link: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)

@@ -1555,8 +1555,8 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(monkeypatch, make_database):
-    """A Riot game is stored only when it alone links to a finished VLR map with a confident verdict."""
+async def test_riot_matches_cron_archives_games_then_links_them_when_a_vlr_map_appears(monkeypatch, make_database):
+    """Every completed Riot game is archived, and an unlinked one is linked once VLR has its map."""
     import httpx2
     from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -1641,17 +1641,51 @@ async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(
             "players": [{"gameName": f"BET b{i}", "tagLine": "BET", "teamId": "Red"} for i in range(5)]
             + [{"gameName": f"ALP a{i}", "tagLine": "ALP", "teamId": "Blue"} for i in range(5)],
             "teams": [{"teamId": "Red", "roundsWon": red}, {"teamId": "Blue", "roundsWon": blue}],
+            "roundResults": [
+                {
+                    "roundNum": number,
+                    "roundResult": "Eliminated",
+                    "winningTeam": "Red" if number <= red else "Blue",
+                    "winningTeamRole": "attacker",
+                    "roundCeremony": "Default",
+                }
+                for number in range(1, red + blue + 1)
+            ],
         }
 
     games = {
         "linked": game("Plummet", 13, 5, 10),
-        "no-vlr-map": game("Plummet", 13, 7, 10),  # no VLR map scored 13-7
+        "no-vlr-map": game("Plummet", 13, 7, 10),  # no VLR map scored 13-7 yet
         "unsure": game("Duality", 11, 13, 60),  # fits Bind, but the verdict is below the threshold
-        # A voided game and its replay both fit Lotus; neither is stored.
+        # A voided game and its replay both fit Lotus; neither is linked.
         "voided": game("Jam", 13, 9, 100),
         "replay": game("Jam", 13, 9, 140),
         "still-live": game("Ascent", 13, 11, 180),
         "aborted": game("Triad", 5, 5, 200),
+        # A codename RIOT_MAP_NAMES lacks is archived without a link, not dropped.
+        "unknown-map": game("Void", 13, 3, 220),
+        # Missing a side's teams leaves nothing to link, but the completed game is still archived.
+        "no-sides": {
+            "matchInfo": {
+                "mapId": "/Game/Maps/Ascent/Ascent",
+                "isCompleted": True,
+                "gameStartMillis": int((scheduled + timedelta(minutes=240)).timestamp() * 1000),
+            },
+            "players": [{"gameName": f"BET b{i}", "tagLine": "BET", "teamId": "Red"} for i in range(5)],
+            "teams": [{"teamId": "Red", "roundsWon": 13}],
+            "roundResults": [{"roundNum": 1, "roundResult": "Eliminated", "winningTeam": "Red"}],
+        },
+        # Completed, but without any round results yet: not useful archive data, so a later run retries it.
+        "empty": {
+            "matchInfo": {
+                "mapId": "/Game/Maps/Split/Split",
+                "isCompleted": True,
+                "gameStartMillis": int((scheduled + timedelta(minutes=300)).timestamp() * 1000),
+            },
+            "players": [],
+            "teams": [],
+            "roundResults": [],
+        },
     }
     pages = {"recent-matches/by-queue/tournamentmode": {"matchIds": list(games)}}
     pages |= {f"matches/{riot_id}": data for riot_id, data in games.items()}
@@ -1668,6 +1702,7 @@ async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(
         1: GameLink(red_team="team1", blue_team="team2", same_game=True, confidence=0.99, reason="rosters"),
         2: GameLink(red_team="team2", blue_team="team1", same_game=True, confidence=0.8, reason="unsure"),
         3: GameLink(red_team="team1", blue_team="team2", same_game=True, confidence=0.99, reason="rosters"),
+        6: GameLink(red_team="team1", blue_team="team2", same_game=True, confidence=0.99, reason="rosters"),
     }
     decide = AsyncMock(side_effect=lambda _game, candidate: verdicts[candidate.map_number])
     monkeypatch.setattr(riot, "decide", decide)
@@ -1683,16 +1718,56 @@ async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(
         await riot_matches.riot_matches_cron({"redis": redis})
         # VLR's page is fetched once per run, however many games and listings point at it.
         assert fetch.await_count == 1
-        await riot_matches.riot_matches_cron({"redis": redis})
 
     async with sessions() as session:
         stored = list((await session.execute(select(RiotMatch))).scalars())
-    assert [(row.riot_id, row.vlr_match_id, row.map_number) for row in stored] == [("linked", "123", 1)]
-    assert stored[0].data == games["linked"] and stored[0].link["confidence"] == 0.99
-    # The model saw each fitting map's teams in panel order with their scoreboard players; 13-7 fit none.
-    # The second run asked the model nothing: turned-down and contested games are remembered.
+    by_id = {row.riot_id: row for row in stored}
+    # Every completed game with round results is archived, linked or not; the empty payload waits for rounds.
+    assert set(by_id) == set(games) - {"empty"}
+    assert (by_id["linked"].vlr_match_id, by_id["linked"].map_number) == ("123", 1)
+    assert by_id["linked"].data == games["linked"] and by_id["linked"].link["confidence"] == 0.99
+    assert by_id["linked"].data["roundResults"] == games["linked"]["roundResults"]
+    assert all(
+        row.vlr_match_id is None and row.map_number is None and row.link is None and row.linked_at is None
+        for riot_id, row in by_id.items()
+        if riot_id != "linked"
+    )
+    assert by_id["no-vlr-map"].data == games["no-vlr-map"]
+    assert by_id["unknown-map"].data == games["unknown-map"]
+
+    # VLR scores the next map as Summit 13-7, so the stored game links on a later run.
+    detail.data.append(
+        MatchData(
+            number=6,
+            map="Summit",
+            teams=[Team(name="Beta", score=13), Team(name="Alpha", score=7)],
+            members=beta + alpha,
+            rounds=[],
+        )
+    )
+    # Riot now returns the empty game's rounds, so this run fetches and archives it.
+    pages["matches/empty"] = game("Split", 13, 1, 300)
+    with patch("httpx2.AsyncClient.get", side_effect=get):
+        await riot_matches.riot_matches_cron({"redis": redis})
+        assert fetch.await_count == 2
+        assert requested.count("matches/empty") == 2
+
+    async with sessions() as session:
+        stored = list((await session.execute(select(RiotMatch))).scalars())
+    by_id = {row.riot_id: row for row in stored}
+    # Re-running neither duplicates a game nor re-links one already linked.
+    assert len(stored) == len(games)
+    assert by_id["empty"].data == pages["matches/empty"]
+    assert (by_id["empty"].vlr_match_id, by_id["empty"].map_number) == (None, None)
+    assert (by_id["no-vlr-map"].vlr_match_id, by_id["no-vlr-map"].map_number) == ("123", 6)
+    assert by_id["no-vlr-map"].link["confidence"] == 0.99 and by_id["no-vlr-map"].linked_at is not None
+    assert by_id["no-vlr-map"].data == games["no-vlr-map"]
+    assert all(row.vlr_match_id is None for riot_id, row in by_id.items() if riot_id not in {"linked", "no-vlr-map"})
+    # The model saw each fitting map's teams in panel order with their scoreboard players; 13-7 fit none
+    # on the first run. The later run asked only about the newly scored map: turned-down and contested
+    # games are remembered.
     asked = [call.args[1] for call in decide.await_args_list]
-    assert [candidate.map_number for candidate in asked] == [1, 2, 3, 3]
+    assert [candidate.map_number for candidate in asked] == [1, 2, 3, 3, 6]
     remembered = {key.removeprefix("valesports:riot:rejected:") for key in values if key != "matches"}
     assert remembered == {"unsure", "voided", "replay"}
     assert asked[0].team1 == VlrTeam(name="Beta", tag="BET", map_score=13, players=[f"b{i}" for i in range(5)])
@@ -1708,3 +1783,83 @@ async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(
     pages["recent-matches/by-queue/tournamentmode"] = 401
     with patch("httpx2.AsyncClient.get", side_effect=get):
         await riot_matches.riot_matches_cron({"redis": redis})
+
+
+@pytest.mark.asyncio
+async def test_riot_matches_downgrade_refuses_to_lose_unlinked_archive(make_database):
+    """A downgrade aborts while an unlinked game exists, and restores the old schema once every row is linked."""
+    import sqlalchemy as sa
+    from alembic.config import Config
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from alembic import command
+    from app.db.migrations import upgrade_to_head
+
+    database_url = make_database()
+    await upgrade_to_head(database_url)
+    engine = create_async_engine(database_url)
+
+    def downgrade() -> None:
+        config = Config("alembic.ini")
+        config.attributes["app"] = True
+        config.set_main_option("sqlalchemy.url", database_url)
+        command.downgrade(config, "-1")
+
+    try:
+        async with engine.begin() as connection:
+            await connection.execute(
+                sa.text(
+                    """INSERT INTO riot_matches (riot_id, started_at, data)
+                    VALUES ('unlinked', now(), '{"roundResults": [{"roundNum": 1}]}'::jsonb)"""
+                )
+            )
+
+        with pytest.raises(RuntimeError, match="1 riot_matches rows are unlinked or partial"):
+            await asyncio.to_thread(downgrade)
+
+        # The refused downgrade leaves the archive row in place instead of deleting it.
+        async with engine.connect() as connection:
+            assert await connection.scalar(sa.text("SELECT count(*) FROM riot_matches")) == 1
+
+        async with engine.begin() as connection:
+            await connection.execute(sa.text("DELETE FROM riot_matches"))
+            await connection.execute(
+                sa.text(
+                    "INSERT INTO riot_matches "
+                    "(riot_id, vlr_match_id, map_number, started_at, linked_at, data, link) "
+                    "VALUES ('linked', '123', 1, now(), now(), '{}'::jsonb, '{}'::jsonb)"
+                )
+            )
+
+        await asyncio.to_thread(downgrade)
+
+        async with engine.connect() as connection:
+            columns = {
+                row.column_name: row.is_nullable
+                for row in (
+                    await connection.execute(
+                        sa.text(
+                            "SELECT column_name, is_nullable FROM information_schema.columns "
+                            "WHERE table_name = 'riot_matches'"
+                        )
+                    )
+                ).all()
+            }
+            constraints = set(
+                await connection.scalars(
+                    sa.text(
+                        "SELECT conname FROM pg_constraint WHERE conrelid = 'riot_matches'::regclass AND contype = 'u'"
+                    )
+                )
+            )
+            assert await connection.scalar(sa.text("SELECT count(*) FROM riot_matches")) == 1
+
+        assert {name: columns[name] for name in ("vlr_match_id", "map_number", "linked_at", "link")} == {
+            "vlr_match_id": "NO",
+            "map_number": "NO",
+            "linked_at": "NO",
+            "link": "NO",
+        }
+        assert constraints == {"riot_matches_vlr_match_id_map_number_key"}
+    finally:
+        await engine.dispose()

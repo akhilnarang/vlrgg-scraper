@@ -40,6 +40,7 @@ class RiotGame(_RiotPayload):
     match_info: RiotMatchInfo
     players: list[RiotPlayer]
     teams: list[RiotTeam]
+    round_results: list[dict] = Field(default_factory=list)
 
 
 class Side(BaseModel):
@@ -50,14 +51,28 @@ class Side(BaseModel):
 
 
 class Game(BaseModel):
-    """A completed Riot game, as linking compares it."""
+    """A completed Riot game, with whatever linking could read from it."""
 
     riot_id: str
-    map: str
+    map: str | None
     started_at: datetime
-    red: Side
-    blue: Side
+    red: Side | None
+    blue: Side | None
     data: dict
+
+    @property
+    def linkable(self) -> bool:
+        """Whether linking has a known map and both sides' players to compare.
+
+        :return: True when the game can be compared with a VLR map.
+        """
+        return (
+            self.map is not None
+            and self.red is not None
+            and self.blue is not None
+            and bool(self.red.players)
+            and bool(self.blue.players)
+        )
 
 
 class VlrTeam(BaseModel):

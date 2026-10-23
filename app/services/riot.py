@@ -8,8 +8,10 @@ from datetime import UTC, datetime
 import httpx2
 from openai import AsyncOpenAI
 from redis.asyncio import Redis
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app import schemas, utils
 from app.constants import (
@@ -79,14 +81,17 @@ async def game(riot: httpx2.AsyncClient, riot_id: str) -> dict:
 
 
 def parse_game(riot_id: str, data: dict) -> Game | None:
-    """Read what linking needs from a Riot game.
+    """Read a completed Riot game, with whatever linking can use from it.
 
     :param riot_id: Riot game ID.
     :param data: The game's JSON.
-    :return: The game, or None when it is unfinished, on an unknown map, or not two full sides.
+    :return: The game, or None when Riot has not completed it or returned no round results yet. An unknown map or
+        unreadable sides leave the matching ``Game`` fields empty rather than dropping the game from the archive.
     :raises pydantic.ValidationError: When the JSON lacks the fields linking reads.
     """
     payload = RiotGame.model_validate(data)
+    if not payload.match_info.is_completed or not payload.round_results:
+        return None
     asset = payload.match_info.map_id.rsplit("/", 1)[-1]
     map_name = RIOT_MAP_NAMES.get(asset)
     if map_name is None:
@@ -100,16 +105,12 @@ def parse_game(riot_id: str, data: dict) -> Game | None:
         for side in ("Red", "Blue")
         if side in rounds_won
     }
-    if not payload.match_info.is_completed or map_name is None or len(sides) != 2:
-        return None
-    if not all(side.players for side in sides.values()):
-        return None
     return Game(
         riot_id=riot_id,
         map=map_name,
         started_at=datetime.fromtimestamp(payload.match_info.game_start_millis / 1000, UTC),
-        red=sides["Red"],
-        blue=sides["Blue"],
+        red=sides.get("Red"),
+        blue=sides.get("Blue"),
         data=data,
     )
 
@@ -139,12 +140,15 @@ def candidate_maps(game: Game, match_id: str, details: schemas.MatchWithDetails)
         whose score is not a won map, is never a candidate, so an aborted game cannot take a map still in play.
     """
     header = [(team.name, team.tag) for team in details.teams]
-    rounds = sorted([game.red.rounds_won, game.blue.rounds_won])
+    map_name, red, blue = game.map, game.red, game.blue
+    if map_name is None or red is None or blue is None:
+        return
+    rounds = sorted([red.rounds_won, blue.rounds_won])
     if not utils.map_won(*rounds):
         return
     for item in details.data:
         scores = sorted(team.score for team in item.teams if team.score is not None)
-        if item.live or item.map != game.map or scores != rounds:
+        if item.live or item.map != map_name or scores != rounds:
             continue
         teams = []
         for team in item.teams:
@@ -199,12 +203,15 @@ def accepts(game: Game, candidate: Candidate, link: GameLink) -> bool:
         are the sides' rounds won.
     """
     teams = {"team1": candidate.team1, "team2": candidate.team2}
+    red, blue = game.red, game.blue
+    if red is None or blue is None:
+        return False
     return (
         link.same_game
         and link.confidence >= RIOT_LINK_MIN_CONFIDENCE
         and {link.red_team, link.blue_team} == {"team1", "team2"}
-        and game.red.rounds_won == teams[link.red_team].map_score
-        and game.blue.rounds_won == teams[link.blue_team].map_score
+        and red.rounds_won == teams[link.red_team].map_score
+        and blue.rounds_won == teams[link.blue_team].map_score
     )
 
 
@@ -221,6 +228,8 @@ async def find_link(
     :param pages: VLR match details fetched so far this run, by match ID; filled as matches are fetched.
     :return: The VLR map and the verdict that accepted it, or None unless exactly one map accepts the game.
     """
+    if not game.linkable:
+        return None
     accepted = []
     seen = set()
     for match in {match.id: match for match in listed_candidates(listing, game.started_at)}.values():
@@ -267,27 +276,50 @@ async def rejected(redis: Redis, riot_ids: list[str]) -> set[str]:
     return {riot_id for riot_id, flag in zip(riot_ids, flags, strict=True) if flag is not None}
 
 
-async def store(session: AsyncSession, game: Game, candidate: Candidate, link: GameLink) -> bool:
-    """Store a linked game, unless the game or its VLR map is already stored.
+async def archive(session: AsyncSession, game: Game) -> None:
+    """Store a completed game's whole data, keeping the VLR link it already has.
+
+    :param session: Caller-owned database session.
+    :param game: Riot game.
+    :return: None.
+    """
+    await session.execute(
+        insert(RiotMatch)
+        .values(riot_id=game.riot_id, started_at=game.started_at, data=game.data)
+        .on_conflict_do_update(
+            index_elements=[RiotMatch.riot_id],
+            set_={"started_at": game.started_at, "data": game.data},
+        )
+    )
+
+
+async def link(session: AsyncSession, game: Game, candidate: Candidate, verdict: GameLink) -> bool:
+    """Link a stored game to the VLR map it is, unless that map is already linked to another game.
 
     :param session: Caller-owned database session.
     :param game: Riot game.
     :param candidate: The VLR map it is.
-    :param link: The verdict that linked it.
-    :return: True when the game was stored.
+    :param verdict: The verdict that linked it.
+    :return: True when the game's row was linked.
     """
+    other = aliased(RiotMatch)
+    claimed = (
+        select(other.riot_id)
+        .where(
+            other.vlr_match_id == candidate.match_id,
+            other.map_number == candidate.map_number,
+        )
+        .exists()
+    )
     result = await session.execute(
-        insert(RiotMatch)
+        update(RiotMatch)
+        .where(RiotMatch.riot_id == game.riot_id, RiotMatch.vlr_match_id.is_(None), ~claimed)
         .values(
-            riot_id=game.riot_id,
             vlr_match_id=candidate.match_id,
             map_number=candidate.map_number,
-            started_at=game.started_at,
             linked_at=datetime.now(UTC),
-            data=game.data,
-            link=link.model_dump(),
+            link=verdict.model_dump(),
         )
-        .on_conflict_do_nothing()
         .returning(RiotMatch.riot_id)
     )
     return result.first() is not None

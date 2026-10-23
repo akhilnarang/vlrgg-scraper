@@ -15,6 +15,7 @@ The application uses arq for background job scheduling to periodically update ca
 |-----|----------|----------|---------|
 | Rankings | `rankings_cron` | Every 30 min | Update team rankings |
 | Matches | `matches_cron` | Every 5 min | Update match listings |
+| Riot Matches | `riot_matches_cron` | Every 5 min at :02, :07, … | Archive every completed game Riot's esports match API lists, then link the unlinked ones to VLR maps (`app/cron/riot_matches.py`); runs when `ENABLE_CACHE`, `RIOT_API_KEY` and `LLM_API_KEY` are set |
 | Events | `events_cron` | Every 30 min | Update event listings |
 | News | `news_cron` | Every 30 min | Update news articles |
 | Standings | `standings_cron` | Daily 00:00 | Update current year standings |

@@ -54,7 +54,31 @@ the video push falls back to when Redis is cold.
 | `ranking_results` | One Elo-moving result per series or map, with both teams' ratings before it, team A's delta, and the winner. Unique per `(match_id, scope, map_index)`; a series row uses `map_index` `-1`. |
 | `team_elo` | Current series and map rating, win/loss counters, and first/last played dates per team, plus its primary region. Ratings never decay. |
 | `team_circuits` | Rated match count and last played date per team and circuit. |
-| `riot_matches` | Games from Riot's esports match API, each linked to the VLR map it was (`vlr_match_id`, `map_number`) and stored whole (`data`), with the model verdict that linked it (`link`). Riot lists a game for about 12 hours, so a game not linked meanwhile is never stored. |
+| `riot_matches` | Games from Riot's esports match API, stored whole (`data`) as soon as Riot lists them. `vlr_match_id`, `map_number`, `linked_at` and `link` stay NULL until the game is linked to exactly one VLR map; a partial unique index over `(vlr_match_id, map_number)` where `vlr_match_id` is not null keeps one game per map. |
+
+## Riot game archive (`riot_matches`)
+
+Riot's esports match API lists each tournament-server game for about 12 hours and
+keeps no history, so `app/cron/riot_matches.py` archives every completed game as
+soon as it sees it, before attempting any VLR link. The row is keyed by `riot_id`
+and upserted, so a rerun updates the same row instead of adding another. `data`
+holds Riot's whole payload (round results and `matchInfo`) and is not NULL.
+Only a completed game with round results is archived: an empty completed payload
+is skipped so a later run retries it while Riot still lists it.
+
+The migration that made the VLR link optional (`8a1c4e7d2b90`) aborts its
+downgrade while unlinked or partial rows exist, rather than deleting archive
+games that Riot can no longer return; export or prune those rows deliberately
+first.
+
+Linking is a separate, best-effort step over rows whose `vlr_match_id` is still
+NULL. It sets `vlr_match_id`, `map_number`, `linked_at` and the model's `link`
+verdict only when exactly one VLR map accepts the game. A game with no VLR map
+yet, an unknown map codename, or unreadable sides keeps those columns NULL but
+stays archived; a later run retries linking while Riot still lists it. The
+partial unique index over `(vlr_match_id, map_number)` where `vlr_match_id` is
+not null prevents two games, such as a voided game and its replay, from claiming
+the same map.
 
 ## Live-match fallback (`live_matches`)
 
