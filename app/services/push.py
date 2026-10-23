@@ -9,16 +9,9 @@ from typing import NamedTuple
 from redis.asyncio import Redis
 
 from app import constants
-from app.constants import (
-    NA,
-    PUSH_DETAILS_KEY,
-    TBD,
-    VIDEO_SCORE_KEY,
-    VIDEO_STALE_SECONDS,
-    Platform,
-    TeamSide,
-)
+from app.constants import NA, PUSH_DETAILS_KEY, TBD, VIDEO_SCORE_KEY, VIDEO_STALE_SECONDS
 from app.db.models import DeviceToken
+from app.enums import Platform, RoundWinner, TeamSide
 from app.exceptions import ServiceUnavailableError
 from app.schemas.matches import (
     CompactState,
@@ -472,7 +465,7 @@ def _map_round_winners(detail: MatchWithDetails) -> list[PushMapRounds]:
         names = [team.name.strip().casefold() for team in map_data.teams]
         if sorted(names) != sorted(order):
             continue
-        index = {constants.RoundWinner.TEAM1: order.index(names[0]), constants.RoundWinner.TEAM2: order.index(names[1])}
+        index = {RoundWinner.TEAM1: order.index(names[0]), RoundWinner.TEAM2: order.index(names[1])}
         rounds = [None] * max((item.round_number for item in map_data.rounds), default=0)
         for item in map_data.rounds:
             if item.round_number >= 1:

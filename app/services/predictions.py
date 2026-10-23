@@ -9,8 +9,9 @@ from typing import Literal
 import httpx2
 from pydantic import BaseModel, Field, ValidationError
 
-from app.constants import PREDICTION_TIMEOUT_SECONDS, PredictionFallbackReason
+from app.constants import PREDICTION_TIMEOUT_SECONDS
 from app.core.config import settings
+from app.enums import PredictionFallbackReason
 from app.schemas.predictions import (
     ModelPredictionSource,
     ModelPredictionWarning,

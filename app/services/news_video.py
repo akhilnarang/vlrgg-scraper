@@ -3,7 +3,7 @@
 import re
 from urllib.parse import parse_qs, urlsplit
 
-from app.constants import NewsVideoProvider
+from app.enums import NewsVideoProvider
 from app.schemas.news import NewsVideoPlayer
 
 _MEDIA_ID_PATTERNS = {

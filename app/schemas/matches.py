@@ -7,19 +7,8 @@ from typing import Annotated, Literal, Self
 from pydantic import BaseModel, Field, HttpUrl, ValidationError, computed_field, field_validator, model_validator
 
 from app import i18n
-from app.constants import (
-    ID_REGEX,
-    LIVE_STATUSES,
-    MAX_FAVORITES_PER_GROUP,
-    MAX_TOKEN_LENGTH,
-    VIDEO_STALE_SECONDS,
-    MatchStatus,
-    Platform,
-    TeamSide,
-    VetoAction,
-    VideoPauseKind,
-    VideoStatus,
-)
+from app.constants import ID_REGEX, LIVE_STATUSES, MAX_FAVORITES_PER_GROUP, MAX_TOKEN_LENGTH, VIDEO_STALE_SECONDS
+from app.enums import MatchStatus, Platform, TeamSide, VetoAction, VideoPauseKind, VideoStatus, VodProvider
 from app.schemas.predictions import WinProbabilities
 
 
@@ -190,9 +179,27 @@ class MatchInsights(BaseModel):
     post_match_summary: MatchSummary | None = None
 
 
-# What `GET /api/v1/matches/{match_id}` returns: the cached details plus insights read per request.
+class VodLink(BaseModel):
+    """A playable VOD, positioned at the start of one map."""
+
+    provider: VodProvider
+    locale: str
+    start_seconds: int = Field(ge=0)
+    url: HttpUrl
+
+
+class MapVods(BaseModel):
+    """The VODs that carry one VLR map, best first; the app labels them "watch from the start"."""
+
+    map_number: int = Field(ge=1)
+    links: list[VodLink]
+
+
+# What `GET /api/v1/matches/{match_id}` returns: the cached details plus insights and VOD offsets
+# read per request. Neither extra field is part of the cached `match:{id}` payload.
 class MatchDetailsResponse(MatchWithDetails):
     insights: MatchInsights | None = None
+    map_vods: list[MapVods] = []
 
 
 class MatchTeam(BaseModel):

@@ -5,12 +5,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
-from app.constants import (
-    PredictionFallbackReason,
-    PredictionRating,
-    PredictionSourceKind,
-    PredictionWarningCode,
-)
+from app.enums import PredictionFallbackReason, PredictionRating, PredictionSourceKind, PredictionWarningCode
 
 Probability = Annotated[float, Field(strict=True, ge=0, le=1, allow_inf_nan=False)]
 Count = Annotated[int, Field(strict=True, ge=0)]

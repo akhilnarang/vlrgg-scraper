@@ -16,6 +16,7 @@ Most endpoints are public. Some internal endpoints may require `X-API-Key` heade
 |--------|----------|-------------|
 | GET | `/events` | List events with optional status filtering |
 | GET | `/events/{id}` | Get detailed event information |
+| GET | `/events/{id}/brackets` | Get Riot's bracket layout for an event |
 | GET | `/matches` | List matches with filtering options |
 | GET | `/matches/{id}` | Get detailed match information |
 | GET | `/news` | Get latest news articles |
@@ -26,6 +27,139 @@ Most endpoints are public. Some internal endpoints may require `X-API-Key` heade
 | GET | `/team/{id}` | Get team information |
 | GET | `/search` | Search teams, players, and events |
 | GET | `/version` | Get API version info |
+
+## Event brackets
+
+`GET /events/{id}/brackets` returns Riot's own bracket layout for a VLR event. It is
+additive: `/events/{id}` is unchanged, and `sections` empty is still valid. Riot data
+is enabled by `RIOT_WEB_API_KEY`; with the key unset or the event not linked, the
+response is `200` with `"sections": []` and a `status` that says why. There are no
+feature flags: setting the key enables every Riot web overlay, and removing it disables
+them all. A mapping gap is not a client error, so the route never answers `404` for it
+and never fails because of Riot.
+
+```json
+{
+  "event_id": "2863",
+  "available": true,
+  "status": "ok",
+  "fetched_at": "2026-03-16T15:04:00Z",
+  "sections": [
+    {
+      "id": "112019385324163480",
+      "tournament": "Masters Madrid",
+      "stage": "Playoffs",
+      "name": "Playoffs",
+      "columns": [
+        {
+          "cells": [
+            {
+              "name": "Round 1",
+              "matches": [
+                {
+                  "id": "112019385324229017",
+                  "vlr_match_id": "1234",
+                  "label": "M11",
+                  "status": "completed",
+                  "start_time": "2024-03-16T15:00:00Z",
+                  "best_of": 3,
+                  "slots": [
+                    {
+                      "team": {"id": "105795137629057449", "name": "Paper Rex", "code": "PRX", "img": "https://static.lolesports.com/teams/paper-rex.png", "vlr_team_id": "624"},
+                      "source": {"kind": "seed", "match_id": null, "result": null, "seed": 2},
+                      "score": 0,
+                      "winner": false
+                    },
+                    {
+                      "team": {"id": "105665378258561492", "name": "Gen.G", "code": "GEN", "img": "https://static.lolesports.com/teams/gen-g.png", "vlr_team_id": null},
+                      "source": {"kind": "seed", "match_id": null, "result": null, "seed": 1},
+                      "score": 2,
+                      "winner": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+The response fields:
+
+- `sections` is unchanged: the bracket to render, or an empty list.
+- `available` is `true` exactly when `sections` is not empty.
+- `status` says what the response covers:
+  - `ok` — every tournament mapped to the event answered, and at least one section belongs
+    to it.
+  - `no_bracket` — Riot answered and the event owns no bracket: the tournament has no
+    layout, or none of its sections is proven to be this event's. Safe to show "no bracket".
+  - `unavailable` — the answer is unknown: the event is not linked to a Riot tournament,
+    `RIOT_WEB_API_KEY` is unset, the database could not be read, or Riot could not be
+    reached. Try again later rather than showing "no bracket".
+  - `stale` — sections are returned, but a tournament mapped to the event could not be
+    read, so the bracket may be incomplete.
+- `fetched_at` is the fetch time of the oldest layout the returned sections came from, or
+  `null` when there are no sections. The app can show it as "last updated"; a tournament
+  that ended long ago keeps its final layout, so an old value is not by itself a problem.
+
+Layout and fields:
+
+- `columns` are Riot's left-to-right layout layers, not round numbers. A column can
+  hold an upper-bracket and a lower-bracket cell. `cells` are display groups and can
+  contain more than one match; two `Finals` matches (a final and a third-place
+  decider) are normal. Column, cell and match order is exactly Riot's; nothing is
+  sorted.
+- `matches[].slots` always has two entries in Riot's display order. `team` is `null`
+  for a TBD slot; the slot's `source` still says where its participant comes from.
+- `source.kind` is `match` when the participant is the winner or loser of an earlier
+  match, with `match_id` (the Riot series id) and `result` (`winner`/`loser`).
+  Otherwise it is `seed`, with Riot's 1-based `seed` index; that covers qualification
+  pools and byes, which Riot represents as a seed rather than a bye object.
+- `matches[].status` uses the app's vocabulary: `upcoming`, `live`, `completed`, or `tbd`.
+  `score` is the series map score and is `null` before a match starts or for a TBD
+  slot; `winner` is `null` until the match is completed or live.
+- `vlr_match_id` makes a bracket match tappable via `/matches/{id}` when the series
+  was linked; it is `null` for a series the schedule sync has not linked, so use
+  `matches[].id` for identity. `start_time` and `best_of` come from the stored schedule
+  row, so an older Riot series whose details Riot no longer serves can still render
+  without them.
+- `team.id` is Riot's team id, not VLR's. `team.vlr_team_id` is the VLR team id, so the
+  app can open `/team/{id}`, and is `null` when the Riot team is not matched to a VLR
+  team. Only the mirrored Riot teams (`teams.riot_name`/`riot_code`, written by
+  `scripts.mirror_team_logos`) are matched, and only when Riot's name and code agree on
+  one VLR team; anything else stays `null` rather than being guessed.
+- `label` is Riot's free-form description (`M11`, `UB Final`, `3rd Place Decider`).
+  Descriptions and cell names are not unique identifiers; use `matches[].id`.
+- Only `type: "bracket"` sections are returned. Riot's `group` and `crossGroup`
+  sections are tables VLR standings already cover.
+- `tournament`, `stage` and `name` are Riot's display names; a section can contain
+  multiple independent brackets (for example four groups), and the response does not
+  split or relabel them.
+
+The VLR event is mapped to a Riot tournament through the ledger: each Riot series is
+linked to one VLR match (`riot_web_matches.vlr_match_id`, written once by the
+schedule cron), and `getEventDetails` supplies that series' `tournament.id`. An event
+therefore sees every tournament any of its linked matches belongs to. Riot's Game
+Changers LATAM, for example, spans several VLR events (North and South), and one VLR
+event can hold several Riot tournaments.
+
+A section is served only when a link proves it belongs to the requested event: its
+linked matches must all name that event. A section with no linked match is served only
+while the whole tournament is known to map to this one VLR event, because a tournament
+shared by several events would otherwise show one event another's bracket. A section
+whose links name another event, or several, is withheld whole, including its unlinked
+matches.
+
+The route serves stored data. When a tournament has no stored layout yet, it fetches
+`getStandings` once (5-second timeout), stores the layout in PostgreSQL and
+converts it on read. Converted responses are cached in Redis for 60 seconds, matching
+Riot's CDN window; a cached payload that no longer parses is treated as a miss.
+Riot's `getStandings` answers `502` without a tournament id, and an unreadable or
+unknown answer is skipped rather than failing the route.
 
 ## Team rankings (v2)
 
@@ -143,6 +277,24 @@ VLR's map navigation, so a game VLR lists without a panel, or names TBD or N/A, 
 omitted without shifting a later game's number: entry numbers can skip. No entry has an
 empty `map` or empty `teams`. `map_count` counts the games VLR shows as played or in
 progress and can differ from the number of entries in `data`.
+
+## Match map VODs
+
+`GET /matches/{id}` also returns `map_vods`: Riot's VOD offsets aligned with the maps
+VLR shows, as `[{"map_number": 1, "links": [{"provider": "youtube", "locale": "en-US",
+"start_seconds": 360, "url": "..."}]}]`. An entry appears only for a completed map that
+has at least one usable link. Links are best first: English locales before others, then
+YouTube before Twitch. `start_seconds` is Riot's `startMillis` floored to seconds, and
+`url` opens the provider's player at that offset; no other Riot timing field is used.
+
+Riot numbers its games but gives no map name or per-map score, so its offsets are served
+only when its completed game numbers are exactly VLR's completed map numbers **and** the
+series scores agree. Otherwise `map_vods` is `[]`, because a mismatch could attach a VOD
+to the wrong map. VLR's own `videos.vods` are unchanged and remain in the same response.
+
+`map_vods` is always present as an additive key, even when `RIOT_WEB_API_KEY` is unset,
+in which case it is `[]`. Making it unconditional is deliberate: clients get a stable
+shape instead of a key that appears and disappears with the key's presence.
 
 ## Match insights
 

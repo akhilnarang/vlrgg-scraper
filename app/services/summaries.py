@@ -6,8 +6,9 @@ import logging
 from openai import AsyncOpenAI
 
 from app import utils
-from app.constants import SUMMARY_MAX_CHARS, RoundWinner
+from app.constants import SUMMARY_MAX_CHARS
 from app.core.config import settings
+from app.enums import RoundWinner
 from app.schemas.matches import MatchWithDetails
 
 logger = logging.getLogger(__name__)

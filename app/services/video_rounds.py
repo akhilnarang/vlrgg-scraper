@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from redis.exceptions import WatchError
 
 from app import constants
+from app.enums import RoundWinner
 from app.schemas.matches import MatchWithDetails, Round, VideoScore
 from app.utils import is_final, map_won, video_lead_plausible
 
@@ -56,11 +57,7 @@ def _advance(history: VideoRounds | None, video: VideoScore, detail: MatchWithDe
         return None
     count = sum(scores.values())
     names = [ids.get(team.name.strip().casefold()) for team in current_map.teams]
-    order = (
-        {constants.RoundWinner.TEAM1: names[0], constants.RoundWinner.TEAM2: names[1]}
-        if len(names) == 2 and all(names)
-        else {}
-    )
+    order = {RoundWinner.TEAM1: names[0], RoundWinner.TEAM2: names[1]} if len(names) == 2 and all(names) else {}
     rendered = {
         item.round_number: team_id
         for item in current_map.rounds
@@ -207,13 +204,7 @@ async def apply_history(client: Redis, match_id: str, detail: MatchWithDetails) 
         for number, team_id in enumerate(history.winners, start=1):
             if final_count is not None and number > final_count:
                 continue
-            winner = (
-                constants.RoundWinner.TEAM1
-                if team_id == names[0]
-                else constants.RoundWinner.TEAM2
-                if team_id == names[1]
-                else ""
-            )
+            winner = RoundWinner.TEAM1 if team_id == names[0] else RoundWinner.TEAM2 if team_id == names[1] else ""
             if number in existing:
                 # VLR's own winner stands; the tracker only fills rounds VLR has not decided.
                 if not existing[number].winner and winner:

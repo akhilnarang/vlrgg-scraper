@@ -22,6 +22,10 @@ The application uses Redis for caching to improve performance and reduce load on
 | `team:{id}:{completed_pages}` | Team pages | 1 minute |
 | `player:{id}:{match_pages}` | Player pages | 1 minute |
 | `valesports:vlr:details` | Each tracked match's last fetched details | 1 hour |
+| `valesports:riot_web:live` | VLR match ids Riot's live list currently shows | 60 seconds |
+| `valesports:riot_web:brackets:{event_id}` | Converted Riot bracket response for one VLR event | 60 seconds |
+| `valesports:riot_web:key_alerted` | Throttle on the Riot web key-rejection alert | 1 hour |
+| `valesports:push:riot_live_since:{match_id}` | When a Riot-live match's consecutive failed VLR reads began | 1 hour |
 | `valesports:tracker:score` | Latest broadcast tracker score | 1 hour |
 | `valesports:tracker:rounds:{match_id}:{map_number}` | Round winners per map, inferred from consecutive verified tracker scores | 24 hours |
 
@@ -29,6 +33,32 @@ The application uses Redis for caching to improve performance and reduce load on
 (the cooldown on unchanged FCM refreshes), and `valesports:push:fetch_failures:{match_id}` (the
 consecutive failed fetches that end an unlisted match) are markers with side effects, not
 payload caches, so a purge leaves them alone.
+
+`valesports:riot_web:key_alerted` and `valesports:push:riot_live_since:{match_id}` are one-hour
+markers, not payloads, so a purge leaves them alone. Riot web data (the schedule rows, the
+Riot-to-VLR match id map and the tournament standings) lives in PostgreSQL, never in an existing
+cached payload; a change to it needs no cache purge. The Riot web jobs need only
+`RIOT_WEB_API_KEY`: with `ENABLE_CACHE` off the cache wrappers above no-op, and the jobs still
+store their rows and read their data from PostgreSQL. See
+[Database](database.md#riot-web-matches-riot_web_matches).
+
+`valesports:riot_web:live` is the VLR-id list built from Riot's `getLiveDetails`, cached for 60
+seconds to match Riot's CDN window. It is read leniently: unreadable JSON is logged and the list
+is rebuilt from Riot, and any Riot or Redis failure yields no ids, so the live push cron falls
+back to VLR's listing and never 5xxs. It is not strictly validated, so it needs no deploy purge.
+
+`valesports:riot_web:brackets:{event_id}` is the converted `GET /events/{id}/brackets` response,
+cached for 60 seconds to match Riot's CDN window. It is read leniently: a payload that no longer
+parses is logged and rebuilt, so it never raises and needs no purge on deploy. The parsed
+`getStandings` layout stays in `riot_web_tournaments` and is converted on every cache miss.
+Neither Riot web payload is strictly validated, so unlike the application payloads above they
+need no entry in a deploy's purge list.
+
+`valesports:push:riot_live_since:{match_id}` records when a Riot-live match's consecutive failed
+VLR reads began. It is a marker with side effects, not a payload: it is written with `NX` for one
+hour, so it outlives the five-minute grace window and an expired window cannot restart the clock.
+It is never purged, because clearing it would restart that window and postpone the normal
+fetch-failure cleanup.
 
 `valesports:tracker:codes` (the team codes of the tracker's last context request, 180 seconds),
 `valesports:tracker:unresolved` (the codes no VLR match fits, and since when, 300 seconds) and

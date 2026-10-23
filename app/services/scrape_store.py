@@ -8,8 +8,8 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import schemas
-from app.constants import IdMapKind
 from app.db.models import IdMapping, Player, Team
+from app.enums import IdMapKind
 
 
 async def upsert_player(session: AsyncSession, player_id: str, player: schemas.Player) -> None:

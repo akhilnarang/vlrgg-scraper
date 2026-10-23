@@ -1,0 +1,1126 @@
+{
+  "data": {
+    "standings": [
+      {
+        "id": "112019354266558216",
+        "name": "Masters Madrid",
+        "slug": "vct_masters_madrid_2024",
+        "startTime": "2024-03-14T15:00:00Z",
+        "endTime": "2024-03-24T22:59:01Z",
+        "scores": [],
+        "split": {
+          "id": "112019325132660460"
+        },
+        "season": {
+          "id": "111504610761505440",
+          "name": "2024",
+          "slug": "2024",
+          "status": "active",
+          "startTime": "2023-12-31T23:00:00Z",
+          "endTime": "2024-12-31T22:59:00Z",
+          "splits": [
+            {
+              "id": "111504614120657110",
+              "name": "lcs_split_1",
+              "slug": "lcs_split_1",
+              "startTime": "2024-01-19T23:00:00Z",
+              "endTime": "2024-03-31T22:00:00Z"
+            },
+            {
+              "id": "111521469360871947",
+              "name": "emea_regional_leagues_split_1",
+              "slug": "emea_regional_leagues_split_1",
+              "startTime": "2024-01-14T23:00:00Z",
+              "endTime": "2024-04-14T22:00:00Z"
+            },
+            {
+              "id": "111560852455485527",
+              "name": "lck_split_1",
+              "slug": "lck_split_1",
+              "startTime": "2024-01-16T23:00:00Z",
+              "endTime": "2024-04-14T22:00:00Z"
+            },
+            {
+              "id": "111560852455551064",
+              "name": "lec_split_1",
+              "slug": "lec_split_1",
+              "startTime": "2024-01-12T23:00:00Z",
+              "endTime": "2024-02-19T23:00:00Z"
+            },
+            {
+              "id": "111560866268639872",
+              "name": "lpl_split_1",
+              "slug": "lpl_split_1",
+              "startTime": "2024-01-14T23:00:00Z",
+              "endTime": "2024-04-20T22:00:00Z"
+            },
+            {
+              "id": "111560866268639873",
+              "name": "cblol_split_1",
+              "slug": "cblol_split_1",
+              "startTime": "2024-01-19T23:00:00Z",
+              "endTime": "2024-04-21T21:59:00Z"
+            },
+            {
+              "id": "111560866268639874",
+              "name": "lla_split_1",
+              "slug": "lla_split_1",
+              "startTime": "2024-01-15T23:00:00Z",
+              "endTime": "2024-04-07T21:59:00Z"
+            },
+            {
+              "id": "111560866268639875",
+              "name": "pcs_split_1",
+              "slug": "pcs_split_1",
+              "startTime": "2024-01-18T23:00:00Z",
+              "endTime": "2024-04-07T22:00:00Z"
+            },
+            {
+              "id": "111560866268639876",
+              "name": "vcs_split_1",
+              "slug": "vcs_split_1",
+              "startTime": "2024-01-19T23:00:00Z",
+              "endTime": "2024-04-06T22:00:00Z"
+            },
+            {
+              "id": "111560971311917284",
+              "name": "ljl_split_1",
+              "slug": "ljl_split_1",
+              "startTime": "2024-01-19T23:00:00Z",
+              "endTime": "2024-03-03T23:00:00Z"
+            },
+            {
+              "id": "111560971311917285",
+              "name": "lco_split_1",
+              "slug": "lco_split_1",
+              "startTime": "2024-01-14T23:00:00Z",
+              "endTime": "2024-03-03T23:00:00Z"
+            },
+            {
+              "id": "111560974681763973",
+              "name": "cblol_academy_split_1",
+              "slug": "cblol_academy_split_1",
+              "startTime": "2024-02-11T23:00:00Z",
+              "endTime": "2024-04-28T21:59:00Z"
+            },
+            {
+              "id": "111561393834423605",
+              "name": "latam_regional_leagues_split_1",
+              "slug": "latam_regional_leagues_split_1",
+              "startTime": "2024-03-31T22:00:00Z",
+              "endTime": "2024-07-30T22:00:00Z"
+            },
+            {
+              "id": "111573231880517270",
+              "name": "tft_events",
+              "slug": "tft_events",
+              "startTime": "2023-12-31T23:00:00Z",
+              "endTime": "2024-12-31T22:59:00Z"
+            },
+            {
+              "id": "111656886109997662",
+              "name": "emea_challengers_leagues_split_1",
+              "slug": "emea_challengers_leagues_split_1",
+              "startTime": "2024-01-06T23:00:00Z",
+              "endTime": "2024-03-13T23:00:00Z"
+            },
+            {
+              "id": "111697890194903615",
+              "name": "lck_challengers_split_1",
+              "slug": "lck_challengers_split_1",
+              "startTime": "2024-01-14T23:00:00Z",
+              "endTime": "2024-04-12T22:00:00Z"
+            },
+            {
+              "id": "111720022454846766",
+              "name": "lcs_challengers_split_1",
+              "slug": "lcs_challengers_split_1",
+              "startTime": "2024-01-19T23:00:00Z",
+              "endTime": "2024-03-30T22:59:00Z"
+            },
+            {
+              "id": "111759270539570755",
+              "name": "vct_pacific_kickoff",
+              "slug": "vct_pacific_kickoff",
+              "startTime": "2024-02-16T23:00:00Z",
+              "endTime": "2024-02-25T22:59:00Z"
+            },
+            {
+              "id": "111782693038873261",
+              "name": "challengers_jpn_split_1",
+              "slug": "challengers_jpn_split_1",
+              "startTime": "2024-02-02T23:00:00Z",
+              "endTime": "2024-03-12T23:00:00Z"
+            },
+            {
+              "id": "111798924743611759",
+              "name": "sea_challengers_leagues_split_1",
+              "slug": "sea_challengers_leagues_split_1",
+              "startTime": "2024-01-25T23:00:00Z",
+              "endTime": "2024-04-04T22:00:00Z"
+            },
+            {
+              "id": "111799860695364396",
+              "name": "vct_emea_kickoff",
+              "slug": "vct_emea_kickoff",
+              "startTime": "2024-02-19T23:00:00Z",
+              "endTime": "2024-03-02T22:59:00Z"
+            },
+            {
+              "id": "111810762973704255",
+              "name": "challengers_south_asia_split_1",
+              "slug": "challengers_south_asia_split_1",
+              "startTime": "2024-01-31T23:00:00Z",
+              "endTime": "2024-05-02T22:00:00Z"
+            },
+            {
+              "id": "111811149601976745",
+              "name": "vct_americas_kickoff",
+              "slug": "vct_americas_kickoff",
+              "startTime": "2024-02-15T23:00:00Z",
+              "endTime": "2024-03-03T23:00:00Z"
+            },
+            {
+              "id": "111838565765772154",
+              "name": "challengers_oceania_split_1",
+              "slug": "challengers_oceania_split_1",
+              "startTime": "2024-04-09T22:00:00Z",
+              "endTime": "2024-05-03T22:00:00Z"
+            },
+            {
+              "id": "111878299367552016",
+              "name": "vct_cn_kickoff",
+              "slug": "vct_cn_kickoff",
+              "startTime": "2024-02-21T23:00:00Z",
+              "endTime": "2024-03-03T22:59:00Z"
+            },
+            {
+              "id": "111890440499875209",
+              "name": "game_changers_emea_split_1",
+              "slug": "game_changers_emea_split_1",
+              "startTime": "2024-03-03T23:00:00Z",
+              "endTime": "2024-03-13T22:59:00Z"
+            },
+            {
+              "id": "111902052202977344",
+              "name": "challengers_br_split_1",
+              "slug": "challengers_br_split_1",
+              "startTime": "2024-02-13T03:00:00Z",
+              "endTime": "2024-05-03T03:00:00Z"
+            },
+            {
+              "id": "111919469513043427",
+              "name": "challengers_latam_split_1",
+              "slug": "challengers_latam_split_1",
+              "startTime": "2024-02-19T23:00:00Z",
+              "endTime": "2024-04-06T22:00:00Z"
+            },
+            {
+              "id": "111940932218004386",
+              "name": "challengers_kr_split_1",
+              "slug": "challengers_kr_split_1",
+              "startTime": "2024-02-27T23:00:00Z",
+              "endTime": "2024-05-03T21:59:00Z"
+            },
+            {
+              "id": "111997890967503418",
+              "name": "lec_split_2",
+              "slug": "lec_split_2",
+              "startTime": "2024-03-08T23:00:00Z",
+              "endTime": "2024-04-15T21:59:00Z"
+            },
+            {
+              "id": "112002523054261535",
+              "name": "game_changers_na_split_1",
+              "slug": "game_changers_na_split_1",
+              "startTime": "2024-03-04T23:00:00Z",
+              "endTime": "2024-03-11T22:59:00Z"
+            },
+            {
+              "id": "112009680399181501",
+              "name": "emea_masters_split_1",
+              "slug": "emea_masters_split_1",
+              "startTime": "2024-04-14T22:00:00Z",
+              "endTime": "2024-04-29T21:59:00Z"
+            },
+            {
+              "id": "112019325132660460",
+              "name": "vct_masters_madrid",
+              "slug": "vct_masters_madrid",
+              "startTime": "2024-03-13T23:00:00Z",
+              "endTime": "2024-03-24T22:59:00Z"
+            },
+            {
+              "id": "112053312369051197",
+              "name": "vct_americas_split_1",
+              "slug": "vct_americas_split_1",
+              "startTime": "2024-03-31T22:00:00Z",
+              "endTime": "2024-05-13T21:59:00Z"
+            },
+            {
+              "id": "112053314978563646",
+              "name": "vct_emea_split_1",
+              "slug": "vct_emea_split_1",
+              "startTime": "2024-03-31T22:00:00Z",
+              "endTime": "2024-05-12T22:00:00Z"
+            },
+            {
+              "id": "112053321193211457",
+              "name": "vct_pacific_split_1",
+              "slug": "vct_pacific_split_1",
+              "startTime": "2024-03-31T22:00:00Z",
+              "endTime": "2024-05-12T22:00:00Z"
+            },
+            {
+              "id": "112053321193211458",
+              "name": "vct_cn_split_1",
+              "slug": "vct_cn_split_1",
+              "startTime": "2024-03-31T22:00:00Z",
+              "endTime": "2024-05-13T21:59:00Z"
+            },
+            {
+              "id": "112053321193211459",
+              "name": "vct_masters_shanghai",
+              "slug": "vct_masters_shanghai",
+              "startTime": "2024-05-22T22:00:00Z",
+              "endTime": "2024-06-09T21:59:00Z"
+            },
+            {
+              "id": "112053328828529671",
+              "name": "vct_americas_split_2",
+              "slug": "vct_americas_split_2",
+              "startTime": "2024-06-16T22:00:00Z",
+              "endTime": "2024-07-22T21:59:00Z"
+            },
+            {
+              "id": "112053328828529672",
+              "name": "vct_emea_split_2",
+              "slug": "vct_emea_split_2",
+              "startTime": "2024-06-16T22:00:00Z",
+              "endTime": "2024-07-22T21:59:00Z"
+            },
+            {
+              "id": "112053328828529673",
+              "name": "vct_pacific_split_2",
+              "slug": "vct_pacific_split_2",
+              "startTime": "2024-06-16T22:00:00Z",
+              "endTime": "2024-07-22T21:59:00Z"
+            },
+            {
+              "id": "112053328828529674",
+              "name": "vct_cn_split_2",
+              "slug": "vct_cn_split_2",
+              "startTime": "2024-06-16T22:00:00Z",
+              "endTime": "2024-07-22T21:59:00Z"
+            },
+            {
+              "id": "112053331924308645",
+              "name": "vct_champions",
+              "slug": "vct_champions",
+              "startTime": "2024-08-01T08:00:00Z",
+              "endTime": "2024-08-25T07:00:00Z"
+            },
+            {
+              "id": "112058314307657252",
+              "name": "challengers_na_split_1",
+              "slug": "challengers_na_split_1",
+              "startTime": "2024-03-18T23:00:00Z",
+              "endTime": "2024-05-19T22:00:00Z"
+            },
+            {
+              "id": "112093561958806911",
+              "name": "game_changers_sea_split_1",
+              "slug": "game_changers_sea_split_1",
+              "startTime": "2024-03-31T22:00:00Z",
+              "endTime": "2024-04-06T21:59:00Z"
+            },
+            {
+              "id": "112099349003749610",
+              "name": "msi",
+              "slug": "msi",
+              "startTime": "2024-04-30T22:00:00Z",
+              "endTime": "2024-05-20T21:59:00Z"
+            },
+            {
+              "id": "112127295876394653",
+              "name": "game_changers_latam_split_1",
+              "slug": "game_changers_latam_split_1",
+              "startTime": "2024-04-09T22:00:00Z",
+              "endTime": "2024-06-17T21:59:00Z"
+            },
+            {
+              "id": "112258817758810423",
+              "name": "game_changers_br_split_1",
+              "slug": "game_changers_br_split_1",
+              "startTime": "2024-04-16T03:00:00Z",
+              "endTime": "2024-05-17T03:00:00Z"
+            },
+            {
+              "id": "112279682179757776",
+              "name": "game_changers_jpn_split_1",
+              "slug": "game_changers_jpn_split_1",
+              "startTime": "2024-04-28T22:00:00Z",
+              "endTime": "2024-05-02T22:00:00Z"
+            },
+            {
+              "id": "112352877773763835",
+              "name": "lec_split_3",
+              "slug": "lec_split_3",
+              "startTime": "2024-06-07T22:00:00Z",
+              "endTime": "2024-09-01T21:59:00Z"
+            },
+            {
+              "id": "112404319906120897",
+              "name": "emea_challengers_leagues_split_2",
+              "slug": "emea_challengers_leagues_split_2",
+              "startTime": "2024-05-11T22:00:00Z",
+              "endTime": "2024-07-30T22:00:00Z"
+            },
+            {
+              "id": "112410288699891380",
+              "name": "emea_regional_leagues_split_2",
+              "slug": "emea_regional_leagues_split_2",
+              "startTime": "2024-05-19T22:00:00Z",
+              "endTime": "2024-08-04T22:00:00Z"
+            },
+            {
+              "id": "112432443022947537",
+              "name": "ljl_split_2",
+              "slug": "ljl_split_2",
+              "startTime": "2024-06-06T22:00:00Z",
+              "endTime": "2024-07-29T22:00:00Z"
+            },
+            {
+              "id": "112432577235891476",
+              "name": "challengers_latam_split_2",
+              "slug": "challengers_latam_split_2",
+              "startTime": "2024-05-12T22:00:00Z",
+              "endTime": "2024-07-30T22:00:00Z"
+            },
+            {
+              "id": "112433214851766512",
+              "name": "sea_challengers_leagues_split_2",
+              "slug": "sea_challengers_leagues_split_2",
+              "startTime": "2024-05-31T22:00:00Z",
+              "endTime": "2024-07-30T22:00:00Z"
+            },
+            {
+              "id": "112435562529450991",
+              "name": "lck_split_2",
+              "slug": "lck_split_2",
+              "startTime": "2024-06-11T22:00:00Z",
+              "endTime": "2024-09-14T22:00:00Z"
+            },
+            {
+              "id": "112439800221975923",
+              "name": "game_changers_kr_split_1",
+              "slug": "game_changers_kr_split_1",
+              "startTime": "2024-05-19T22:00:00Z",
+              "endTime": "2024-05-22T22:00:00Z"
+            },
+            {
+              "id": "112439894680375519",
+              "name": "lco_split_2",
+              "slug": "lco_split_2",
+              "startTime": "2024-05-26T22:00:00Z",
+              "endTime": "2024-07-22T22:00:00Z"
+            },
+            {
+              "id": "112449493673302638",
+              "name": "lpl_split_2",
+              "slug": "lpl_split_2",
+              "startTime": "2024-05-31T22:00:00Z",
+              "endTime": "2024-09-02T22:00:00Z"
+            },
+            {
+              "id": "112449910210268783",
+              "name": "challengers_jpn_split_2",
+              "slug": "challengers_jpn_split_2",
+              "startTime": "2024-05-19T22:00:00Z",
+              "endTime": "2024-07-30T22:00:00Z"
+            },
+            {
+              "id": "112452898723192782",
+              "name": "cblol_split_2",
+              "slug": "cblol_split_2",
+              "startTime": "2024-05-31T03:00:00Z",
+              "endTime": "2024-09-08T03:00:00Z"
+            },
+            {
+              "id": "112452898723192783",
+              "name": "cblol_academy_split_2",
+              "slug": "cblol_academy_split_2",
+              "startTime": "2024-06-02T03:00:00Z",
+              "endTime": "2024-08-27T03:00:00Z"
+            },
+            {
+              "id": "112452908436793373",
+              "name": "challengers_br_split_2",
+              "slug": "challengers_br_split_2",
+              "startTime": "2024-05-20T03:00:00Z",
+              "endTime": "2024-07-29T03:00:00Z"
+            },
+            {
+              "id": "112472458455298598",
+              "name": "game_changers_emea_split_2",
+              "slug": "game_changers_emea_split_2",
+              "startTime": "2024-06-09T22:00:00Z",
+              "endTime": "2024-06-17T22:00:00Z"
+            },
+            {
+              "id": "112478390793595159",
+              "name": "challengers_kr_split_2",
+              "slug": "challengers_kr_split_2",
+              "startTime": "2024-06-04T22:00:00Z",
+              "endTime": "2024-07-26T22:00:00Z"
+            },
+            {
+              "id": "112483379948196701",
+              "name": "lla_split_2",
+              "slug": "lla_split_2",
+              "startTime": "2024-06-04T22:00:00Z",
+              "endTime": "2024-08-24T22:00:00Z"
+            },
+            {
+              "id": "112489512740380736",
+              "name": "lck_challengers_split_2",
+              "slug": "lck_challengers_split_2",
+              "startTime": "2024-06-09T22:00:00Z",
+              "endTime": "2024-09-07T22:00:00Z"
+            },
+            {
+              "id": "112518043581943762",
+              "name": "challengers_na_split_2",
+              "slug": "challengers_na_split_2",
+              "startTime": "2024-05-28T22:00:00Z",
+              "endTime": "2024-07-30T22:00:00Z"
+            },
+            {
+              "id": "112518302067412333",
+              "name": "pcs_split_2",
+              "slug": "pcs_split_2",
+              "startTime": "2024-06-07T22:00:00Z",
+              "endTime": "2024-09-01T22:00:00Z"
+            },
+            {
+              "id": "112523513143223247",
+              "name": "lcs_split_2",
+              "slug": "lcs_split_2",
+              "startTime": "2024-06-14T22:00:00Z",
+              "endTime": "2024-09-07T22:00:00Z"
+            },
+            {
+              "id": "112528882628709498",
+              "name": "lcs_challengers_split_2",
+              "slug": "lcs_challengers_split_2",
+              "startTime": "2024-06-14T22:00:00Z",
+              "endTime": "2024-09-07T22:00:00Z"
+            },
+            {
+              "id": "112551920878847455",
+              "name": "challengers_south_asia_split_2",
+              "slug": "challengers_south_asia_split_2",
+              "startTime": "2024-06-24T22:00:00Z",
+              "endTime": "2024-06-28T22:00:00Z"
+            },
+            {
+              "id": "112552148860290376",
+              "name": "challengers_oceania_split_2",
+              "slug": "challengers_oceania_split_2",
+              "startTime": "2024-01-24T23:00:00Z",
+              "endTime": "2024-07-12T22:00:00Z"
+            },
+            {
+              "id": "112552454931663738",
+              "name": "vcs_split_2",
+              "slug": "vcs_split_2",
+              "startTime": "2024-06-20T22:00:00Z",
+              "endTime": "2024-08-19T22:00:00Z"
+            },
+            {
+              "id": "112609159893194322",
+              "name": "game_changers_south_asia_split_2",
+              "slug": "game_changers_south_asia_split_2",
+              "startTime": "2024-07-07T22:00:00Z",
+              "endTime": "2024-07-12T22:00:00Z"
+            },
+            {
+              "id": "112710226071074808",
+              "name": "game_changers_latam_split_2",
+              "slug": "game_changers_latam_split_2",
+              "startTime": "2024-07-26T22:00:00Z",
+              "endTime": "2024-10-14T22:00:00Z"
+            },
+            {
+              "id": "112728973775349617",
+              "name": "game_changers_jpn_split_2",
+              "slug": "game_changers_jpn_split_2",
+              "startTime": "2024-07-14T22:00:00Z",
+              "endTime": "2024-07-25T22:00:00Z"
+            },
+            {
+              "id": "112755588484363239",
+              "name": "game_changers_kr_split_2",
+              "slug": "game_changers_kr_split_2",
+              "startTime": "2024-07-25T22:00:00Z",
+              "endTime": "2024-07-28T22:00:00Z"
+            },
+            {
+              "id": "112757436692734491",
+              "name": "game_changers_br_split_2",
+              "slug": "game_changers_br_split_2",
+              "startTime": "2024-07-21T03:00:00Z",
+              "endTime": "2024-08-22T03:00:00Z"
+            },
+            {
+              "id": "112800609083818567",
+              "name": "emea_masters_split_2",
+              "slug": "emea_masters_split_2",
+              "startTime": "2024-07-30T22:00:00Z",
+              "endTime": "2024-08-30T21:59:00Z"
+            },
+            {
+              "id": "112869327989975094",
+              "name": "lec_season_finals",
+              "slug": "lec_season_finals",
+              "startTime": "2024-08-09T22:00:00Z",
+              "endTime": "2024-09-01T21:59:00Z"
+            },
+            {
+              "id": "112948201706288374",
+              "name": "game_changers_emea_split_3",
+              "slug": "game_changers_emea_split_3",
+              "startTime": "2024-09-22T22:00:00Z",
+              "endTime": "2024-09-30T22:00:00Z"
+            },
+            {
+              "id": "112959127962209268",
+              "name": "ascension_pacific",
+              "slug": "ascension_pacific",
+              "startTime": "2024-09-19T22:00:00Z",
+              "endTime": "2024-09-29T21:59:00Z"
+            },
+            {
+              "id": "112965587752736581",
+              "name": "ascension_emea",
+              "slug": "ascension_emea",
+              "startTime": "2024-08-30T22:00:00Z",
+              "endTime": "2024-09-15T21:59:00Z"
+            },
+            {
+              "id": "112966668548444868",
+              "name": "worlds",
+              "slug": "worlds",
+              "startTime": "2024-09-24T22:00:00Z",
+              "endTime": "2024-11-02T22:59:00Z"
+            },
+            {
+              "id": "112999564156192941",
+              "name": "ascension_americas",
+              "slug": "ascension_americas",
+              "startTime": "2024-10-09T22:00:00Z",
+              "endTime": "2024-10-21T21:59:00Z"
+            },
+            {
+              "id": "113005413579261467",
+              "name": "game_changers_pacific",
+              "slug": "game_changers_pacific",
+              "startTime": "2024-09-30T22:00:00Z",
+              "endTime": "2024-10-06T21:59:00Z"
+            },
+            {
+              "id": "113032576064967413",
+              "name": "challengers_south_asia_split_3",
+              "slug": "challengers_south_asia_split_3",
+              "startTime": "2024-10-02T22:00:00Z",
+              "endTime": "2024-10-13T22:00:00Z"
+            },
+            {
+              "id": "113072840624072309",
+              "name": "challengers_oceania_split_3",
+              "slug": "challengers_oceania_split_3",
+              "startTime": "2024-11-17T23:00:00Z",
+              "endTime": "2024-11-28T23:00:00Z"
+            },
+            {
+              "id": "113078534385659020",
+              "name": "americas_challengers",
+              "slug": "americas_challengers",
+              "startTime": "2024-09-13T22:00:00Z",
+              "endTime": "2024-09-21T22:00:00Z"
+            },
+            {
+              "id": "113167297978441103",
+              "name": "game_changers_br_split_3",
+              "slug": "game_changers_br_split_3",
+              "startTime": "2024-09-24T03:00:00Z",
+              "endTime": "2024-10-14T03:00:00Z"
+            },
+            {
+              "id": "113265139193015775",
+              "name": "game_changers_na_split_3",
+              "slug": "game_changers_na_split_3",
+              "startTime": "2024-10-13T22:00:00Z",
+              "endTime": "2024-10-21T21:59:00Z"
+            },
+            {
+              "id": "113265139193081312",
+              "name": "game_changers_championship",
+              "slug": "game_changers_championship",
+              "startTime": "2024-11-07T23:00:00Z",
+              "endTime": "2024-11-17T22:59:00Z"
+            },
+            {
+              "id": "113270961160777936",
+              "name": "challengers_latam_split_3",
+              "slug": "challengers_latam_split_3",
+              "startTime": "2024-10-25T22:00:00Z",
+              "endTime": "2024-12-01T23:00:00Z"
+            },
+            {
+              "id": "113277238830287054",
+              "name": "sea_challengers_leagues_split_3",
+              "slug": "sea_challengers_leagues_split_3",
+              "startTime": "2024-10-28T23:00:00Z",
+              "endTime": "2024-11-24T22:59:00Z"
+            },
+            {
+              "id": "113355733442866895",
+              "name": "challengers_na_split_3",
+              "slug": "challengers_na_split_3",
+              "startTime": "2024-11-20T23:00:00Z",
+              "endTime": "2024-12-02T22:59:00Z"
+            },
+            {
+              "id": "113356030587416326",
+              "name": "challengers_jpn_split_3",
+              "slug": "challengers_jpn_split_3",
+              "startTime": "2024-11-28T23:00:00Z",
+              "endTime": "2024-12-22T23:00:00Z"
+            },
+            {
+              "id": "113361233264882001",
+              "name": "challengers_kr_split_3",
+              "slug": "challengers_kr_split_3",
+              "startTime": "2024-10-29T23:00:00Z",
+              "endTime": "2024-12-06T23:00:00Z"
+            },
+            {
+              "id": "113482939475463813",
+              "name": "challengers_br_split_3",
+              "slug": "challengers_br_split_3",
+              "startTime": "2024-11-20T03:00:00Z",
+              "endTime": "2024-12-14T03:00:00Z"
+            }
+          ]
+        },
+        "stages": [
+          {
+            "name": "Swiss",
+            "slug": "swiss",
+            "sections": [
+              {
+                "id": "112019376623574799",
+                "name": "Swiss",
+                "type": "bracket",
+                "columns": [
+                  {
+                    "cells": [
+                      {
+                        "name": "Round 1",
+                        "slug": "round_1",
+                        "matches": [
+                          {
+                            "id": "112019376623640336",
+                            "structuralId": "match_e65298f5b4",
+                            "state": "completed",
+                            "description": "M1 (0-0)",
+                            "teams": [
+                              {
+                                "id": "105680908693496715",
+                                "slug": "funplus-phoenix",
+                                "name": "FunPlus Phoenix",
+                                "code": "FPX",
+                                "image": "http://static.lolesports.com/teams/1644542485597_download38.png",
+                                "result": {
+                                  "outcome": "loss",
+                                  "gameWins": 0
+                                },
+                                "origin": {
+                                  "structuralId": "decisionPoint_2b9866a4ed",
+                                  "type": "decisionPoint",
+                                  "slot": 2
+                                }
+                              },
+                              {
+                                "id": "108241004210065453",
+                                "slug": "karmine-corp",
+                                "name": "Karmine Corp",
+                                "code": "KC",
+                                "image": "http://static.lolesports.com/teams/1651626649157_download1.png",
+                                "result": {
+                                  "outcome": "win",
+                                  "gameWins": 2
+                                },
+                                "origin": {
+                                  "structuralId": "decisionPoint_2b9866a4ed",
+                                  "type": "decisionPoint",
+                                  "slot": 1
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "id": "112019376623705876",
+                            "structuralId": "match_12bb4ec589",
+                            "state": "completed",
+                            "description": "M2 (0-0)",
+                            "teams": [
+                              {
+                                "id": "107745125595754895",
+                                "slug": "loud",
+                                "name": "LOUD",
+                                "code": "LOUD",
+                                "image": "http://static.lolesports.com/teams/1644060140569_LOUDGreen.png",
+                                "result": {
+                                  "outcome": "loss",
+                                  "gameWins": 1
+                                },
+                                "origin": {
+                                  "structuralId": "decisionPoint_2b9866a4ed",
+                                  "type": "decisionPoint",
+                                  "slot": 4
+                                }
+                              },
+                              {
+                                "id": "105665378258561492",
+                                "slug": "geng-esports",
+                                "name": "Gen.G ",
+                                "code": "GEN",
+                                "image": "http://static.lolesports.com/teams/1775114509356_GENGLOGO_GOLD.png",
+                                "result": {
+                                  "outcome": "win",
+                                  "gameWins": 2
+                                },
+                                "origin": {
+                                  "structuralId": "decisionPoint_2b9866a4ed",
+                                  "type": "decisionPoint",
+                                  "slot": 3
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "rankings": []
+              }
+            ]
+          },
+          {
+            "name": "Playoffs",
+            "slug": "playoffs",
+            "sections": [
+              {
+                "id": "112019385324163480",
+                "name": "Playoffs",
+                "type": "bracket",
+                "columns": [
+                  {
+                    "cells": [
+                      {
+                        "name": "Round 1",
+                        "slug": "round_1",
+                        "matches": [
+                          {
+                            "id": "112019385324229017",
+                            "structuralId": "match_e41077d522",
+                            "state": "completed",
+                            "description": "M11",
+                            "teams": [
+                              {
+                                "id": "105795137629057449",
+                                "slug": "paper-rex",
+                                "name": "Paper Rex",
+                                "code": "PRX",
+                                "image": "http://static.lolesports.com/teams/1630018120582_paper-rex-2021.png",
+                                "result": {
+                                  "outcome": "loss",
+                                  "gameWins": 0
+                                },
+                                "origin": {
+                                  "structuralId": "decisionPoint_8ff8ba3799",
+                                  "type": "decisionPoint",
+                                  "slot": 2
+                                }
+                              },
+                              {
+                                "id": "105665378258561492",
+                                "slug": "geng-esports",
+                                "name": "Gen.G ",
+                                "code": "GEN",
+                                "image": "http://static.lolesports.com/teams/1775114509356_GENGLOGO_GOLD.png",
+                                "result": {
+                                  "outcome": "win",
+                                  "gameWins": 2
+                                },
+                                "origin": {
+                                  "structuralId": "decisionPoint_8ff8ba3799",
+                                  "type": "decisionPoint",
+                                  "slot": 1
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "id": "112019385324229021",
+                            "structuralId": "match_f957c32d99",
+                            "state": "completed",
+                            "description": "M12",
+                            "teams": [
+                              {
+                                "id": "107745125595754895",
+                                "slug": "loud",
+                                "name": "LOUD",
+                                "code": "LOUD",
+                                "image": "http://static.lolesports.com/teams/1644060140569_LOUDGreen.png",
+                                "result": {
+                                  "outcome": "loss",
+                                  "gameWins": 1
+                                },
+                                "origin": {
+                                  "structuralId": "decisionPoint_8ff8ba3799",
+                                  "type": "decisionPoint",
+                                  "slot": 4
+                                }
+                              },
+                              {
+                                "id": "105665869861005803",
+                                "slug": "sentinels",
+                                "name": "Sentinels",
+                                "code": "SEN",
+                                "image": "http://static.lolesports.com/teams/1739254422982_sent.png",
+                                "result": {
+                                  "outcome": "win",
+                                  "gameWins": 2
+                                },
+                                "origin": {
+                                  "structuralId": "decisionPoint_8ff8ba3799",
+                                  "type": "decisionPoint",
+                                  "slot": 3
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "cells": [
+                      {
+                        "name": "Upper Bracket - Finals",
+                        "slug": "upper_bracket_finals",
+                        "matches": [
+                          {
+                            "id": "112019385324229025",
+                            "structuralId": "match_9a99c549dd",
+                            "state": "completed",
+                            "description": "M13",
+                            "teams": [
+                              {
+                                "id": "105665378258561492",
+                                "slug": "geng-esports",
+                                "name": "Gen.G ",
+                                "code": "GEN",
+                                "image": "http://static.lolesports.com/teams/1775114509356_GENGLOGO_GOLD.png",
+                                "result": {
+                                  "outcome": "win",
+                                  "gameWins": 2
+                                },
+                                "origin": {
+                                  "structuralId": "match_e41077d522",
+                                  "type": "match",
+                                  "slot": 1
+                                }
+                              },
+                              {
+                                "id": "105665869861005803",
+                                "slug": "sentinels",
+                                "name": "Sentinels",
+                                "code": "SEN",
+                                "image": "http://static.lolesports.com/teams/1739254422982_sent.png",
+                                "result": {
+                                  "outcome": "loss",
+                                  "gameWins": 1
+                                },
+                                "origin": {
+                                  "structuralId": "match_f957c32d99",
+                                  "type": "match",
+                                  "slot": 1
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "name": "Lower Bracket - Semifinals",
+                        "slug": "lower_bracket_semifinals",
+                        "matches": [
+                          {
+                            "id": "112019385324229029",
+                            "structuralId": "match_9151e86057",
+                            "state": "completed",
+                            "description": "M14",
+                            "teams": [
+                              {
+                                "id": "105795137629057449",
+                                "slug": "paper-rex",
+                                "name": "Paper Rex",
+                                "code": "PRX",
+                                "image": "http://static.lolesports.com/teams/1630018120582_paper-rex-2021.png",
+                                "result": {
+                                  "outcome": "win",
+                                  "gameWins": 2
+                                },
+                                "origin": {
+                                  "structuralId": "match_e41077d522",
+                                  "type": "match",
+                                  "slot": 2
+                                }
+                              },
+                              {
+                                "id": "107745125595754895",
+                                "slug": "loud",
+                                "name": "LOUD",
+                                "code": "LOUD",
+                                "image": "http://static.lolesports.com/teams/1644060140569_LOUDGreen.png",
+                                "result": {
+                                  "outcome": "loss",
+                                  "gameWins": 0
+                                },
+                                "origin": {
+                                  "structuralId": "match_f957c32d99",
+                                  "type": "match",
+                                  "slot": 2
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "cells": [
+                      {
+                        "name": "Lower Bracket - Finals",
+                        "slug": "lower_bracket_finals",
+                        "matches": [
+                          {
+                            "id": "112019385324229033",
+                            "structuralId": "match_9cf813b6d6",
+                            "state": "completed",
+                            "description": "M15",
+                            "teams": [
+                              {
+                                "id": "105665869861005803",
+                                "slug": "sentinels",
+                                "name": "Sentinels",
+                                "code": "SEN",
+                                "image": "http://static.lolesports.com/teams/1739254422982_sent.png",
+                                "result": {
+                                  "outcome": "win",
+                                  "gameWins": 3
+                                },
+                                "origin": {
+                                  "structuralId": "match_9a99c549dd",
+                                  "type": "match",
+                                  "slot": 2
+                                }
+                              },
+                              {
+                                "id": "105795137629057449",
+                                "slug": "paper-rex",
+                                "name": "Paper Rex",
+                                "code": "PRX",
+                                "image": "http://static.lolesports.com/teams/1630018120582_paper-rex-2021.png",
+                                "result": {
+                                  "outcome": "loss",
+                                  "gameWins": 1
+                                },
+                                "origin": {
+                                  "structuralId": "match_9151e86057",
+                                  "type": "match",
+                                  "slot": 1
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "cells": [
+                      {
+                        "name": "Finals",
+                        "slug": "finals",
+                        "matches": [
+                          {
+                            "id": "112019385324229039",
+                            "structuralId": "match_556bf50fe2",
+                            "state": "completed",
+                            "description": "M16",
+                            "teams": [
+                              {
+                                "id": "105665378258561492",
+                                "slug": "geng-esports",
+                                "name": "Gen.G ",
+                                "code": "GEN",
+                                "image": "http://static.lolesports.com/teams/1775114509356_GENGLOGO_GOLD.png",
+                                "result": {
+                                  "outcome": "loss",
+                                  "gameWins": 2
+                                },
+                                "origin": {
+                                  "structuralId": "match_9a99c549dd",
+                                  "type": "match",
+                                  "slot": 1
+                                }
+                              },
+                              {
+                                "id": "105665869861005803",
+                                "slug": "sentinels",
+                                "name": "Sentinels",
+                                "code": "SEN",
+                                "image": "http://static.lolesports.com/teams/1739254422982_sent.png",
+                                "result": {
+                                  "outcome": "win",
+                                  "gameWins": 3
+                                },
+                                "origin": {
+                                  "structuralId": "match_9cf813b6d6",
+                                  "type": "match",
+                                  "slot": 1
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "rankings": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

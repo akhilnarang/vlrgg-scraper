@@ -56,8 +56,13 @@ class Settings(BaseSettings):
     # Optional standalone prediction service; predict falls back to Elo when unset or unreachable.
     PREDICTION_SERVICE_URL: str | None = None
 
-    # Riot esports API key; with LLM_API_KEY, a cron links each Riot tournament game to its VLR map and stores it.
+    # Riot esports API key; set, a cron archives every Riot game and links it to its VLR map when LLM_API_KEY is set.
     RIOT_API_KEY: str | None = None
+
+    # Riot web persisted service (valorantesports.com's own API). The key is the site's frontend key:
+    # undocumented and rotated by Riot deploys. Set, every Riot web job runs; unset, no Riot web
+    # job runs and every capability is VLR-only.
+    RIOT_WEB_API_KEY: str | None = None
 
     LLM_API_KEY: str | None = None
     LLM_BASE_URL: str | None = None
@@ -119,7 +124,7 @@ class Settings(BaseSettings):
     @property
     def needs_worker(self) -> bool:
         """Return whether an enabled feature needs the arq worker."""
-        return self.ENABLE_CACHE or self.ENABLE_LIVE_PUSH
+        return self.ENABLE_CACHE or self.ENABLE_LIVE_PUSH or bool(self.RIOT_API_KEY) or bool(self.RIOT_WEB_API_KEY)
 
     @property
     def needs_redis(self) -> bool:

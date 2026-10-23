@@ -16,6 +16,7 @@ from redis.exceptions import RedisError
 from app import cache, constants, schemas
 from app.core.config import settings
 from app.core.connections import get_http_client
+from app.enums import RoundWinner, VetoAction
 from app.exceptions import ScrapingError
 from app.schemas.matches import PushCurrentMap, VideoScore
 from app.services import push
@@ -164,11 +165,11 @@ def parse_veto(bans: list[str]) -> list[schemas.Veto]:
     steps = []
     for note in bans:
         if m := _VETO_STEP.match(note):
-            steps.append(schemas.Veto(team=m["team"], action=constants.VetoAction(m["action"]), map=m["map"]))
+            steps.append(schemas.Veto(team=m["team"], action=VetoAction(m["action"]), map=m["map"]))
         elif m := _VETO_REMAINS.match(note):
-            steps.append(schemas.Veto(action=constants.VetoAction.REMAINS, map=m["map"]))
+            steps.append(schemas.Veto(action=VetoAction.REMAINS, map=m["map"]))
         else:
-            steps.append(schemas.Veto(action=constants.VetoAction.UNKNOWN, map=note))
+            steps.append(schemas.Veto(action=VetoAction.UNKNOWN, map=note))
     return steps
 
 
@@ -324,9 +325,9 @@ def get_map_data(data: ResultSet) -> tuple[list, int]:
                     round_index = int(clean_string(round_number.get_text()))
                     if round_index == previous_round + 1:
                         if current == (prev[0] + 1, prev[1]):
-                            round_winner = constants.RoundWinner.TEAM1
+                            round_winner = RoundWinner.TEAM1
                         elif current == (prev[0], prev[1] + 1):
-                            round_winner = constants.RoundWinner.TEAM2
+                            round_winner = RoundWinner.TEAM2
                     prev = current
                     previous_round = round_index
 

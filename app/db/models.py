@@ -1,12 +1,13 @@
-"""SQLAlchemy models for live-update subscriptions, the team ranking ledger, match insights, and Riot games."""
+"""SQLAlchemy models for live-update subscriptions, the team ranking ledger, match insights, and Riot data."""
 
 from datetime import date, datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from app.constants import ELO_BASE, Circuit, Platform, RankingScope, Region
+from app.constants import ELO_BASE
+from app.enums import Circuit, Platform, RankingScope, Region
 
 
 class Base(DeclarativeBase):
@@ -248,18 +249,69 @@ class TeamCircuit(Base):
 
 
 class RiotMatch(Base):
-    """A game from Riot's esports match API linked to the VLR map it was, stored whole.
+    """A game from Riot's esports match API, stored whole and linked to the VLR map it was when known.
 
-    Riot lists a game for about 12 hours, so its data is kept here; one Riot game is one VLR map.
+    Riot lists a game for about 12 hours, so its data is kept here; one Riot game is at most one VLR map,
+    and the link columns stay NULL until a map is identified.
     """
 
     __tablename__ = "riot_matches"
-    __table_args__ = (UniqueConstraint("vlr_match_id", "map_number"),)
+    __table_args__ = (
+        Index(
+            "uq_riot_matches_vlr_match_id_map_number",
+            "vlr_match_id",
+            "map_number",
+            unique=True,
+            postgresql_where=text("vlr_match_id IS NOT NULL"),
+        ),
+    )
 
     riot_id: Mapped[str] = mapped_column(Text, primary_key=True)
-    vlr_match_id: Mapped[str] = mapped_column(String(10))
-    map_number: Mapped[int] = mapped_column()
+    vlr_match_id: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    map_number: Mapped[int | None] = mapped_column(nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    linked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    linked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     data: Mapped[dict] = mapped_column(JSONB)
-    link: Mapped[dict] = mapped_column(JSONB)
+    link: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
+
+
+class RiotWebMatch(Base):
+    """A series from Riot's web persisted service, with the VLR match it is linked to, if any.
+
+    The link is set once: a cron never rewrites it. Riot's schedule payload carries no team IDs,
+    so ``teams`` holds the names the schedule last showed.
+    ``details`` keeps our parsed ``getEventDetails`` games, whose VOD offsets the match route serves.
+    """
+
+    __tablename__ = "riot_web_matches"
+    __table_args__ = (
+        Index("ix_riot_web_matches_start_time", "start_time"),
+        Index("ix_riot_web_matches_vlr_event_id", "vlr_event_id"),
+        Index("ix_riot_web_matches_tournament_id", "tournament_id"),
+        UniqueConstraint("vlr_match_id"),
+    )
+
+    riot_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    league_name: Mapped[str] = mapped_column(Text)
+    best_of: Mapped[int | None] = mapped_column(nullable=True)
+    teams: Mapped[list[dict]] = mapped_column(JSONB)
+    vlr_match_id: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    vlr_event_id: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    tournament_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    details: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    details_fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class RiotWebTournament(Base):
+    """One Riot web tournament's parsed standings layout, kept so a converter fix needs no refetch.
+
+    The payload is converted to the public bracket shape on read, so a converter fix needs no refetch.
+    ``standings`` is NULL when Riot answered with no layout, which also stops an on-demand refetch for a day.
+    """
+
+    __tablename__ = "riot_web_tournaments"
+
+    tournament_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    standings: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

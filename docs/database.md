@@ -54,7 +54,61 @@ the video push falls back to when Redis is cold.
 | `ranking_results` | One Elo-moving result per series or map, with both teams' ratings before it, team A's delta, and the winner. Unique per `(match_id, scope, map_index)`; a series row uses `map_index` `-1`. |
 | `team_elo` | Current series and map rating, win/loss counters, and first/last played dates per team, plus its primary region. Ratings never decay. |
 | `team_circuits` | Rated match count and last played date per team and circuit. |
-| `riot_matches` | Games from Riot's esports match API, each linked to the VLR map it was (`vlr_match_id`, `map_number`) and stored whole (`data`), with the model verdict that linked it (`link`). Riot lists a game for about 12 hours, so a game not linked meanwhile is never stored. |
+| `riot_matches` | Games from Riot's esports match API, stored whole (`data`) as soon as Riot lists them. `vlr_match_id`, `map_number`, `linked_at` and `link` stay NULL until the game is linked to exactly one VLR map; a partial unique index over `(vlr_match_id, map_number)` where `vlr_match_id` is not null keeps one game per map. |
+| `riot_web_matches` | Series from Riot's web persisted service, one row per Riot series, with the VLR match it was linked to (`vlr_match_id`, `vlr_event_id`). The link is written once and never rewritten by a cron. |
+| `riot_web_tournaments` | Each Riot tournament's parsed standings layout (`standings` JSONB), and when it was fetched. Converted to the public bracket shape on read. |
+
+### Riot web matches (`riot_web_matches`)
+
+This is a different provider and a different granularity from `riot_matches`: one row per Riot
+*series* (the `getSchedule` `match.id`, also `getEventDetails`'s `event.id`), not per game.
+`teams` is JSONB holding the two team names the schedule last showed; the schedule payload
+has no team IDs, so there is no id column, and nothing else about the teams is read.
+`vlr_match_id` stays NULL until the schedule cron finds one unambiguously matching VLR match,
+and the store updates only while it is NULL, so a rerun cannot rewrite a link. `tournament_id` comes from `getEventDetails` of the
+linked series and is what maps a VLR event to Riot's `getStandings`; the brackets cron fills it
+for matches near the current date, while NULL while it is unknown. Clear a wrong link by hand as
+shown in [cron.md](cron.md#job-schedule); the next run may link it again.
+
+The two Riot web tables are created by the single revision `625f004fc4c9`, which also makes a
+`riot_matches` game exist before it is linked. The revision has never shipped, so it is edited in
+place rather than superseded; its downgrade refuses to run while an unlinked or partial
+`riot_matches` row exists (see [Riot game archive](#riot-game-archive-riot_matches)).
+
+### Riot web tournaments (`riot_web_tournaments`)
+
+`standings` holds the parsed `data.standings[0]` layout — its stages, sections, columns, cells,
+matches and slots — so the public bracket shape is built at read time and a converter fix needs
+no refetch; the tournament's own name and window are inside that payload and are not duplicated
+in columns. `fetched_at` is the last successful
+fetch; `standings` is NULL when Riot had no layout, and the route skips that tournament for 24
+hours instead of asking again. A stored layout that no longer validates is refetched once and,
+if Riot fails, logged; a schema change degrades to fewer sections rather than an error. The table
+is not strictly cached in Redis: the converted response is cached separately for 60 seconds.
+
+## Riot game archive (`riot_matches`)
+
+Riot's esports match API lists each tournament-server game for about 12 hours and
+keeps no history, so `app/cron/riot_matches.py` archives every completed game as
+soon as it sees it, before attempting any VLR link. The row is keyed by `riot_id`
+and upserted, so a rerun updates the same row instead of adding another. `data`
+holds Riot's whole payload (round results and `matchInfo`) and is not NULL.
+Only a completed game with round results is archived: an empty completed payload
+is skipped so a later run retries it while Riot still lists it.
+
+The migration that made the VLR link optional (`625f004fc4c9`) aborts its
+downgrade while unlinked or partial rows exist, rather than deleting archive
+games that Riot can no longer return; export or prune those rows deliberately
+first.
+
+Linking is a separate, best-effort step over rows whose `vlr_match_id` is still
+NULL. It sets `vlr_match_id`, `map_number`, `linked_at` and the model's `link`
+verdict only when exactly one VLR map accepts the game. A game with no VLR map
+yet, an unknown map codename, or unreadable sides keeps those columns NULL but
+stays archived; a later run retries linking while Riot still lists it. The
+partial unique index over `(vlr_match_id, map_number)` where `vlr_match_id` is
+not null prevents two games, such as a voided game and its replay, from claiming
+the same map.
 
 ## Live-match fallback (`live_matches`)
 

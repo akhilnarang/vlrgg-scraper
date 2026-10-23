@@ -86,6 +86,7 @@ def get_subscription_store(session: DatabaseSessionDep) -> SubscriptionStore:
 
 
 MatchId = Annotated[str, Path(pattern=r"^\d{1,10}$")]
+EventId = Annotated[str, Path(pattern=ID_REGEX)]
 TeamId = Annotated[str, Path(pattern=ID_REGEX)]
 RedisDep = Annotated[Redis, Depends(get_redis_client)]
 SubscriptionStoreDep = Annotated[SubscriptionStore, Depends(get_subscription_store)]

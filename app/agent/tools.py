@@ -7,9 +7,9 @@ tool schemas and a name -> coroutine dispatch map.
 
 from datetime import date
 
-import app.constants as constants
 from app.agent.filters import filter_matches, guard_rows
-from app.services import search, team, player, rankings, standings, news, events, matches
+from app.enums import SearchCategory
+from app.services import events, matches, news, player, rankings, search, standings, team
 
 _MATCH_FILTERS = ["opponent", "event", "stage", "date_from", "date_to", "limit", "roster_core", "opponent_roster_core"]
 
@@ -25,7 +25,7 @@ def _win_loss(score: str) -> str | None:
 
 async def _search(category: str, term: str):
     """Resolve a team/player/event name to vlr.gg search results."""
-    return [r.model_dump(mode="json") for r in await search.get_data(constants.SearchCategory(category), term)]
+    return [r.model_dump(mode="json") for r in await search.get_data(SearchCategory(category), term)]
 
 
 async def _get_team(id: str, completed_pages: int = 1, opponent=None, event=None, stage=None,

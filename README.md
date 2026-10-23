@@ -75,6 +75,9 @@ Environment variables (see `app/core/config.py`):
 - `DATABASE_URL`: PostgreSQL database (default `postgresql+asyncpg:///vlrgg`, the local socket as the current user)
 - `INTERNAL_API_KEY`: API key for internal endpoints
 - `TIMEZONE`: Server timezone
+- `RIOT_WEB_API_KEY`: valorantesports.com's frontend API key. Set, it enables every Riot web job (live discovery, VOD offsets, brackets); unset, no Riot web call is made and responses are VLR-only. There are no feature flags. Riot rotates the key when the site changes, so plan to replace it (rotation steps in [docs/cron.md](docs/cron.md))
+- `RIOT_API_KEY`: Riot's official esports match API key; set, a cron archives every completed game it lists. Linking those games to VLR maps additionally needs `LLM_API_KEY`; without it the archive still runs and only linking is skipped
+- `LLM_API_KEY`: OpenAI-compatible model key; set, it lets the archive cron link a Riot game to its VLR map, and `LLM_BASE_URL`/`LLM_MODEL` select the endpoint and model. Unset, no model call is made and the archive stores games without links
 - `GOOGLE_APPLICATION_CREDENTIALS`: Path to Firebase credentials (for notifications)
 
 Startup applies the Alembic migrations automatically. Back up with

@@ -42,13 +42,11 @@ from app.constants import (
     MATCH_TIMEZONE,
     PREDICTION_TIMEOUT_SECONDS,
     TBD,
-    InsightKind,
-    MatchStatus,
-    PredictionFallbackReason,
 )
 from app.core import connections
 from app.core.config import settings
 from app.db.models import MatchInsightRecord
+from app.enums import InsightKind, MatchStatus, PredictionFallbackReason
 from app.schemas.matches import InsightPrediction, MatchDetailsResponse, MatchInsights, MatchSummary, MatchWithDetails
 from app.services import history, insight_store, predictions, ranking_store, summaries
 from app.services.summary_prompts import POST_MATCH_PROMPT, PRE_MATCH_PROMPT, PROMPT_VERSION

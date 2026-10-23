@@ -1,6 +1,16 @@
 from pydantic import TypeAdapter
 
 from .agent import AskRequest, AskResponse
+from .brackets import (
+    BracketCell,
+    BracketColumn,
+    BracketMatch,
+    BracketSection,
+    BracketSlot,
+    BracketSource,
+    BracketTeam,
+    EventBrackets,
+)
 from .events import Event, EventWithDetails
 from .matches import ListedMatch, Match, MatchDetailsResponse, MatchTeam, MatchWithDetails, Veto
 from .news import NewsItem, NewsArticle

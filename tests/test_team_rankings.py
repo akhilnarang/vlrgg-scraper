@@ -20,12 +20,13 @@ from app import schemas
 from app.api import deps
 from app.api.v1.endpoints.matches import router as matches_router
 from app.api.v2.api import router
-from app.constants import ELO_ALGORITHM, ELO_BASE, ELO_K, ELO_MAP_ALPHA, Circuit, MatchStatus, RankingScope, Region
+from app.constants import ELO_ALGORITHM, ELO_BASE, ELO_K, ELO_MAP_ALPHA
 from app.core import connections
 from app.core.config import settings
 from app.cron.team_rankings import team_rankings_cron
 from app.db.migrations import upgrade_to_head
 from app.db.models import EventRecord, MapRecord, MatchRecord, RankingResult, Team, TeamCircuit, TeamElo
+from app.enums import Circuit, MatchStatus, RankingScope, Region
 from app.schemas.matches import Agent, Event, MatchData, MatchVideos, Round, TeamMember, TeamWithImage
 from app.schemas.matches import Team as MapTeam
 from app.services import history, insights, matches, predictions, ranking_store, team_rankings

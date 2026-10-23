@@ -7,6 +7,7 @@ advances one tick until the match goes final and the key is removed.
 from redis.asyncio import Redis
 
 from app import constants
+from app.enums import RoundWinner
 from app.schemas.matches import MatchWithDetails
 
 
@@ -48,7 +49,7 @@ async def next_observation(client: Redis) -> MatchWithDetails:
                         {
                             "round_number": n,
                             "round_score": f"{(n + 1) // 2}-{n // 2}",
-                            "winner": constants.RoundWinner.TEAM1 if n % 2 else constants.RoundWinner.TEAM2,
+                            "winner": RoundWinner.TEAM1 if n % 2 else RoundWinner.TEAM2,
                             "side": "attack" if n % 2 else "defense",
                             "win_type": "Elimination",
                         }

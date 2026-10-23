@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.constants import MatchStatus, SearchCategory
+from app.enums import MatchStatus, SearchCategory
 from app.services import events, matches, news, player, rankings, search, team
 from tests.live import contracts
 

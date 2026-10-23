@@ -5,8 +5,8 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import constants
-from app.constants import FavoriteType, Platform
 from app.db.models import Client, DeviceToken, Favorite, LiveActivityStart, MatchPushState
+from app.enums import FavoriteType, Platform
 from app.exceptions import NotFoundError
 from app.schemas.matches import Favorites
 from app.services.push import Routing
