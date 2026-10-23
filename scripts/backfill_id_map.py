@@ -12,8 +12,8 @@ import asyncio
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.constants import IdMapKind
 from app.core.config import settings
+from app.enums import IdMapKind
 from app.services import scrape_store
 
 

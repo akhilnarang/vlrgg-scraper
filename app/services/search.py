@@ -1,14 +1,14 @@
 import http
 
 from bs4 import BeautifulSoup, Tag
+
+from app import constants, schemas, utils
+from app.core.connections import get_http_client
+from app.enums import SearchCategory
 from app.exceptions import ScrapingError
 
-from app import schemas, utils
-import app.constants as constants
-from app.core.connections import get_http_client
 
-
-async def get_data(search_category: constants.SearchCategory, search_term: str) -> list[schemas.SearchResult]:
+async def get_data(search_category: SearchCategory, search_term: str) -> list[schemas.SearchResult]:
     """
     Function to return data based on a user specified search term
 
@@ -35,13 +35,13 @@ def parse_result(result_data: Tag) -> schemas.SearchResult:
     """
     url = utils.get_href(result_data["href"])
     if "team" in url:
-        category = constants.SearchCategory.TEAM
+        category = SearchCategory.TEAM
     elif "event" in url:
-        category = constants.SearchCategory.EVENT
+        category = SearchCategory.EVENT
     elif "player" in url:
-        category = constants.SearchCategory.PLAYER
+        category = SearchCategory.PLAYER
     elif "series" in url:
-        category = constants.SearchCategory.SERIES
+        category = SearchCategory.SERIES
     else:
         raise Exception("Unknown category")
 

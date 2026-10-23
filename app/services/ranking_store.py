@@ -10,8 +10,8 @@ from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.constants import Circuit, RankingScope
 from app.db.models import EventRecord, MapRecord, MatchRecord, RankingResult, Team, TeamCircuit, TeamElo
+from app.enums import Circuit, RankingScope
 
 
 @dataclass(slots=True, frozen=True)

@@ -32,15 +32,12 @@ from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.constants import IdMapKind
 from app.core.config import settings
 from app.db.models import IdMapping, Team
+from app.enums import IdMapKind
 from app.services import scrape_store
 
 API = "https://esports-api.service.valorantesports.com/persisted/val/getSchedule"
-# Public key the valorantesports.com site sends with every request; the site injects it from its build environment,
-# so it is not in the page or its scripts to read at run time.
-API_KEY = "0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z"
 LEAGUES = {
     "109974795266458277": "vct_americas",
     "106109559530232966": "vct_emea",
@@ -129,6 +126,8 @@ async def main() -> None:
     """
     output = Path(sys.argv[1] if len(sys.argv) > 1 else "team-assets")
     cdn_base_url = (sys.argv[2] if len(sys.argv) > 2 else DEFAULT_CDN_BASE_URL).rstrip("/")
+    if not settings.RIOT_WEB_API_KEY:
+        sys.exit("RIOT_WEB_API_KEY is not set")
     (output / "teams").mkdir(parents=True, exist_ok=True)
     engine = create_async_engine(settings.DATABASE_URL)
     sessions = async_sessionmaker(engine)
@@ -136,7 +135,7 @@ async def main() -> None:
         tags, names = await vlr_indexes(session)
     manifest: dict[str, dict] = {}
     unmatched = []
-    with httpx2.Client(timeout=30, follow_redirects=True, headers={"x-api-key": API_KEY}) as client:
+    with httpx2.Client(timeout=30, follow_redirects=True, headers={"x-api-key": settings.RIOT_WEB_API_KEY}) as client:
         for league_id, league in LEAGUES.items():
             for code, team in sorted(league_teams(client, league_id).items()):
                 vlr_id = OVERRIDES.get(code) or tags.get(normalize(code)) or names.get(normalize(team["name"]))

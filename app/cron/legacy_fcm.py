@@ -12,8 +12,8 @@ from zoneinfo import ZoneInfo
 from firebase_admin import messaging
 from sentry_sdk import capture_exception, get_current_scope
 
-from app.constants import MatchStatus
 from app.core.config import settings
+from app.enums import MatchStatus
 from app.services import matches
 from app.services.fcm import get_app
 

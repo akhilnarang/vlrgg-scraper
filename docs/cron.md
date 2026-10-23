@@ -15,12 +15,16 @@ The application uses arq for background job scheduling to periodically update ca
 |-----|----------|----------|---------|
 | Rankings | `rankings_cron` | Every 30 min | Update team rankings |
 | Matches | `matches_cron` | Every 5 min | Update match listings |
+| Riot Matches | `riot_matches_cron` | Every 5 min at :02, :07, … | Archive every completed game Riot's esports match API lists, then link the unlinked ones to VLR maps (`app/cron/riot_matches.py`); runs when `RIOT_API_KEY` is set, and links only when `LLM_API_KEY` is also set |
 | Events | `events_cron` | Every 30 min | Update event listings |
 | News | `news_cron` | Every 30 min | Update news articles |
 | Standings | `standings_cron` | Daily 00:00 | Update current year standings |
 | Team Rankings | `team_rankings_cron` | Every 15 min | Upsert newly completed matches and rebuild the Elo ledger (`app/cron/team_rankings.py`) |
 | FCM Notifications | `fcm_notification_cron` | Every 15 min | Legacy "match starting soon" alert on the `match-`/`event-`/`team-` topics (`app/cron/legacy_fcm.py`) |
 | Live Matches | `live_push_cron` | Every minute | Send APNs/FCM scores for tracked matches (listed live, or already pushed); at most one run at a time (fixed arq `job_id`) |
+| Riot Web Schedule | `riot_web_schedule_cron` | Every 10 min at :01, :11, … | Store Riot's web schedule and link each series to its VLR match (`app/cron/riot_web.py`); runs when `RIOT_WEB_API_KEY` is set |
+| Riot Web Details | `riot_web_details_cron` | Every 10 min at :04, :14, … | Fetch `getEventDetails` for linked series that are due: at most 30 a run, refreshed hourly, settled 48 hours after the start |
+| Riot Web Brackets | `riot_web_brackets_cron` | Every 10 min at :07, :17, … | Refresh the standings of Riot tournaments playing now |
 
 The team rankings job upserts every completed match that is missing from the ledger,
 stored without both teams, a decisive score, or every played map, or contradicted by
@@ -49,6 +53,87 @@ When the tracker is up but VLR cannot serve it — its score stalls over a match
 pushing, or its team codes match no VLR match for 30 minutes — the cron logs an ERROR,
 which Sentry turns into an event. See
 [Broadcast tracker alerts](live-alerts.md) for both alert paths and the rule runbook.
+
+`RIOT_WEB_API_KEY` is the only switch for the Riot web overlays: **set, every Riot web
+job runs; unset, no Riot web call is made** and the matching responses are VLR-only.
+There are no feature flags, and `ENABLE_CACHE` is not needed for them: the cache
+wrappers no-op when caching is off, so the jobs still store what they fetch.
+
+With the key set, the live push cron also reads Riot's `getLiveDetails` list to find
+matches VLR's listing has not caught up to. The answer is cached for 60 seconds in
+`valesports:riot_web:live`, matching Riot's own CDN window. Riot is additive only: it
+decides which VLR pages the cron reads, and VLR's detail still decides every push, ending
+and final. Riot's list lingers about 11 minutes after a series ends, so a Riot-only id
+with no stored push state whose VLR status is already final is skipped instead of
+resending the Android FINAL every minute. That linger can also defer the fetch-failure
+path, so it does so only for a five-minute grace window starting at the first consecutive
+failed read; after that VLR's failure decides. Riot never ends a match: its list omits
+whole leagues, so only VLR can end one.
+
+With the key unset, live discovery stops, `map_vods` is empty and brackets serve empty
+`sections`; the rest of each response is unchanged.
+
+The Riot web schedule job runs whenever `RIOT_WEB_API_KEY` is set. It walks
+`getSchedule` by `pageToken` (never `page=`), at most five pages and stopping at the
+three-day lookback edge, then upserts `riot_web_matches` and
+links a series only when the normalised team-name pair and the start time agree within two
+hours (six hours only when exactly one candidate fits). Two or more candidates are logged
+and left unlinked. A link is written once and never rewritten, so a wrong link stays until
+it is cleared by hand:
+
+```sql
+UPDATE riot_web_matches SET vlr_match_id = NULL, vlr_event_id = NULL
+WHERE riot_id = '<riot id>';
+```
+
+The next run may link it again from scratch. If a run logs `Riot and VLR times disagree for
+every name match`, at least three name pairs were found and none was inside two hours: the
+host's `TIMEZONE` no longer matches the zone VLR's schedule renders in, so check that
+before suspecting the alias table.
+
+The details job runs whenever `RIOT_WEB_API_KEY` is set, every 10
+minutes at :04, :14, …. It fetches `getEventDetails` for at most 30 linked series that are
+due — never fetched, or fetched over an hour ago while the series started less than 48
+hours ago — and stores each series' per-map VOD offsets and `tournament_id`. After the 48
+hours a series is settled and never fetched again. `event: null` for most 2021–2023 ids is
+expected and leaves `tournament_id` NULL. Every id is fetched before any write, so no
+transaction spans network I/O; a rejected key or a `429` ends the run after storing what
+was already fetched.
+
+The Riot web brackets job runs whenever `RIOT_WEB_API_KEY` is set. It refreshes
+`getStandings?tournamentId=…` for every tournament that has a linked series within two
+days of now, one tournament per transaction, so no row lock spans a Riot call. A
+rejected key or a `429` ends the run; other failures skip that tournament. An empty
+standings answer is stored as `NULL`, and the route does not ask again for that
+tournament for 24 hours. Old tournaments that no longer have a match in the window are
+not refreshed; their last stored layout keeps serving.
+
+**Rotating `RIOT_WEB_API_KEY`.** Riot rotates the site's frontend key without notice. A
+Sentry ERROR `Riot web rejected RIOT_WEB_API_KEY` (throttled to one an hour) means it was
+rejected. Open https://valorantesports.com with devtools → Network, filter `esports-api`,
+copy the `x-api-key` request header, check it with
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' -H "x-api-key: $KEY" \
+  'https://esports-api.service.valorantesports.com/persisted/val/getLiveDetails?hl=en-US&sport=val'
+```
+
+(a valid key prints `200`; a rejected one prints `403`), then set `RIOT_WEB_API_KEY` in
+`~/vlrgg-scraper/.env` and restart the service. Removing `RIOT_WEB_API_KEY` disables
+the jobs and leaves every Riot-web field empty, and VLR responses are unaffected.
+
+## Riot esports match archive
+
+`riot_matches_cron` is a separate integration on Riot's official esports match API and is
+gated only on `RIOT_API_KEY`, not on `RIOT_WEB_API_KEY`. It archives every completed game
+Riot lists, whether or not VLR has a map for it yet. Linking an archived game to its VLR
+map asks the model, so it runs only when `LLM_API_KEY` is also set; without it the archive
+still runs and only the linking step is skipped. See the job table above for its schedule.
+
+The run has a four-minute budget and stops early when Riot answers `429`; whatever was
+found so far is still stored. A game already archived and linked is skipped, and a game
+the model turned down, or one that competes for a map another game also claims, is
+remembered in Redis for 13 hours and not asked about again.
 
 ## Implementation
 

@@ -6,7 +6,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import cache, constants, schemas
-from app.constants import MatchStatus
+from app.enums import MatchStatus
 from app.exceptions import ServiceUnavailableError
 from app.schemas.matches import Favorites
 from app.services import matches, scrape_store

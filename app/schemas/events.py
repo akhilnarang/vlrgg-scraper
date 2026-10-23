@@ -3,7 +3,7 @@ from datetime import date
 from pydantic import BaseModel, HttpUrl, computed_field
 
 from app import i18n
-from app.constants import EventStatus, MatchStatus
+from app.enums import EventStatus, MatchStatus
 
 
 # Response for `GET /api/v1/events`

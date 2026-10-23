@@ -17,13 +17,25 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app import constants, schemas
 from app.cache import cache
+from app.constants import RIOT_WEB_LIVE_KEY, RIOT_WEB_LIVE_TTL
 from app.core import connections
 from app.core.config import settings
 from app.cron import synthetic_match
 from app.db.models import MatchPushState
+from app.enums import MatchStatus, RiotMatchState
 from app.exceptions import ScrapingError
 from app.schemas.matches import CompactState, MatchWithDetails, VideoDelivery, VideoScore
-from app.services import fcm, live_store, matches, push, scrape_store, video_rounds
+from app.services import (
+    fcm,
+    live_store,
+    matches,
+    push,
+    riot_web,
+    riot_web_link,
+    riot_web_store,
+    scrape_store,
+    video_rounds,
+)
 from app.services.apns import APNsClient, APNsError
 from app.services.push import Routing
 from app.services.subscription_store import SubscriptionStore
@@ -58,10 +70,13 @@ async def live_push_cron(ctx: dict) -> None:
     except RedisError:
         # The gap checks are diagnostic; a Redis error must not stop the fallback pushes below.
         logger.warning("could not check the video tracker gap", exc_info=True)
-    live_ids = await _listed_live_ids(client)
+    live_ids, riot_ids = await asyncio.gather(_listed_live_ids(client), _riot_live_ids(client, sessions))
     async with sessions() as session:
         stored = set(await SubscriptionStore(session).list_match_ids())
-    match_ids = sorted((live_ids or set()) | stored)
+    for match_id in sorted(riot_ids - (live_ids or set())):
+        # How often Riot sees a match live before VLR's listing does decides whether this slice earns its keep.
+        logger.info("Riot lists match %s live; VLR's listing does not", match_id)
+    match_ids = sorted((live_ids or set()) | riot_ids | stored)
     details = await asyncio.gather(*(_fetch_detail(client, match_id) for match_id in match_ids), return_exceptions=True)
     video = await push.video_score(client)  # the tracker may have written a newer score during the fetches
     fcm_app = fcm.get_app() if settings.GOOGLE_APPLICATION_CREDENTIALS else None
@@ -72,6 +87,14 @@ async def live_push_cron(ctx: dict) -> None:
         if match_id == left_to_video and not (isinstance(detail, MatchWithDetails) and is_final(detail.event.status)):
             # The video tracker pushes this match, but a final VLR status is this cron's terminal
             # delivery: it sends the final push and cleans up the match's push and stored state.
+            continue
+        riot_only = match_id in riot_ids and match_id not in (live_ids or set()) and match_id not in stored
+        if riot_only and isinstance(detail, MatchWithDetails) and is_final(detail.event.status):
+            # Riot's live list lingers ~11 minutes after a series ends. Without this guard a
+            # Riot-only id would resend the Android FINAL on every one of those minutes. The
+            # detail cache still stored the finished row, so delete it before Riot drops the id.
+            async with sessions() as session:
+                await _delete_live_copy(session, match_id)
             continue
         failures_key = constants.PUSH_FETCH_FAILURES_KEY.format(match_id)
         delivered = False
@@ -92,8 +115,12 @@ async def live_push_cron(ctx: dict) -> None:
                         logger.warning(
                             "could not read match %s while the live listing is unavailable", match_id, exc_info=detail
                         )
-                    elif match_id in live_ids:
-                        # VLR's listing still shows the match as live, so a failed detail fetch is a hiccup.
+                    elif match_id in live_ids or (
+                        match_id in riot_ids and await _riot_live_grace_active(client, match_id)
+                    ):
+                        # VLR still shows the match as live, or Riot read it within the grace window,
+                        # so a failed detail fetch is a hiccup. Riot can keep a match alive but never
+                        # ends one: its list omits whole leagues.
                         logger.warning("could not read match %s while it is listed live", match_id, exc_info=detail)
                     else:
                         status = detail.upstream_status
@@ -111,6 +138,9 @@ async def live_push_cron(ctx: dict) -> None:
                             # ending the match; the fetch may succeed on the next run.
                             logger.warning("could not read match %s: VLR returned %s", match_id, status)
                 else:
+                    if match_id in riot_ids:
+                        # A readable page restarts the window Riot's lingering list may explain a failure in.
+                        await client.delete(constants.PUSH_RIOT_LIVE_SINCE_KEY.format(match_id))
                     baselines = await video_rounds.apply_history(client, match_id, detail)
                     scores = video_match[2] if video_match is not None and video_match[0] == match_id else None
                     if video is not None and scores is not None:
@@ -124,7 +154,9 @@ async def live_push_cron(ctx: dict) -> None:
                         fcm_app,
                         match_id,
                         detail,
-                        listed_live=live_ids is not None and match_id in live_ids,
+                        # Riot only makes the cron read the id; VLR's own status decides the push.
+                        listed_live=(live_ids is not None and match_id in live_ids)
+                        or (match_id in riot_ids and is_live(detail.event.status)),
                         # Apply video pause only to the resolved match; game numbers are not unique across matches.
                         video=video if scores is not None else None,
                     )
@@ -443,6 +475,141 @@ async def _report_video_gap(client: Redis, left_to_video: str | None) -> None:
         )
 
 
+def _cached_riot_ids(data: bytes | str) -> set[str] | None:
+    """Read a cached live answer, or None when it is not a list of valid VLR match ids.
+
+    :param data: The cached JSON.
+    :return: The cached ids, or None when any entry is not a numeric string of at most 10 characters.
+    """
+    try:
+        cached = json.loads(data)
+    except TypeError, ValueError:
+        return None
+    if not isinstance(cached, list) or not all(
+        isinstance(match_id, str) and match_id.isascii() and match_id.isdigit() and len(match_id) <= 10
+        for match_id in cached
+    ):
+        return None
+    return set(cached)
+
+
+async def _riot_live_ids(client: Redis, sessions: async_sessionmaker[AsyncSession]) -> set[str]:
+    """Find the VLR matches Riot's live list shows, as ids for the cron to read.
+
+    Riot only decides which VLR pages to look at; the VLR detail still decides every push and
+    every ending. A failure here returns no ids, so the cron behaves exactly as it did without
+    Riot. The answer is cached for a minute, matching Riot's own CDN cache.
+
+    :param client: Redis client.
+    :param sessions: Database session factory.
+    :return: VLR match IDs Riot shows live; empty when the key is unset or Riot fails.
+    """
+    if not settings.RIOT_WEB_API_KEY:
+        return set()
+    try:
+        return await _discover_riot_live_ids(client, sessions)
+    except Exception:
+        # Riot only adds ids to read: no discovery failure may abort the VLR pushes in the run.
+        logger.warning("could not use Riot's live list", exc_info=True)
+        return set()
+
+
+async def _discover_riot_live_ids(client: Redis, sessions: async_sessionmaker[AsyncSession]) -> set[str]:
+    """Read, link and cache Riot's live series; anything unexpected is left to the caller.
+
+    :param client: Redis client.
+    :param sessions: Database session factory.
+    :return: VLR match IDs Riot shows live.
+    """
+    if data := await client.get(RIOT_WEB_LIVE_KEY):
+        cached = _cached_riot_ids(data)
+        if cached is not None:
+            return cached
+        logger.warning("could not read Riot's cached live list: not a list of VLR match ids")
+
+    try:
+        async with riot_web.client() as riot:
+            events = await riot_web.live_events(riot)
+    except httpx2.HTTPStatusError as error:
+        await riot_web.report_rejection(client, error)
+        logger.warning("could not read Riot's live list: %s", error)
+        return set()
+    except (httpx2.HTTPError, ValidationError, json.JSONDecodeError) as error:
+        logger.warning("could not read Riot's live list: %s", error)
+        return set()
+
+    live = []
+    for event in events:
+        if event.match is not None and event.state != RiotMatchState.COMPLETED:
+            live.append((event.match.id, event))
+    resolved: dict[str, str] = {}
+    if riot_ids := sorted({riot_id for riot_id, _ in live}):
+        try:
+            async with sessions() as session:
+                resolved = await riot_web_store.vlr_ids_for(session, riot_ids)
+        except SQLAlchemyError:
+            logger.warning("could not read the links of Riot's live list", exc_info=True)
+            return set()
+
+    unresolved = [(riot_id, event) for riot_id, event in live if riot_id not in resolved]
+    if unresolved:
+        try:
+            listing = None
+            if raw := await client.get("matches"):
+                try:
+                    listing = schemas.MatchListAdapter.validate_json(raw)
+                except ValueError:
+                    logger.warning("the cached VLR match listing is unreadable; not linking Riot's live list")
+            if listing:
+                candidates = []
+                by_riot_id = {}
+                for riot_id, event in unresolved:
+                    match = event.match
+                    if (
+                        match is None
+                        or len(match.teams) != 2
+                        or event.start_time is None
+                        or event.league is None
+                        or not event.league.name.strip()
+                        or any(not team.name.strip() for team in match.teams)
+                    ):
+                        # A guessed time or blank competition is not the measured linking rule;
+                        # only an existing durable link may carry such a series into live discovery.
+                        continue
+                    candidates.append(
+                        riot_web_link.RiotCandidate(
+                            riot_id=riot_id,
+                            start_time=event.start_time,
+                            teams=(match.teams[0].name, match.teams[1].name),
+                            league_name=event.league.name,
+                        )
+                    )
+                    by_riot_id[riot_id] = event
+                if candidates:
+                    async with sessions() as session:
+                        claimed = await riot_web_store.linked_vlr_ids(session)
+                    links = riot_web_link.link(candidates, listing, claimed)
+                    if links:
+                        async with sessions.begin() as session:
+                            await riot_web_store.insert_missing(session, [by_riot_id[link.riot_id] for link in links])
+                            await riot_web_store.save_links(session, links)
+                        # A row inserted above can now take the link, but a concurrent durable link
+                        # still wins: only the committed database decides what is stored.
+                        async with sessions() as session:
+                            resolved |= await riot_web_store.vlr_ids_for(session, [link.riot_id for link in links])
+        except RedisError:
+            logger.warning("could not read the cached VLR listing for Riot's live list", exc_info=True)
+        except SQLAlchemyError:
+            logger.warning("could not link Riot's live list to VLR", exc_info=True)
+
+    match_ids = {resolved[riot_id] for riot_id, _ in live if riot_id in resolved}
+    try:
+        await client.set(RIOT_WEB_LIVE_KEY, json.dumps(sorted(match_ids)), ex=RIOT_WEB_LIVE_TTL)
+    except RedisError:
+        logger.warning("could not cache Riot's live list", exc_info=True)
+    return match_ids
+
+
 async def _listed_live_ids(client: Redis) -> set[str] | None:
     """Return the match IDs the VLR listing shows as live, plus a running test match.
 
@@ -473,7 +640,7 @@ async def _match_due(client: Redis) -> bool:
         return True
     horizon = datetime.now(UTC) + constants.PUSH_LISTING_LEAD
     return any(
-        is_live(match.status) or (match.status != constants.MatchStatus.COMPLETED and match.time <= horizon)
+        is_live(match.status) or (match.status != MatchStatus.COMPLETED and match.time <= horizon)
         for match in schemas.MatchListAdapter.validate_json(data)
     )
 
@@ -594,6 +761,24 @@ def _unstarted(state: CompactState) -> bool:
     :return: True when no map is current or won and the series is scoreless.
     """
     return state.current_map is None and not any(state.map_winners) and all(not team.score for team in state.teams)
+
+
+async def _riot_live_grace_active(client: Redis, match_id: str) -> bool:
+    """Check whether Riot's lingering live list still explains a failed VLR read.
+
+    The window starts at the first failed read, which directly follows the last successful one,
+    so Riot may defer cleanup for a few minutes and no longer. The mark outlives the window, so
+    once it expires a later check compares against the same start time instead of restarting it.
+
+    :param client: Redis client.
+    :param match_id: Match identifier.
+    :return: Whether the grace window is still open.
+    """
+    key = constants.PUSH_RIOT_LIVE_SINCE_KEY.format(match_id)
+    now = int(time.time())
+    await client.set(key, now, nx=True, ex=constants.PUSH_RIOT_LIVE_SINCE_TTL)
+    since = int(await client.get(key) or now)
+    return now - since < constants.PUSH_RIOT_LIVE_GRACE_SECONDS
 
 
 async def _end_unavailable_match(

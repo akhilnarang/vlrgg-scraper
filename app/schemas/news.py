@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.constants import NewsVideoProvider
+from app.enums import NewsVideoProvider
 
 
 # Response for `GET /api/v1/news`

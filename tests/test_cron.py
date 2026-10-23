@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import DEFAULT, AsyncMock, patch
 from zoneinfo import ZoneInfo
@@ -13,11 +13,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app import constants
-from app.constants import TEST_MATCH_ID, MatchStatus, Platform
+from app.constants import TEST_MATCH_ID
 from app.cron import legacy_fcm, live_push, worker
 from app.db.models import LiveActivityStart, MatchPushState
+from app.enums import MatchStatus, Platform, TeamSide
 from app.exceptions import ScrapingError
-from app.schemas.matches import Favorites
+from app.schemas.matches import Favorites, Match, MatchTeam
 
 
 def _live_detail(status: str, series: tuple[int, int]):
@@ -91,7 +92,7 @@ def test_video_score_targets_its_original_game_number():
     video.map_number = 3
     assert push.video_team_scores(detail, video) is None
 
-    video.teams[0].side, video.teams[1].side = constants.TeamSide.RED, constants.TeamSide.BLUE
+    video.teams[0].side, video.teams[1].side = TeamSide.RED, TeamSide.BLUE
     push.order_teams_for_broadcast(detail, video)
     assert [team.name for team in detail.teams] == ["Alpha", "Beta"]
 
@@ -1555,8 +1556,8 @@ async def test_video_context_resolves_the_trackers_match(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(monkeypatch, make_database):
-    """A Riot game is stored only when it alone links to a finished VLR map with a confident verdict."""
+async def test_riot_matches_cron_archives_games_then_links_them_when_a_vlr_map_appears(monkeypatch, make_database):
+    """Every completed Riot game is archived, and an unlinked one is linked once VLR has its map."""
     import httpx2
     from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -1573,6 +1574,7 @@ async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(
     await upgrade_to_head(database_url)
     sessions = async_sessionmaker(create_async_engine(database_url), expire_on_commit=False)
     monkeypatch.setattr(connections, "subscription_sessions", sessions)
+    monkeypatch.setattr(riot_matches.settings, "LLM_API_KEY", "test-key")
 
     scheduled = datetime(2026, 10, 17, 7, 0, tzinfo=ZoneInfo("UTC"))
     detail = _live_detail("completed", (2, 0))
@@ -1641,17 +1643,51 @@ async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(
             "players": [{"gameName": f"BET b{i}", "tagLine": "BET", "teamId": "Red"} for i in range(5)]
             + [{"gameName": f"ALP a{i}", "tagLine": "ALP", "teamId": "Blue"} for i in range(5)],
             "teams": [{"teamId": "Red", "roundsWon": red}, {"teamId": "Blue", "roundsWon": blue}],
+            "roundResults": [
+                {
+                    "roundNum": number,
+                    "roundResult": "Eliminated",
+                    "winningTeam": "Red" if number <= red else "Blue",
+                    "winningTeamRole": "attacker",
+                    "roundCeremony": "Default",
+                }
+                for number in range(1, red + blue + 1)
+            ],
         }
 
     games = {
         "linked": game("Plummet", 13, 5, 10),
-        "no-vlr-map": game("Plummet", 13, 7, 10),  # no VLR map scored 13-7
+        "no-vlr-map": game("Plummet", 13, 7, 10),  # no VLR map scored 13-7 yet
         "unsure": game("Duality", 11, 13, 60),  # fits Bind, but the verdict is below the threshold
-        # A voided game and its replay both fit Lotus; neither is stored.
+        # A voided game and its replay both fit Lotus; neither is linked.
         "voided": game("Jam", 13, 9, 100),
         "replay": game("Jam", 13, 9, 140),
         "still-live": game("Ascent", 13, 11, 180),
         "aborted": game("Triad", 5, 5, 200),
+        # A codename RIOT_MAP_NAMES lacks is archived without a link, not dropped.
+        "unknown-map": game("Void", 13, 3, 220),
+        # Missing a side's teams leaves nothing to link, but the completed game is still archived.
+        "no-sides": {
+            "matchInfo": {
+                "mapId": "/Game/Maps/Ascent/Ascent",
+                "isCompleted": True,
+                "gameStartMillis": int((scheduled + timedelta(minutes=240)).timestamp() * 1000),
+            },
+            "players": [{"gameName": f"BET b{i}", "tagLine": "BET", "teamId": "Red"} for i in range(5)],
+            "teams": [{"teamId": "Red", "roundsWon": 13}],
+            "roundResults": [{"roundNum": 1, "roundResult": "Eliminated", "winningTeam": "Red"}],
+        },
+        # Completed, but without any round results yet: not useful archive data, so a later run retries it.
+        "empty": {
+            "matchInfo": {
+                "mapId": "/Game/Maps/Split/Split",
+                "isCompleted": True,
+                "gameStartMillis": int((scheduled + timedelta(minutes=300)).timestamp() * 1000),
+            },
+            "players": [],
+            "teams": [],
+            "roundResults": [],
+        },
     }
     pages = {"recent-matches/by-queue/tournamentmode": {"matchIds": list(games)}}
     pages |= {f"matches/{riot_id}": data for riot_id, data in games.items()}
@@ -1668,6 +1704,7 @@ async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(
         1: GameLink(red_team="team1", blue_team="team2", same_game=True, confidence=0.99, reason="rosters"),
         2: GameLink(red_team="team2", blue_team="team1", same_game=True, confidence=0.8, reason="unsure"),
         3: GameLink(red_team="team1", blue_team="team2", same_game=True, confidence=0.99, reason="rosters"),
+        6: GameLink(red_team="team1", blue_team="team2", same_game=True, confidence=0.99, reason="rosters"),
     }
     decide = AsyncMock(side_effect=lambda _game, candidate: verdicts[candidate.map_number])
     monkeypatch.setattr(riot, "decide", decide)
@@ -1683,16 +1720,56 @@ async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(
         await riot_matches.riot_matches_cron({"redis": redis})
         # VLR's page is fetched once per run, however many games and listings point at it.
         assert fetch.await_count == 1
-        await riot_matches.riot_matches_cron({"redis": redis})
 
     async with sessions() as session:
         stored = list((await session.execute(select(RiotMatch))).scalars())
-    assert [(row.riot_id, row.vlr_match_id, row.map_number) for row in stored] == [("linked", "123", 1)]
-    assert stored[0].data == games["linked"] and stored[0].link["confidence"] == 0.99
-    # The model saw each fitting map's teams in panel order with their scoreboard players; 13-7 fit none.
-    # The second run asked the model nothing: turned-down and contested games are remembered.
+    by_id = {row.riot_id: row for row in stored}
+    # Every completed game with round results is archived, linked or not; the empty payload waits for rounds.
+    assert set(by_id) == set(games) - {"empty"}
+    assert (by_id["linked"].vlr_match_id, by_id["linked"].map_number) == ("123", 1)
+    assert by_id["linked"].data == games["linked"] and by_id["linked"].link["confidence"] == 0.99
+    assert by_id["linked"].data["roundResults"] == games["linked"]["roundResults"]
+    assert all(
+        row.vlr_match_id is None and row.map_number is None and row.link is None and row.linked_at is None
+        for riot_id, row in by_id.items()
+        if riot_id != "linked"
+    )
+    assert by_id["no-vlr-map"].data == games["no-vlr-map"]
+    assert by_id["unknown-map"].data == games["unknown-map"]
+
+    # VLR scores the next map as Summit 13-7, so the stored game links on a later run.
+    detail.data.append(
+        MatchData(
+            number=6,
+            map="Summit",
+            teams=[Team(name="Beta", score=13), Team(name="Alpha", score=7)],
+            members=beta + alpha,
+            rounds=[],
+        )
+    )
+    # Riot now returns the empty game's rounds, so this run fetches and archives it.
+    pages["matches/empty"] = game("Split", 13, 1, 300)
+    with patch("httpx2.AsyncClient.get", side_effect=get):
+        await riot_matches.riot_matches_cron({"redis": redis})
+        assert fetch.await_count == 2
+        assert requested.count("matches/empty") == 2
+
+    async with sessions() as session:
+        stored = list((await session.execute(select(RiotMatch))).scalars())
+    by_id = {row.riot_id: row for row in stored}
+    # Re-running neither duplicates a game nor re-links one already linked.
+    assert len(stored) == len(games)
+    assert by_id["empty"].data == pages["matches/empty"]
+    assert (by_id["empty"].vlr_match_id, by_id["empty"].map_number) == (None, None)
+    assert (by_id["no-vlr-map"].vlr_match_id, by_id["no-vlr-map"].map_number) == ("123", 6)
+    assert by_id["no-vlr-map"].link["confidence"] == 0.99 and by_id["no-vlr-map"].linked_at is not None
+    assert by_id["no-vlr-map"].data == games["no-vlr-map"]
+    assert all(row.vlr_match_id is None for riot_id, row in by_id.items() if riot_id not in {"linked", "no-vlr-map"})
+    # The model saw each fitting map's teams in panel order with their scoreboard players; 13-7 fit none
+    # on the first run. The later run asked only about the newly scored map: turned-down and contested
+    # games are remembered.
     asked = [call.args[1] for call in decide.await_args_list]
-    assert [candidate.map_number for candidate in asked] == [1, 2, 3, 3]
+    assert [candidate.map_number for candidate in asked] == [1, 2, 3, 3, 6]
     remembered = {key.removeprefix("valesports:riot:rejected:") for key in values if key != "matches"}
     assert remembered == {"unsure", "voided", "replay"}
     assert asked[0].team1 == VlrTeam(name="Beta", tag="BET", map_score=13, players=[f"b{i}" for i in range(5)])
@@ -1708,3 +1785,801 @@ async def test_riot_matches_cron_stores_only_games_linked_to_a_vlr_map_for_sure(
     pages["recent-matches/by-queue/tournamentmode"] = 401
     with patch("httpx2.AsyncClient.get", side_effect=get):
         await riot_matches.riot_matches_cron({"redis": redis})
+
+    # Without an LLM key the archive still runs; only linking is skipped.
+    pages["recent-matches/by-queue/tournamentmode"] = {"matchIds": ["archive-only"]}
+    pages["matches/archive-only"] = game("Jam", 13, 9, 400)
+    monkeypatch.setattr(riot_matches.settings, "LLM_API_KEY", None)
+    decide.reset_mock()
+    with patch("httpx2.AsyncClient.get", side_effect=get):
+        await riot_matches.riot_matches_cron({"redis": redis})
+    decide.assert_not_awaited()
+    async with sessions() as session:
+        archived = (await session.execute(select(RiotMatch).where(RiotMatch.riot_id == "archive-only"))).scalar_one()
+    assert (archived.vlr_match_id, archived.map_number, archived.link) == (None, None, None)
+
+
+def _riot_web_event(riot_id, teams, start, *, league="VCT Americas", slug="vct_americas", state="completed"):
+    return {
+        "startTime": start.isoformat(),
+        "state": state,
+        "type": "match",
+        "blockName": "Week 1",
+        "league": {"name": league, "slug": slug},
+        "tournament": {"split": {"name": "Stage 2"}, "season": {"name": "valorant_champions_tour_2026"}},
+        "match": {
+            "id": riot_id,
+            "teams": [
+                {
+                    "name": name,
+                    "code": code,
+                    "image": f"https://cdn.test/{code.lower()}.png",
+                    "result": {"outcome": "win" if wins else "loss", "gameWins": wins},
+                }
+                for name, code, wins in teams
+            ],
+            "strategy": {"type": "bestOf", "count": 3},
+        },
+    }
+
+
+def _riot_web_page(events, older=None):
+    return {"data": {"schedule": {"events": events, "pages": {"older": older, "newer": None}}}}
+
+
+def _vlr_listed(match_id, team1, team2, when, *, event="VCT 2026: Americas Stage 2"):
+    return Match(
+        id=match_id,
+        team1=MatchTeam(name=team1),
+        team2=MatchTeam(name=team2),
+        status=MatchStatus.COMPLETED,
+        time=when,
+        event=event,
+        series="Stage 2",
+    )
+
+
+def test_riot_web_link_scopes_gc_aliases_to_the_competition():
+    """A main-roster series must not take a GC fixture or borrow its alias; GC still resolves MIBR GC."""
+    from app.services.riot_web_link import RiotCandidate, link, team_keys
+
+    start = datetime(2026, 10, 18, 6, tzinfo=UTC)
+    assert "mibr" not in team_keys("Made In Brazil", False, riot=True)
+    non_gc = RiotCandidate("115581239610581336", start, ("Made In Brazil", "Cloud9"), "VCT Americas")
+    assert link([non_gc], [_vlr_listed("2001", "MIBR", "Cloud9", start)], set()) == []
+
+    gc = RiotCandidate("115581239610581337", start, ("Made In Brazil", "Cloud9"), "Game Changers 2026: Brazil Stage 2")
+    assert [
+        (item.riot_id, item.vlr_match_id)
+        for item in link(
+            [gc],
+            [_vlr_listed("2002", "MIBR GC", "Cloud9", start, event="Game Changers 2026: Brazil Stage 2")],
+            set(),
+        )
+    ] == [("115581239610581337", "2002")]
+
+    # A main-roster series must never take the GC fixture of the same orgs, or the reverse: both
+    # sides strip their own "GC", so the competition kind, not only the keys, has to agree.
+    main = RiotCandidate("115581239610581338", start, ("MIBR", "Cloud9"), "VCT Americas")
+    gc_listing = [_vlr_listed("2003", "MIBR GC", "Cloud9 GC", start, event="Game Changers 2026: Brazil Stage 2")]
+    assert link([main], gc_listing, set()) == []
+
+    gc_riot = RiotCandidate("115581239610581339", start, ("MIBR", "Cloud9"), "Game Changers 2026: Brazil Stage 2")
+    main_listing = [_vlr_listed("2004", "MIBR", "Cloud9", start)]
+    assert link([gc_riot], main_listing, set()) == []
+
+    # Same competition kind and the same normalised pair still links.
+    assert [(item.riot_id, item.vlr_match_id) for item in link([main], main_listing, set())] == [
+        ("115581239610581338", "2004")
+    ]
+
+
+def test_riot_web_reads_a_real_live_payload_and_links_it():
+    """A captured live `getLiveDetails` payload parses, and its aliases link it to the VLR match."""
+    from pathlib import Path
+
+    from app.schemas.riot_web import ScheduleEnvelope, ScheduleEvent
+    from app.services.riot_web_link import RiotCandidate, link
+
+    fixture = Path(__file__).parent / "fixtures" / "riot_web" / "live_gc_championship_2026.json"
+    payload = json.loads(fixture.read_text())
+    event = ScheduleEvent.model_validate(ScheduleEnvelope.model_validate(payload).data.schedule.events[0])
+    assert (event.match.id, [team.name for team in event.match.teams]) == (
+        "117200188349540112",
+        ["Gentle Mates", "Team Liquid VISA"],
+    )
+
+    # Riot says "Team Liquid VISA" and "Gentle Mates"; VLR says "Team Liquid Brazil" and "Gentle Mates GC".
+    listed = _vlr_listed(
+        "773430",
+        "Team Liquid Brazil",
+        "Gentle Mates GC",
+        event.start_time,
+        event="Game Changers 2026: Brazil Stage 2",
+    )
+    candidate = RiotCandidate(
+        event.match.id,
+        event.start_time,
+        tuple(team.name for team in event.match.teams),
+        event.league.name,
+    )
+    links = link([candidate], [listed], set())
+    assert [(item.riot_id, item.vlr_match_id) for item in links] == [("117200188349540112", "773430")]
+
+
+@pytest.mark.asyncio
+async def test_riot_web_schedule_cron_links_each_riot_match_to_one_vlr_match(monkeypatch, caplog, make_database):
+    """Name pair plus time links one VLR match; ambiguity, TBD and a claimed id stay unlinked."""
+    import httpx2
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from app import schemas
+    from app.core import connections
+    from app.cron import riot_web as riot_web_cron
+    from app.db.migrations import upgrade_to_head
+    from app.db.models import RiotWebMatch
+    from app.services import riot_web
+
+    database_url = make_database()
+    await upgrade_to_head(database_url)
+    engine = create_async_engine(database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(connections, "subscription_sessions", sessions)
+    monkeypatch.setattr(riot_web.settings, "RIOT_WEB_API_KEY", "test-key")
+
+    now = datetime.now(UTC).replace(microsecond=0)
+    base = now + timedelta(hours=2)
+    exact, suffix, fallback, alias, gc, mibr_gc, tbd, ambiguous, claimed, page_two = (
+        str(115581239610581334 + offset) for offset in range(10)
+    )
+    first_page = [
+        None,  # a null entry must cost only itself, never the page
+        _riot_web_event(exact, [("100 Thieves", "100T", 3), ("LOUD", "LOUD", 2)], base),
+        _riot_web_event(suffix, [("TYLOO GAMING", "TYL", 2), ("FNATIC", "FNC", 1)], base + timedelta(hours=1)),
+        _riot_web_event(fallback, [("FOKUS Clan", "FOK", 2), ("Team Heretics", "TH", 1)], base + timedelta(hours=3)),
+        _riot_web_event(alias, [("Fluxo", "FLX", 2), ("MIBR", "MIBR", 1)], base + timedelta(hours=4)),
+        _riot_web_event(
+            gc,
+            [("Gentle Mates", "GM", 2), ("G2 Esports", "G2", 1)],
+            base + timedelta(hours=5),
+            league="Game Changers Brazil",
+            slug="game_changers_series_brazil",
+        ),
+        _riot_web_event(mibr_gc, [("MIBR", "MIBR", 2), ("Cloud9", "C9", 1)], base + timedelta(hours=6)),
+        _riot_web_event(tbd, [("TBD", "TBD", 0), ("Sentinels", "SEN", 0)], base + timedelta(hours=7)),
+        _riot_web_event(ambiguous, [("Ambiguous Esports", "AMB", 2), ("Rivals", "RIV", 1)], base + timedelta(hours=8)),
+        _riot_web_event(claimed, [("Taken", "TAK", 2), ("Other", "OTH", 1)], base + timedelta(hours=9)),
+    ]
+    cursor = "b2xkZXI6OjExNTU4MTIzOTYxMDU4MTMzNA=="
+    pages = {
+        None: _riot_web_page(first_page, cursor),
+        cursor: _riot_web_page(
+            [_riot_web_event(page_two, [("Page Two", "P2", 2), ("Second Team", "SEC", 1)], base + timedelta(hours=10))]
+        ),
+    }
+    listing = [
+        _vlr_listed("1001", "100 Thieves", "LOUD", base),
+        _vlr_listed("1002", "TYLOO", "FNATIC", base + timedelta(hours=2, minutes=30)),
+        _vlr_listed("1003", "FOKUS", "Team Heretics", base + timedelta(hours=6)),
+        _vlr_listed("1004", "LA MASIA", "MIBR", base + timedelta(hours=4)),
+        _vlr_listed(
+            "1005", "Gentle Mates GC", "G2", base + timedelta(hours=5), event="Game Changers 2026: Brazil Stage 2"
+        ),
+        _vlr_listed("1006", "Taken", "Other", base + timedelta(hours=9)),
+        _vlr_listed("1007", "MIBR GC", "Cloud9", base + timedelta(hours=6)),
+        _vlr_listed("1008", "Ambiguous", "Rivals", base + timedelta(hours=8)),
+        _vlr_listed("1009", "Ambiguous", "Rivals", base + timedelta(hours=8, minutes=30)),
+        _vlr_listed("1010", "TBD", "Sentinels", base + timedelta(hours=7)),
+        _vlr_listed("1011", "Page Two", "Second Team", base + timedelta(hours=10)),
+    ]
+
+    async with sessions.begin() as session:
+        session.add(
+            RiotWebMatch(
+                riot_id="900000000000000001",
+                start_time=base + timedelta(hours=9),
+                league_name="VCT Americas",
+                teams=[{"name": "Taken"}, {"name": "Other"}],
+                vlr_match_id="1006",
+            )
+        )
+
+    class FakeRedis:
+        def __init__(self):
+            self.values = {"matches": schemas.MatchListAdapter.dump_json(listing)}
+
+        async def get(self, key):
+            return self.values.get(key)
+
+        async def set(self, key, value, *, nx=False, ex=None):
+            if nx and key in self.values:
+                return None
+            self.values[key] = value
+            return True
+
+    redis = FakeRedis()
+    requested = []
+
+    async def router(client, url, *, params=None, **_kwargs):
+        request = client.build_request("GET", url, params=params)
+        requested.append(request)
+        return httpx2.Response(200, json=pages[(params or {}).get("pageToken")], request=request)
+
+    caplog.set_level(logging.WARNING)
+    with patch("httpx2.AsyncClient.get", autospec=True, side_effect=router):
+        await riot_web_cron.riot_web_schedule_cron({"redis": redis})
+
+    async def stored():
+        async with sessions() as session:
+            rows = (await session.execute(select(RiotWebMatch).order_by(RiotWebMatch.riot_id))).scalars()
+            return {row.riot_id: row.vlr_match_id for row in rows}
+
+    rows = await stored()
+    assert rows == {
+        exact: "1001",
+        suffix: "1002",
+        fallback: "1003",
+        alias: "1004",
+        gc: "1005",
+        mibr_gc: None,
+        tbd: None,
+        ambiguous: None,
+        claimed: None,
+        page_two: "1011",
+        "900000000000000001": "1006",
+    }
+    assert any("fits 2 VLR matches" in record.message and ambiguous in record.message for record in caplog.records)
+    assert [record.message for record in caplog.records].count("skipping an unreadable Riot web schedule event") == 1
+    # The cursor, never page=, and the params and key every request must carry.
+    assert [request.url.params.get("pageToken") for request in requested] == [None, cursor]
+    assert all(request.url.path == "/persisted/val/getSchedule" for request in requested)
+    assert all(request.url.params.get("sport") == "val" for request in requested)
+    assert all(request.url.params.get("hl") == "en-US" for request in requested)
+    assert all(request.headers["x-api-key"] == "test-key" for request in requested)
+
+    # A rejected key changes nothing and alerts once; the next run retries.
+    before = await stored()
+    caplog.clear()
+
+    async def forbidden(client, url, *, params=None, **_kwargs):
+        request = client.build_request("GET", url, params=params)
+        return httpx2.Response(403, json={"message": "Forbidden"}, request=request)
+
+    with patch("httpx2.AsyncClient.get", autospec=True, side_effect=forbidden):
+        await riot_web_cron.riot_web_schedule_cron({"redis": redis})
+    assert [record.message for record in caplog.records if record.levelno == logging.ERROR] == [
+        "Riot web rejected RIOT_WEB_API_KEY (HTTP 403); rotate it, see docs/cron.md"
+    ]
+    assert await stored() == before
+
+    # Without the key no Riot call is made: the key is the whole switch.
+    monkeypatch.setattr(riot_web.settings, "RIOT_WEB_API_KEY", None)
+    with patch("httpx2.AsyncClient.get", autospec=True, side_effect=router) as get:
+        await riot_web_cron.riot_web_schedule_cron({"redis": redis})
+    get.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_riot_web_save_links_keeps_the_batch_when_two_writers_pick_one_vlr_match(make_database):
+    """A unique violation from a concurrent claim skips that link only, keeping the rest of the batch."""
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from app.db.migrations import upgrade_to_head
+    from app.db.models import RiotWebMatch
+    from app.services import riot_web_store
+    from app.services.riot_web_link import Link
+
+    database_url = make_database()
+    await upgrade_to_head(database_url)
+    engine = create_async_engine(database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    now = datetime.now(UTC).replace(microsecond=0)
+
+    def row(riot_id, name):
+        return RiotWebMatch(
+            riot_id=riot_id,
+            start_time=now,
+            league_name="VCT Americas",
+            teams=[{"name": name}, {"name": "Rival"}],
+        )
+
+    first, second, other = "115581239610581401", "115581239610581402", "115581239610581403"
+    async with sessions.begin() as session:
+        session.add_all([row(first, "Alpha"), row(second, "Beta"), row(other, "Gamma")])
+
+    try:
+        async with sessions.begin() as session:
+            written = await riot_web_store.save_links(
+                session,
+                [
+                    Link(first, "5001", "9001", 0),
+                    Link(second, "5001", "9001", 0),
+                    Link(other, "5002", "9002", 0),
+                ],
+            )
+        assert written == 2
+        async with sessions() as session:
+            linked = {item.riot_id: item.vlr_match_id for item in (await session.scalars(select(RiotWebMatch))).all()}
+        assert linked == {first: "5001", second: None, other: "5002"}
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_riot_web_schedule_cron_flags_times_that_disagree_with_every_name_match(
+    monkeypatch, caplog, make_database
+):
+    """Three name pairs and no delta inside two hours means the host timezone, not the teams, is wrong."""
+    import httpx2
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from app import schemas
+    from app.core import connections
+    from app.cron import riot_web as riot_web_cron
+    from app.db.migrations import upgrade_to_head
+    from app.db.models import RiotWebMatch
+    from app.services import riot_web
+
+    database_url = make_database()
+    await upgrade_to_head(database_url)
+    engine = create_async_engine(database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(connections, "subscription_sessions", sessions)
+    monkeypatch.setattr(riot_web.settings, "RIOT_WEB_API_KEY", "test-key")
+
+    base = datetime.now(UTC).replace(microsecond=0) + timedelta(days=1)
+    riot_ids = [str(200000000000000000 + offset) for offset in range(3)]
+    events = [
+        _riot_web_event(
+            riot_id,
+            [(f"Shift Team {offset}", f"SH{offset}", 1), ("Their Rivals", "RIV", 0)],
+            base + timedelta(hours=offset),
+        )
+        for offset, riot_id in enumerate(riot_ids)
+    ]
+    listing = [
+        _vlr_listed(f"200{offset}", f"Shift Team {offset}", "Their Rivals", base + timedelta(hours=offset, minutes=420))
+        for offset in range(3)
+    ]
+    pages = {None: _riot_web_page(events)}
+
+    class FakeRedis:
+        async def get(self, key):
+            return schemas.MatchListAdapter.dump_json(listing) if key == "matches" else None
+
+        async def set(self, key, value, *, nx=False, ex=None):
+            return True
+
+    async def router(client, url, *, params=None, **_kwargs):
+        return httpx2.Response(200, json=pages[None], request=client.build_request("GET", url, params=params))
+
+    caplog.set_level(logging.WARNING)
+    with patch("httpx2.AsyncClient.get", autospec=True, side_effect=router):
+        await riot_web_cron.riot_web_schedule_cron({"redis": FakeRedis()})
+
+    assert any(record.levelno == logging.ERROR and "times disagree" in record.message for record in caplog.records)
+    async with sessions() as session:
+        rows = (await session.execute(select(RiotWebMatch))).scalars().all()
+    assert len(rows) == 3 and all(row.vlr_match_id is None for row in rows)
+
+
+@pytest.mark.asyncio
+async def test_live_push_cron_follows_riot_live_matches_without_ending_or_refinalizing(
+    monkeypatch, caplog, make_database
+):
+    """Riot only adds VLR ids to read: the VLR detail still decides every push, ending and final."""
+    import httpx2
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from app.core import connections
+    from app.db.migrations import upgrade_to_head
+    from app.db.models import RiotWebMatch
+    from app.services import live_store, push
+    from app.services.subscription_store import SubscriptionStore
+
+    database_url = make_database()
+    await upgrade_to_head(database_url)
+    engine = create_async_engine(database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    riot_id, match_id = "115581239610581334", "123"
+    now = datetime.now(UTC).replace(microsecond=0)
+    android_id = "22222222-2222-4222-8222-222222222222"
+    async with sessions.begin() as session:
+        store = SubscriptionStore(session)
+        await store.register_token(android_id, "fcm-token:APA91b", Platform.ANDROID)
+        await store.add_favorites(android_id, Favorites(matches=[match_id]))
+        session.add(
+            RiotWebMatch(
+                riot_id=riot_id,
+                start_time=now,
+                league_name="Game Changers 2026: Championship",
+                teams=[{"name": "Alpha"}, {"name": "Beta"}],
+                vlr_match_id=match_id,
+            )
+        )
+
+    outcome = [_live_detail("live", (1, 0))]
+    fetched = []
+
+    async def fetch_detail(client, fetched_id):
+        fetched.append(fetched_id)
+        result = outcome[0]
+        if isinstance(result, BaseException):
+            raise result
+        return result
+
+    sent = []
+
+    async def publish_direct(app, tokens, state):
+        sent.append(state)
+        return [f"message:{len(sent)}"]
+
+    requested = []
+    riot_failure = [False]
+
+    async def live_router(client, url, *, params=None, **kwargs):
+        request = client.build_request("GET", url, params=params)
+        requested.append((request, kwargs.get("timeout")))
+        if riot_failure[0]:
+            return httpx2.Response(503, json={}, request=request)
+        event = _riot_web_event(
+            riot_id,
+            [("Alpha", "ALP", 1), ("Beta", "BET", 0)],
+            now,
+            league="Game Changers 2026: Championship",
+            slug="game_changers",
+            state="inProgress",
+        )
+        return httpx2.Response(200, json={"data": {"schedule": {"events": [event]}}}, request=request)
+
+    class FakeRedis:
+        def __init__(self):
+            self.values = {}
+
+        async def get(self, key):
+            return self.values.get(key)
+
+        async def set(self, key, value, *, nx=False, ex=None):
+            if nx and key in self.values:
+                return None
+            self.values[key] = value if isinstance(value, bytes) else str(value).encode()
+            return True
+
+        async def delete(self, *keys):
+            for key in keys:
+                self.values.pop(key, None)
+            return True
+
+        async def incr(self, key):
+            self.values[key] = str(int(self.values.get(key, b"0")) + 1).encode()
+            return int(self.values[key])
+
+        async def expire(self, key, ttl):
+            return True
+
+    redis = FakeRedis()
+    monkeypatch.setattr(live_push.settings, "ENABLE_LIVE_PUSH", True)
+    monkeypatch.setattr(live_push.settings, "GOOGLE_APPLICATION_CREDENTIALS", "configured")
+    monkeypatch.setattr(live_push.settings, "RIOT_WEB_API_KEY", "test-key")
+    monkeypatch.setattr(connections, "subscription_sessions", sessions)
+    monkeypatch.setattr(connections, "apns_client", None)
+    monkeypatch.setattr(push, "video_score", AsyncMock(return_value=None))
+    monkeypatch.setattr(live_push, "_match_left_to_video", AsyncMock(return_value=None))
+    monkeypatch.setattr(live_push, "_listed_live_ids", AsyncMock(return_value=set()))
+    monkeypatch.setattr(live_push, "_fetch_detail", fetch_detail)
+    monkeypatch.setattr(live_push.fcm, "get_app", lambda: object())
+    monkeypatch.setattr(live_push.fcm, "publish_direct", publish_direct)
+    caplog.set_level(logging.INFO)
+
+    async def run():
+        with patch("httpx2.AsyncClient.get", autospec=True, side_effect=live_router):
+            await live_push.live_push_cron({"redis": redis})
+
+    try:
+        await run()
+
+        # Riot's listing found the match VLR's did not; VLR's detail still supplied the push.
+        assert fetched == [match_id]
+        assert [(state.match_id, state.terminal) for state in sent] == [(match_id, False)]
+        async with sessions() as session:
+            assert await SubscriptionStore(session).get_match(match_id) is not None
+        assert any("Riot lists match 123 live; VLR's listing does not" in r.message for r in caplog.records)
+        async with sessions() as session:
+            assert await live_store.get_live_match(session, match_id) is not None
+        request, timeout = requested[0]
+        assert request.url.path == "/persisted/val/getLiveDetails"
+        assert request.url.params.get("sport") == "val"
+        assert request.url.params.get("hl") == "en-US"
+        assert request.headers["x-api-key"] == "test-key"
+        assert timeout == constants.RIOT_WEB_LIVE_TIMEOUT
+
+        # Riot's list lingers after the series ends; a Riot-only final with no push state must not resend it.
+        async with sessions.begin() as session:
+            await SubscriptionStore(session).delete_match(match_id)
+        outcome[0] = _live_detail("completed", (1, 0))
+        caplog.clear()
+        await run()
+        assert len(sent) == 1
+        async with sessions() as session:
+            assert await SubscriptionStore(session).get_match(match_id) is None
+            # The final detail the cache stored must not leave a live row for a series with no push state.
+            assert await live_store.get_live_match(session, match_id) is None
+        # The answer was cached, so the minute's single Riot call was reused.
+        assert len(requested) == 1
+
+        # A Riot-live id whose VLR detail keeps failing is not a match Riot may end.
+        async with sessions.begin() as session:
+            await SubscriptionStore(session).save_match(match_id, None, None)
+        outcome[0] = ScrapingError(upstream_status=502)
+        ended = AsyncMock()
+        monkeypatch.setattr(live_push, "_end_unavailable_match", ended)
+        for _ in range(constants.PUSH_FETCH_FAILURE_LIMIT + 1):
+            await run()
+        ended.assert_not_awaited()
+        async with sessions() as session:
+            assert await SubscriptionStore(session).get_match(match_id) is not None
+
+        # Riot's lingering list defers that failure only for the grace window: past it the normal
+        # path decides, so a match whose page keeps failing is still cleaned up.
+        redis.values[constants.PUSH_RIOT_LIVE_SINCE_KEY.format(match_id)] = str(
+            int(time.time()) - constants.PUSH_RIOT_LIVE_GRACE_SECONDS - 1
+        ).encode()
+        for _ in range(constants.PUSH_FETCH_FAILURE_LIMIT):
+            await run()
+        ended.assert_awaited()
+
+        # Riot failing leaves today's VLR-only behaviour untouched.
+        async with sessions.begin() as session:
+            await SubscriptionStore(session).delete_match(match_id)
+        redis.values.pop(constants.RIOT_WEB_LIVE_KEY, None)
+        outcome[0] = _live_detail("live", (1, 0))
+        monkeypatch.setattr(live_push, "_listed_live_ids", AsyncMock(return_value={match_id}))
+        riot_failure[0] = True
+        caplog.clear()
+        await run()
+        assert len(sent) == 2
+        assert any("could not read Riot's live list" in r.message for r in caplog.records)
+
+        # A cached list mixing ids with another type is a miss, not ids that break the cron's sorting.
+        async with sessions.begin() as session:
+            await SubscriptionStore(session).delete_match(match_id)
+        redis.values[constants.RIOT_WEB_LIVE_KEY] = json.dumps([match_id, 456]).encode()
+        outcome[0] = _live_detail("live", (1, 0))
+        riot_failure[0] = False
+        requests_before = len(requested)
+        caplog.clear()
+        await run()
+        assert len(sent) == 3
+        assert len(requested) == requests_before + 1
+        assert json.loads(redis.values[constants.RIOT_WEB_LIVE_KEY]) == [match_id]
+        assert any("not a list of VLR match ids" in r.message for r in caplog.records)
+
+        # An unexpected discovery failure must not escape gather and silence the VLR pushes.
+        async with sessions.begin() as session:
+            await SubscriptionStore(session).delete_match(match_id)
+        redis.values.pop(constants.RIOT_WEB_LIVE_KEY, None)
+        outcome[0] = _live_detail("live", (1, 0))
+        monkeypatch.setattr(
+            live_push.riot_web_store, "vlr_ids_for", AsyncMock(side_effect=RuntimeError("discovery bug"))
+        )
+        caplog.clear()
+        await run()
+        assert len(sent) == 4
+        assert any("could not use Riot's live list" in r.message for r in caplog.records)
+
+        # With the key unset, no Riot request is made and the VLR path is unchanged.
+        async with sessions.begin() as session:
+            await SubscriptionStore(session).delete_match(match_id)
+        redis.values.pop(constants.RIOT_WEB_LIVE_KEY, None)
+        monkeypatch.setattr(live_push.settings, "RIOT_WEB_API_KEY", None)
+        requests_before = len(requested)
+        await run()
+        assert len(sent) == 5
+        assert len(requested) == requests_before
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_riot_live_discovery_links_only_rows_it_persisted(monkeypatch, make_database):
+    """A new live id gets its row before linking, a durable link beats a stale proposal, and guessed metadata never links."""
+    import httpx2
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from app import schemas
+    from app.db.migrations import upgrade_to_head
+    from app.db.models import RiotWebMatch
+    from app.services import riot_web_store
+
+    database_url = make_database()
+    await upgrade_to_head(database_url)
+    engine = create_async_engine(database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(live_push.settings, "RIOT_WEB_API_KEY", "test-key")
+
+    now = datetime.now(UTC).replace(microsecond=0)
+    riot_id, vlr_id = "115581239610581399", "4321"
+
+    class FakeRedis:
+        def __init__(self, matches):
+            self.values = {"matches": schemas.MatchListAdapter.dump_json(matches)}
+
+        async def get(self, key):
+            return self.values.get(key)
+
+        async def set(self, key, value, *, nx=False, ex=None):
+            self.values[key] = value if isinstance(value, bytes) else str(value).encode()
+            return True
+
+    async def discover(redis, event):
+        async def router(client, url, *, params=None, **_kwargs):
+            request = client.build_request("GET", url, params=params)
+            return httpx2.Response(200, json={"data": {"schedule": {"events": [event]}}}, request=request)
+
+        with patch("httpx2.AsyncClient.get", autospec=True, side_effect=router):
+            return await live_push._riot_live_ids(redis, sessions)
+
+    try:
+        # A live series the schedule has not stored yet needs its row inserted before the link can persist.
+        redis = FakeRedis([_vlr_listed(vlr_id, "Gamma", "Delta", now)])
+        event = _riot_web_event(riot_id, [("Gamma", "GAM", 1), ("Delta", "DEL", 0)], now, state="inProgress")
+        assert await discover(redis, event) == {vlr_id}
+        assert json.loads(redis.values[constants.RIOT_WEB_LIVE_KEY]) == [vlr_id]
+        async with sessions() as session:
+            row = await session.get(RiotWebMatch, riot_id)
+        assert row is not None
+        assert (row.vlr_match_id, row.start_time, row.league_name) == (vlr_id, now, "VCT Americas")
+        assert [team["name"] for team in row.teams] == ["Gamma", "Delta"]
+
+        # Missing a real start time or competition metadata is not the measured rule, so no row or link may appear.
+        redis = FakeRedis([_vlr_listed("2001", "Missing", "Metadata", now)])
+        for index, field in enumerate(("startTime", "league")):
+            bad_riot_id = f"1155812396105814{index:02d}"
+            bad_event = _riot_web_event(
+                bad_riot_id, [("Missing", "MIS", 0), ("Metadata", "MET", 0)], now, state="inProgress"
+            )
+            bad_event.pop(field)
+            redis.values.pop(constants.RIOT_WEB_LIVE_KEY, None)
+            assert await discover(redis, bad_event) == set()
+            async with sessions() as session:
+                assert await session.get(RiotWebMatch, bad_riot_id) is None
+            assert json.loads(redis.values[constants.RIOT_WEB_LIVE_KEY]) == []
+
+        # The stricter rule governs new links only: a durably linked series still rides along without metadata.
+        lenient_riot_id, lenient_vlr_id = "115581239610581403", "3001"
+        async with sessions.begin() as session:
+            session.add(
+                RiotWebMatch(
+                    riot_id=lenient_riot_id,
+                    start_time=now,
+                    league_name="VCT Americas",
+                    teams=[{"name": "Known"}, {"name": "Linked"}],
+                    vlr_match_id=lenient_vlr_id,
+                )
+            )
+        lenient_event = _riot_web_event(
+            lenient_riot_id, [("Known", "KNW", 1), ("Linked", "LNK", 0)], now, state="inProgress"
+        )
+        for field in ("startTime", "league"):
+            lenient_event.pop(field)
+        redis.values.pop(constants.RIOT_WEB_LIVE_KEY, None)
+        assert await discover(redis, lenient_event) == {lenient_vlr_id}
+        assert json.loads(redis.values[constants.RIOT_WEB_LIVE_KEY]) == [lenient_vlr_id]
+
+        # A durable link committed after discovery's first read still wins over the stale proposal.
+        stale_riot_id, durable_id, proposed_id = "115581239610581402", "9999", "1001"
+        established_start = now - timedelta(hours=2)
+        redis = FakeRedis([_vlr_listed(proposed_id, "Racer", "Stale", now)])
+        async with sessions.begin() as session:
+            session.add(
+                RiotWebMatch(
+                    riot_id=stale_riot_id,
+                    start_time=established_start,
+                    league_name="Established League",
+                    teams=[{"name": "Racer"}, {"name": "Stale"}],
+                    vlr_match_id=durable_id,
+                )
+            )
+        event = _riot_web_event(stale_riot_id, [("Racer", "RAC", 1), ("Stale", "STA", 0)], now, state="inProgress")
+        real_vlr_ids_for = riot_web_store.vlr_ids_for
+        reads = 0
+
+        async def stale_first_read(session, riot_ids):
+            nonlocal reads
+            reads += 1
+            return {} if reads == 1 else await real_vlr_ids_for(session, riot_ids)
+
+        monkeypatch.setattr(riot_web_store, "vlr_ids_for", stale_first_read)
+        assert await discover(redis, event) == {durable_id}
+        assert reads == 2
+        assert json.loads(redis.values[constants.RIOT_WEB_LIVE_KEY]) == [durable_id]
+        async with sessions() as session:
+            row = await session.get(RiotWebMatch, stale_riot_id)
+        assert (row.vlr_match_id, row.start_time, row.league_name) == (
+            durable_id,
+            established_start,
+            "Established League",
+        )
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_riot_matches_downgrade_refuses_to_lose_unlinked_archive(make_database):
+    """A downgrade aborts while an unlinked game exists, and restores the old schema once every row is linked."""
+    import sqlalchemy as sa
+    from alembic.config import Config
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from alembic import command
+    from app.db.migrations import upgrade_to_head
+
+    database_url = make_database()
+    await upgrade_to_head(database_url)
+    engine = create_async_engine(database_url)
+
+    def downgrade() -> None:
+        config = Config("alembic.ini")
+        config.attributes["app"] = True
+        config.set_main_option("sqlalchemy.url", database_url)
+        # The Riot web and archive changes are one revision, so "-1" leaves exactly its predecessor.
+        command.downgrade(config, "-1")
+
+    try:
+        async with engine.begin() as connection:
+            await connection.execute(
+                sa.text(
+                    """INSERT INTO riot_matches (riot_id, started_at, data)
+                    VALUES ('unlinked', now(), '{"roundResults": [{"roundNum": 1}]}'::jsonb)"""
+                )
+            )
+
+        with pytest.raises(RuntimeError, match="1 riot_matches rows are unlinked or partial"):
+            await asyncio.to_thread(downgrade)
+
+        # The refused downgrade leaves the archive row in place instead of deleting it.
+        async with engine.connect() as connection:
+            assert await connection.scalar(sa.text("SELECT count(*) FROM riot_matches")) == 1
+
+        async with engine.begin() as connection:
+            await connection.execute(sa.text("DELETE FROM riot_matches"))
+            await connection.execute(
+                sa.text(
+                    "INSERT INTO riot_matches "
+                    "(riot_id, vlr_match_id, map_number, started_at, linked_at, data, link) "
+                    "VALUES ('linked', '123', 1, now(), now(), '{}'::jsonb, '{}'::jsonb)"
+                )
+            )
+
+        await asyncio.to_thread(downgrade)
+
+        async with engine.connect() as connection:
+            columns = {
+                row.column_name: row.is_nullable
+                for row in (
+                    await connection.execute(
+                        sa.text(
+                            "SELECT column_name, is_nullable FROM information_schema.columns "
+                            "WHERE table_name = 'riot_matches'"
+                        )
+                    )
+                ).all()
+            }
+            constraints = set(
+                await connection.scalars(
+                    sa.text(
+                        "SELECT conname FROM pg_constraint WHERE conrelid = 'riot_matches'::regclass AND contype = 'u'"
+                    )
+                )
+            )
+            assert await connection.scalar(sa.text("SELECT count(*) FROM riot_matches")) == 1
+
+        assert {name: columns[name] for name in ("vlr_match_id", "map_number", "linked_at", "link")} == {
+            "vlr_match_id": "NO",
+            "map_number": "NO",
+            "linked_at": "NO",
+            "link": "NO",
+        }
+        assert constraints == {"riot_matches_vlr_match_id_map_number_key"}
+    finally:
+        await engine.dispose()

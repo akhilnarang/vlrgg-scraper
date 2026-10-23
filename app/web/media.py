@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from app.constants import NewsVideoProvider
+from app.enums import NewsVideoProvider
 from app.exceptions import NotFoundError
 from app.services.news_video import valid_media_id
 

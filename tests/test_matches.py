@@ -1,5 +1,6 @@
 import asyncio
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -7,6 +8,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from app import constants
+from app.enums import MatchStatus
 from app.exceptions import ScrapingError
 from app.services import matches
 
@@ -293,8 +295,8 @@ def test_match_list_shows_the_broadcast_map_on_its_live_match(monkeypatch):
         # Another live match keeps the lookup running, so only the ended match's own status hides its map.
         stored["matches"] = schemas.MatchListAdapter.dump_json(
             [
-                listed[0].model_copy(update={"status": constants.MatchStatus.COMPLETED}),
-                listed[1].model_copy(update={"status": constants.MatchStatus.LIVE}),
+                listed[0].model_copy(update={"status": MatchStatus.COMPLETED}),
+                listed[1].model_copy(update={"status": MatchStatus.LIVE}),
             ]
         )
         ended = client.get("/api/v1/matches/").json()
@@ -608,3 +610,211 @@ def test_live_update_api_stores_token_and_favorites(monkeypatch, make_database):
         assert client.delete(f"{base}/token", headers=headers).status_code == 204
     finally:
         asyncio.run(engine.dispose())
+
+
+RIOT_WEB_VODS_FIXTURE = FIXTURE_DIR / "riot_web" / "eventdetails_champions2026_lowerfinal.json"
+
+
+def _vlr_details(numbers, scores):
+    """Build the VLR details of the Champions lower final with the given played maps and series score."""
+    from app import schemas
+
+    return schemas.MatchWithDetails.model_validate(
+        {
+            "teams": [
+                {
+                    "name": "100 Thieves",
+                    "img": "https://cdn.test/100t.png",
+                    "score": scores[0],
+                    "id": "105748037960121143",
+                },
+                {
+                    "name": "Team Vitality",
+                    "img": "https://cdn.test/vit.png",
+                    "score": scores[1],
+                    "id": "106013381894847385",
+                },
+            ],
+            "bans": [],
+            "event": {
+                "id": "2283",
+                "img": "https://cdn.test/champions.png",
+                "series": "Champions 2026",
+                "stage": "Lower Final",
+            },
+            "videos": {"streams": [], "vods": [{"name": "Map 1", "url": "https://youtu.be/MZjaOtjtRlU?t=1"}]},
+            "map_count": len(numbers),
+            "total_maps": 5,
+            "data": [
+                {
+                    "number": number,
+                    "map": f"Map {number}",
+                    "teams": [
+                        {"name": "100 Thieves", "score": 13},
+                        {"name": "Team Vitality", "score": 9},
+                    ],
+                    "members": [],
+                    "rounds": [],
+                    "winner": "100 Thieves",
+                }
+                for number in numbers
+            ],
+            "previous_encounters": [],
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_match_vods_start_each_vlr_map_at_its_riot_offset(monkeypatch, make_database):
+    """Stored Riot offsets ride along with VLR's own VODs, ordered and only when the maps agree."""
+    import httpx2
+    from sqlalchemy import select
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    from app.api.v1.endpoints.matches import get_match_by_id
+    from app.core import connections
+    from app.core.config import settings
+    from app.cron import riot_web as riot_web_cron
+    from app.db.migrations import upgrade_to_head
+    from app.db.models import RiotWebMatch
+    from app.enums import VodProvider
+    from app.schemas.riot_web import StoredDetails
+    from app.services import match_vods
+
+    database_url = make_database()
+    await upgrade_to_head(database_url)
+    engine = create_async_engine(database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(connections, "subscription_sessions", sessions)
+    monkeypatch.setattr(settings, "RIOT_WEB_API_KEY", "test-key")
+
+    now = datetime.now(UTC)
+    async with sessions.begin() as session:
+        session.add(
+            RiotWebMatch(
+                riot_id="115576361461208325",
+                start_time=now,
+                league_name="Champions",
+                teams=[{"name": "100 Thieves"}, {"name": "Team Vitality"}],
+                vlr_match_id="12345",
+            )
+        )
+
+    payload = json.loads(RIOT_WEB_VODS_FIXTURE.read_text())
+    games = payload["data"]["event"]["match"]["games"]
+    # English moved last, and an id that is not a YouTube id, must both sort/filter out.
+    games[0]["vods"].append(games[0]["vods"].pop(0))
+    games[0]["vods"].insert(0, {"parameter": "x&y=1", "locale": "en-US", "provider": "youtube", "startMillis": 1000})
+    # A Twitch VOD listed first still sorts behind YouTube within English.
+    games[1]["vods"].insert(
+        0, {"parameter": "2896791742", "locale": "en-US", "provider": "twitch", "startMillis": 2685000}
+    )
+    # A completed map can legitimately have no VOD at all.
+    games[2]["vods"] = []
+
+    requested = []
+
+    async def router(client, url, *, params=None, **_kwargs):
+        request = client.build_request("GET", url, params=params)
+        requested.append(request)
+        return httpx2.Response(200, json=payload, request=request)
+
+    with patch("httpx2.AsyncClient.get", autospec=True, side_effect=router):
+        await riot_web_cron.riot_web_details_cron({"redis": AsyncMock()})
+
+    assert [
+        (
+            request.url.path,
+            request.url.params.get("id"),
+            request.url.params.get("hl"),
+            request.url.params.get("sport"),
+            request.headers["x-api-key"],
+        )
+        for request in requested
+    ] == [("/persisted/val/getEventDetails", "115576361461208325", "en-US", "val", "test-key")]
+
+    async with sessions() as session:
+        row = await session.scalar(select(RiotWebMatch).where(RiotWebMatch.riot_id == "115576361461208325"))
+        stored = StoredDetails.model_validate(row.details)
+        tournament_id, fetched_at = row.tournament_id, row.details_fetched_at
+    assert (tournament_id, fetched_at is not None) == ("115576361459045501", True)
+    assert stored.game_wins == {"100 Thieves": 1, "Team Vitality": 3}
+    assert [(game.number, game.state, len(game.vods)) for game in stored.games] == [
+        (1, "completed", 10),
+        (2, "completed", 10),
+        (3, "completed", 0),
+        (4, "completed", 9),
+        (5, "unneeded", 0),
+    ]
+
+    details = _vlr_details([1, 2, 3, 4], [1, 3])
+    with patch("app.services.matches.cached_match_by_id", AsyncMock(return_value=details)):
+        response = await get_match_by_id("12345", AsyncMock())
+
+    assert [(item.map_number, [link.locale for link in item.links]) for item in response.map_vods] == [
+        (1, ["en-US", "es-MX", "fr-FR", "id-ID", "ja-JP", "pt-BR", "th-TH", "tr-TR", "vi-VN"]),
+        (2, ["en-US", "en-US", "es-MX", "fr-FR", "id-ID", "ja-JP", "pt-BR", "th-TH", "tr-TR", "vi-VN"]),
+        (4, ["en-US", "es-MX", "fr-FR", "id-ID", "ja-JP", "pt-BR", "th-TH", "tr-TR", "vi-VN"]),
+    ]
+    assert {link.provider for link in response.map_vods[0].links} == {VodProvider.YOUTUBE}
+    assert response.model_dump(mode="json")["map_vods"][0]["links"][0] == {
+        "provider": "youtube",
+        "locale": "en-US",
+        "start_seconds": 1,
+        "url": "https://www.youtube.com/watch?v=MZjaOtjtRlU&t=1s",
+    }
+    assert [str(link.url) for link in response.map_vods[1].links[:2]] == [
+        "https://www.youtube.com/watch?v=MZjaOtjtRlU&t=2685s",
+        "https://www.twitch.tv/videos/2896791742?t=0h44m45s",
+    ]
+    # Riot is an overlay: VLR's own video list is untouched.
+    assert [str(vod.url) for vod in response.videos.vods] == ["https://youtu.be/MZjaOtjtRlU?t=1"]
+
+    # The numbers are Riot's only map key, so any disagreement with VLR drops every offset.
+    assert await match_vods.map_vods("12345", _vlr_details([1, 2, 3], [1, 3])) == []
+    assert await match_vods.map_vods("12345", _vlr_details([1, 2, 3, 4], [2, 2])) == []
+    # A reversed series score is a different result even though the multiset of wins matches.
+    assert await match_vods.map_vods("12345", _vlr_details([1, 2, 3, 4], [3, 1])) == []
+
+
+@pytest.mark.asyncio
+async def test_map_vods_are_absent_without_stored_riot_data(monkeypatch, make_database):
+    """With no fetched series, or the key unset, the match response is what VLR alone returns."""
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    from app.api.v1.endpoints.matches import get_match_by_id
+    from app.core import connections
+    from app.core.config import settings
+    from app.db.migrations import upgrade_to_head
+    from app.services import match_vods
+
+    database_url = make_database()
+    await upgrade_to_head(database_url)
+    engine = create_async_engine(database_url)
+    monkeypatch.setattr(connections, "subscription_sessions", async_sessionmaker(engine, expire_on_commit=False))
+
+    details = _vlr_details([1, 2, 3, 4], [1, 3])
+    monkeypatch.setattr(settings, "RIOT_WEB_API_KEY", "test-key")
+    with patch("app.services.matches.cached_match_by_id", AsyncMock(return_value=details)):
+        response = await get_match_by_id("12345", AsyncMock())
+    assert response.map_vods == []
+
+    # With the key unset, a cache hit must not cost a database round trip.
+    monkeypatch.setattr(settings, "RIOT_WEB_API_KEY", None)
+    opened = []
+
+    def open_session():
+        opened.append(True)
+        raise RuntimeError("no database session may be opened while RIOT_WEB_API_KEY is unset")
+
+    monkeypatch.setattr(connections, "subscription_sessions", open_session)
+    assert await match_vods.map_vods("12345", details) == []
+    assert opened == []
+
+    with patch("app.services.matches.cached_match_by_id", AsyncMock(return_value=details)):
+        disabled = await get_match_by_id("12345", AsyncMock())
+
+    assert disabled.model_dump(mode="json") == response.model_dump(mode="json")
+    assert [(team.name, team.score) for team in disabled.teams] == [("100 Thieves", 1), ("Team Vitality", 3)]
+    assert [str(vod.url) for vod in disabled.videos.vods] == ["https://youtu.be/MZjaOtjtRlU?t=1"]
+    assert [item.number for item in disabled.data] == [1, 2, 3, 4]

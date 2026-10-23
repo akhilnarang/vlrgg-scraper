@@ -1,5 +1,6 @@
 from datetime import timedelta
-from enum import StrEnum
+
+from app.enums import Circuit, FavoriteType, MatchStatus
 
 PREFIX = "https://www.vlr.gg"
 
@@ -49,6 +50,11 @@ TEST_TICK_KEY = "valesports:push:test_tick"
 PUSH_FETCH_FAILURE_LIMIT = 3
 PUSH_FETCH_FAILURES_KEY = "valesports:push:fetch_failures:{}"
 PUSH_FETCH_FAILURES_TTL = 600  # seconds; failures are consecutive per-minute runs
+# Riot's live list lingers ~11 minutes after a series, so it may explain a failed VLR read for
+# a few minutes past the last successful one before the normal fetch-failure path takes over.
+PUSH_RIOT_LIVE_GRACE_SECONDS = 300
+PUSH_RIOT_LIVE_SINCE_KEY = "valesports:push:riot_live_since:{}"  # when a match's failed reads began
+PUSH_RIOT_LIVE_SINCE_TTL = 3600  # outlives the grace, so an expired window cannot restart
 # The live push cron fetches the VLR listing only while a cached match is live or starts within this lead.
 PUSH_LISTING_LEAD = timedelta(minutes=15)
 VIDEO_SCORE_KEY = "valesports:tracker:score"
@@ -80,62 +86,10 @@ VIDEO_MAX_LEAD_ROUNDS = 3  # rounds the tracker may lead the rounds VLR shows on
 
 DEAD_TOKEN_REASONS = frozenset({"BadDeviceToken", "Unregistered", "ExpiredToken"})
 
-
-class IdMapKind(StrEnum):
-    TEAM = "team"
-    EVENT = "event"
-
-
-class VideoStatus(StrEnum):
-    OK = "ok"
-    ERROR = "error"
-
-
-class TeamSide(StrEnum):
-    """Broadcast score bar side; blue is left."""
-
-    BLUE = "blue"
-    RED = "red"
-
-
-class VideoPauseKind(StrEnum):
-    """Broadcast tracker pause kind."""
-
-    TECH_PAUSE = "tech_pause"
-    TIMEOUT = "timeout"
-    HALFTIME = "halftime"
-    PAUSE = "pause"
-
-
-class MatchStatus(StrEnum):
-    COMPLETED = "completed"
-    ONGOING = "ongoing"
-    UPCOMING = "upcoming"
-    LIVE = "live"
-    TBD = TBD
-
-
 LIVE_STATUSES = frozenset({MatchStatus.LIVE.value, MatchStatus.ONGOING.value})
 FINAL_STATUSES = frozenset(
     {"final", MatchStatus.COMPLETED.value}
 )  # Detail pages say "final"; listings say "completed".
-
-
-class FavoriteType(StrEnum):
-    """Favorite entity types stored as plain strings in the database."""
-
-    MATCH = "match"
-    EVENT = "event"
-    TEAM = "team"
-    PLAYER = "player"
-
-
-class Platform(StrEnum):
-    """Client platform that owns a push token."""
-
-    IOS = "iOS"
-    ANDROID = "android"
-
 
 FAVORITE_GROUPS = {
     FavoriteType.TEAM: "teams",
@@ -150,41 +104,6 @@ FAVORITE_PLAYER_REFRESH_DELAY = 2  # seconds between player page fetches in the 
 FAVORITE_PLAYER_REFRESH_BATCH = 10  # most player pages fetched per players cron run (every 30 min)
 FAVORITE_PLAYER_MAX_AGE = 86400  # seconds before a stored favorite player is fetched again
 
-
-class EventStatus(StrEnum):
-    COMPLETED = "completed"
-    ONGOING = "ongoing"
-    UPCOMING = "upcoming"
-    PAUSED = "paused"
-    UNKNOWN = "unknown"
-
-
-class VetoAction(StrEnum):
-    BAN = "ban"
-    PICK = "pick"
-    REMAINS = "remains"  # the decider left over after picks/bans; ``team`` is None
-    UNKNOWN = "unknown"  # note text the parser didn't recognize; ``map`` holds the raw text
-
-
-class RoundWinner(StrEnum):
-    """Round winner as VLR's map panel orders the teams."""
-
-    TEAM1 = "team1"
-    TEAM2 = "team2"
-
-
-class Circuit(StrEnum):
-    """Competition circuit an event's matches count towards."""
-
-    VCT = "vct"
-    VCL = "vcl"  # Challengers
-    T3 = "t3"
-    GC = "gc"  # Game Changers
-    COLLEGIATE = "collegiate"
-    OFFSEASON = "offseason"
-    OTHER = "other"
-
-
 # Event tier filter values, as shown by the tier tabs on VLR's /events page.
 TIER_CIRCUITS = {
     "60": Circuit.VCT,
@@ -194,66 +113,6 @@ TIER_CIRCUITS = {
     "64": Circuit.COLLEGIATE,
     "67": Circuit.OFFSEASON,
 }
-
-
-class Region(StrEnum):
-    """Riot competitive region (VCT international league)."""
-
-    AMERICAS = "americas"
-    EMEA = "emea"
-    PACIFIC = "pacific"
-    CHINA = "china"
-
-
-class RankingScope(StrEnum):
-    """Whether a result moves the series Elo or the per-map Elo."""
-
-    MATCH = "match"
-    MAP = "map"
-
-
-class RankingSort(StrEnum):
-    ELO = "elo"
-    MAP_ELO = "map_elo"
-    MATCHES = "matches"
-    WIN_RATE = "win_rate"
-
-
-class RankingOrder(StrEnum):
-    ASC = "asc"
-    DESC = "desc"
-
-
-class PredictionSourceKind(StrEnum):
-    MODEL = "model"
-    ELO = "elo"
-
-
-class PredictionRating(StrEnum):
-    SERIES = "series"
-    MAP = "map"
-
-
-class PredictionWarningCode(StrEnum):
-    UNKNOWN_TEAM = "unknown_team"
-    LOW_COVERAGE = "low_coverage"
-    UNKNOWN_PATCH = "unknown_patch"
-    NO_ELIGIBLE_HISTORY = "no_eligible_history"
-    NO_TEAM_MAP_HISTORY = "no_team_map_history"
-    LIMITED_TEAM_MAP_HISTORY = "limited_team_map_history"
-    MAP_NOT_IN_MODEL = "map_not_in_model"
-    UNVALIDATED_MAP_FALLBACK = "unvalidated_map_fallback"
-    ELO_FALLBACK = "elo_fallback"
-    UNKNOWN = "unknown"
-
-
-class PredictionFallbackReason(StrEnum):
-    MODEL_NOT_CONFIGURED = "model_not_configured"
-    MODEL_TIMEOUT = "model_timeout"
-    MODEL_UNAVAILABLE = "model_unavailable"
-    MODEL_HTTP_ERROR = "model_http_error"
-    MODEL_INVALID_RESPONSE = "model_invalid_response"
-
 
 ELO_BASE = 1500.0
 ELO_K = 48.0
@@ -296,14 +155,56 @@ RIOT_RUN_BUDGET = timedelta(seconds=240)
 RIOT_REJECTED_KEY = "valesports:riot:rejected:{}"
 RIOT_REJECTED_TTL = timedelta(hours=13)
 
-
-class InsightKind(StrEnum):
-    """A write-once artifact generated for one match."""
-
-    PREDICTION = "prediction"
-    PRE_SUMMARY = "pre_summary"
-    POST_SUMMARY = "post_summary"
-
+# Riot's watch-page service. ``sport=val`` is mandatory: without it Riot silently answers for another sport.
+RIOT_WEB_API_URL = "https://esports-api.service.valorantesports.com/persisted/val/"
+RIOT_WEB_PARAMS = {"hl": "en-US", "sport": "val"}
+RIOT_WEB_TIMEOUT = 10.0
+RIOT_WEB_LIVE_TIMEOUT = 5.0  # inside the minute live-push cron
+RIOT_WEB_LIVE_KEY = "valesports:riot_web:live"
+RIOT_WEB_LIVE_TTL = 60  # seconds; Riot's CDN caches getLiveDetails for the same window
+RIOT_WEB_REQUEST_TIMEOUT = 5.0  # on-demand standings fetch in the brackets route
+RIOT_WEB_SCHEDULE_MAX_PAGES = 5  # 80 events a page
+RIOT_WEB_SCHEDULE_LOOKBACK = timedelta(days=3)
+RIOT_WEB_LINK_WINDOW = timedelta(minutes=120)
+RIOT_WEB_LINK_FALLBACK_WINDOW = timedelta(minutes=360)  # only with exactly one candidate
+RIOT_WEB_DETAILS_BATCH = 30
+RIOT_WEB_DETAILS_REFRESH = timedelta(hours=1)  # completed matches gain VODs/locales for a while
+RIOT_WEB_DETAILS_SETTLE = timedelta(hours=48)  # after this a fetched match is never refetched
+RIOT_WEB_VODS_TIMEOUT = 1.0  # a match request waits at most this long for its stored VOD offsets
+RIOT_WEB_STANDINGS_WINDOW = timedelta(days=2)  # tournaments with a match this close to now are refreshed
+RIOT_WEB_STANDINGS_RETRY = timedelta(hours=24)  # an ended/empty tournament is not refetched sooner
+RIOT_WEB_KEY_ALERTED_KEY = "valesports:riot_web:key_alerted"
+RIOT_WEB_KEY_ALERT_INTERVAL = 3600
+# VOD ids go into playback URLs, so only these shapes are accepted.
+YOUTUBE_VOD_ID_REGEX = r"^[A-Za-z0-9_-]{11}$"
+TWITCH_VOD_ID_REGEX = r"^\d{1,15}$"
+# Converted response; Riot's CDN caps at 60 s.
+RIOT_WEB_BRACKETS_KEY = "valesports:riot_web:brackets:{}"
+CACHE_TTL_RIOT_WEB_BRACKETS = 60
+RIOT_WEB_NAME_SUFFIXES = frozenset({"esports", "gaming", "clan"})
+# Riot display name -> VLR display names; a set, because Riot's "Fluxo" is two VLR teams.
+RIOT_WEB_TEAM_ALIASES: dict[str, frozenset[str]] = {
+    "KRÜ Visa": frozenset({"KRÜ Esports"}),
+    "Made In Brazil": frozenset({"MIBR GC"}),
+    "FENNEL HOTELAVA": frozenset({"FENNEL GC"}),
+    "Fusion": frozenset({"FUSION X"}),
+    "Bon Bon Bum Contra": frozenset({"Contra"}),
+    "Fluxo": frozenset({"LA MASIA", "Fluxo W7M"}),
+    "NAVI": frozenset({"Natus Vincere"}),
+    "VISA KRÜ Blaze": frozenset({"KRÜ BLAZE"}),
+    "Nos Sweat Blossom": frozenset({"No Sweat Blossom"}),
+    "Team Liquid VISA": frozenset({"Team Liquid Brazil"}),
+    "Dplus KIA": frozenset({"Dplus Esports"}),
+    "RED Canids Kalunga": frozenset({"RED Canids"}),
+    "YiJing": frozenset({"Yi-Jing"}),
+    "FULL SENSE SISU": frozenset({"sisu"}),
+    "Justice For Tomorrow": frozenset({"JFT GC"}),
+    "Keep Best Gaming": frozenset({"KeepBest Gaming"}),
+    "NAVI Junior": frozenset({"Natus Vincere Junior"}),
+    "Joblife GC": frozenset({"Joblife Nanas"}),
+    "KIWOOM DRX Academy": frozenset({"DRX Academy"}),
+    "T1 Esports Academy": frozenset({"T1 Academy"}),
+}
 
 # The prediction and pre-match summary are generated only within this lead before the scheduled start.
 INSIGHTS_PRE_MATCH_WINDOW = timedelta(hours=24)
@@ -327,14 +228,6 @@ INSIGHTS_NO_DATA_COOLDOWN_SECONDS = 3600
 INSIGHTS_HISTORY_DAYS = 180  # ledger history the pre-match summary draws on
 SUMMARY_MAX_CHARS = 1200  # a longer model answer is rejected, never truncated
 
-
-class NewsVideoProvider(StrEnum):
-    """Providers supported by hosted news video players."""
-
-    YOUTUBE = "youtube"
-    TWITCH = "twitch"
-
-
 REGION_NAME_MAPPING = {
     # "gc": "Game Changers",
     "la-s": "Latin America South",
@@ -342,15 +235,6 @@ REGION_NAME_MAPPING = {
     "mena": "MENA",
     "asia-pacific": "Asia-Pacific",
 }
-
-
-class SearchCategory(StrEnum):
-    ALL = "all"
-    TEAM = "teams"
-    PLAYER = "players"
-    EVENT = "events"
-    SERIES = "series"
-
 
 # Hard cap on the maximum number of pages fetched in any pagination mode.
 # Bounded mode: pages are clamped to min(param, MAX_PAGINATION_PAGES).

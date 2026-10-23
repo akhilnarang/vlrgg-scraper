@@ -15,6 +15,7 @@ from redis.asyncio import Redis
 from app import cache, constants, schemas
 from app.core.config import settings
 from app.core.connections import get_http_client
+from app.enums import Circuit, EventStatus, MatchStatus
 from app.exceptions import BadRequestError, ScrapingError
 from app.utils import clean_number_string, clean_string, get_class, get_href, get_image_url, simplify_name
 
@@ -33,7 +34,7 @@ class ParsedEventData(TypedDict):
     dates: str
     prize: str
     location: str
-    status: constants.EventStatus
+    status: EventStatus
     img: HttpUrl
     prizes: list
     teams: list
@@ -184,12 +185,12 @@ async def parse_event(event: Tag, client: Redis) -> schemas.Event:
     title = clean_string(event.find("div", class_="event-item-title").get_text())
     raw_status = clean_string(event.find("span", class_="event-item-desc-item-status").get_text()).lower()
     try:
-        status = constants.EventStatus(raw_status)
+        status = EventStatus(raw_status)
     except ValueError:
         logger.warning(
             "Unknown VLR event status %r for event_id=%s; falling back to UNKNOWN", raw_status, event_id
         )
-        status = constants.EventStatus.UNKNOWN
+        status = EventStatus.UNKNOWN
     prize = event.find("div", class_="mod-prize").get_text().strip().replace("\t", "").split("\n")[0]
     dates = event.find("div", class_="mod-dates").get_text().strip().replace("\t", "").split("\n")[0]
     location = get_class(event.find("div", class_="mod-location").find("i", class_="flag").get("class"), 1).replace(
@@ -313,14 +314,14 @@ async def parse_events_data(id: str, cache_client: Redis | None = None) -> Parse
 
     match len(match_data):
         case 2:
-            event["status"] = constants.EventStatus.ONGOING
+            event["status"] = EventStatus.ONGOING
         case 1:
             if clean_string(match_data[0].get_text()).split(" ")[0].lower() == "upcoming":
-                event["status"] = constants.EventStatus.UPCOMING
+                event["status"] = EventStatus.UPCOMING
             else:
-                event["status"] = constants.EventStatus.COMPLETED
+                event["status"] = EventStatus.COMPLETED
         case _:
-            event["status"] = constants.EventStatus.UNKNOWN
+            event["status"] = EventStatus.UNKNOWN
 
     # The overview shows only the active stage, which for a finished event is the
     # playoffs bracket. Group and Swiss tables live on the other stage pages.
@@ -508,7 +509,7 @@ def match_parser(day_matches: Tag, date: str) -> list[dict[str, str | list[str]]
                 data["score"] = int(score_data)
             team_data.append(data)
         match["teams"] = team_data
-        if match["status"] not in (constants.MatchStatus.LIVE, constants.MatchStatus.TBD):
+        if match["status"] not in (MatchStatus.LIVE, MatchStatus.TBD):
             match["eta"] = clean_string(match_data.find("div", class_="ml-eta").get_text())
 
         match_item_event = match_data.find("div", class_="match-item-event text-of").get_text().strip().split("\n")
@@ -688,7 +689,7 @@ def tier_event_ids(content: bytes) -> list[str]:
     return ids
 
 
-async def tier_event_circuits(stop_ids: set[str] | None = None, max_pages: int = 2) -> dict[str, constants.Circuit]:
+async def tier_event_circuits(stop_ids: set[str] | None = None, max_pages: int = 2) -> dict[str, Circuit]:
     """Map event IDs to circuits from VLR's tier-filtered event listings.
 
     Active and upcoming events sit on the first pages of every tier tab, so only a
@@ -699,7 +700,7 @@ async def tier_event_circuits(stop_ids: set[str] | None = None, max_pages: int =
     :return: Event ID mapped to the circuit of the tier that lists it.
     :raises ScrapingError: If any tier page returns a non-200.
     """
-    circuits: dict[str, constants.Circuit] = {}
+    circuits: dict[str, Circuit] = {}
     tiers = dict(constants.TIER_CIRCUITS)
     async with get_http_client() as client:
         page = 1

@@ -5,7 +5,8 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.constants import ID_REGEX, RANKING_MIN_MATCHES, Circuit, RankingOrder, RankingSort, Region
+from app.constants import ID_REGEX, RANKING_MIN_MATCHES
+from app.enums import Circuit, RankingOrder, RankingSort, Region
 from app.schemas.predictions import WinProbabilities
 
 EntityId = Annotated[str, Field(pattern=ID_REGEX)]

@@ -25,6 +25,9 @@ from app.constants import (
     RANKING_ACTIVE_DAYS,
     RANKING_MIN_MATCHES,
     RANKING_WINDOW_DAYS,
+)
+from app.db.models import EventRecord, MapRecord, MatchRecord, Team, TeamCircuit, TeamElo
+from app.enums import (
     Circuit,
     PredictionFallbackReason,
     PredictionRating,
@@ -33,7 +36,6 @@ from app.constants import (
     RankingSort,
     Region,
 )
-from app.db.models import EventRecord, MapRecord, MatchRecord, Team, TeamCircuit, TeamElo
 from app.exceptions import NotFoundError
 from app.schemas.matches import TeamWithImage
 from app.schemas.predictions import EloFallbackWarning, EloPredictionSource
